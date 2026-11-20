@@ -89,6 +89,115 @@ class WorldFluidParcelInterceptionTest {
 
     private fun entry(manager: WorldFluidOutflowManager) = manager.save().getList("parcels", Tag.TAG_COMPOUND.toInt()).getCompound(0)
 
+    private val stream = UUID(0, 71)
+    private val outlet = VsiFluidOutlet(8, 4, -2, 0, -1, 0, 1.0)
+
+    private fun pour(sequence: Long, x: Double, volume: Double, spin: Double) =
+        VsiFluidOutflow(sequence, sequence, 4, DIMENSION, 7, x, 101.15, .5, 0.0, -1.0, 0.0,
+            0.0, -20.0, 0.0, 17, kotlin.math.ceil(volume * 255).toInt(), stream, volume,
+            VsiFluidParcelMomentum(1000.0, spin, 0.0, 0.0, .1, .1, .1, .0, .0, .0)).also { it.outlet = outlet }
+
+    @Test fun `one outlet separates at a wall edge and delivers only the clear lanes momentum to the receiver`() {
+        val manager = WorldFluidOutflowManager(2, 2)
+        val blocked = pour(11, .96, .0625, .2)
+        val clear = pour(12, 1.04, .125, -.3)
+        assertEquals(VsiFluidOutflowResult.APPLIED, manager.enqueue(level, blocked))
+        assertEquals(VsiFluidOutflowResult.APPLIED, manager.enqueue(level, clear))
+        assertEquals(1, manager.activeParcelCount())
+        assertEquals(VsiFluidOutflowResult.RETRY_LATER, manager.enqueue(level, clear))
+        every { level.getBlockState(any()) } answers {
+            val pos = firstArg<BlockPos>()
+            if (pos.x == 0 && pos.y == 100) Blocks.STONE.defaultBlockState() else Blocks.AIR.defaultBlockState()
+        }
+        manager.tick(levels)
+        val sweeps = requests.values.sortedBy { it.startX }
+        assertEquals(2, sweeps.size)
+        val (wall, opening) = sweeps
+        assertEquals(.96, wall.startX)
+        assertEquals(1.04, opening.startX)
+        assertTrue(wall.maximumFraction < .5)
+        assertEquals(1.0, opening.maximumFraction)
+        assertEquals(blocked.momentum, wall.momentum)
+        assertEquals(clear.momentum, opening.momentum)
+        assertEquals(15.9375, wall.fillAmount)
+        assertEquals(31.875, opening.fillAmount)
+        assertEquals(-20.4905, opening.worldVelocityY!!, 1e-12)
+        assertEquals(19L, opening.receivers.single().bodyId)
+        receipts[opening.id] = VsiFluidParcelInterceptionResult(opening.fillAmount, .5, 19)
+        manager.tick(levels)
+        assertEquals(1, manager.activeParcelCount())
+        assertEquals(.0625, entry(manager).getString("volume").toDouble())
+        assertEquals(.2, entry(manager).getCompound("momentum").getDouble("lx"))
+    }
+
+    @Test fun `clear flight shares an owner and checkpoints each original trajectory`() {
+        ships.clear()
+        val grouped = WorldFluidOutflowManager()
+        val baseline = WorldFluidOutflowManager()
+        for (event in listOf(pour(11, .96, .0625, .2), pour(12, 1.04, .125, -.3))) {
+            assertEquals(VsiFluidOutflowResult.APPLIED, grouped.enqueue(level, event))
+            assertEquals(VsiFluidOutflowResult.APPLIED, baseline.enqueue(level, event.copy()))
+        }
+        repeat(3) {
+            assertEquals(1, grouped.activeParcelCount())
+            assertEquals(2, baseline.activeParcelCount())
+            assertEquals(baseline.save(), grouped.save())
+            grouped.tick(levels)
+            baseline.tick(levels)
+        }
+        val restored = WorldFluidOutflowManager().also { it.load(grouped.save()) }
+        restored.tick(levels)
+        grouped.tick(levels)
+        assertEquals(restored.save(), grouped.save())
+    }
+
+    @Test fun `same outlet requires the original stream revision face size and game tick`() {
+        val first = pour(11, 1.0, .0625, 0.0)
+        val next = pour(12, 1.0, .0625, 0.0)
+        for (other in listOf(next.copy(streamId = UUID(0,72)).also { it.outlet = outlet },
+            next.copy(sourceRevision = 5).also { it.outlet = outlet },
+            next.copy().also { it.outlet = outlet.copy(dx = 1, dy = 0) },
+            next.copy().also { it.outlet = outlet.copy(cellSize = .5) },
+            next.copy(publicationId = 15).also { it.outlet = outlet }, next.copy())) {
+            val manager = WorldFluidOutflowManager()
+            manager.enqueue(level, first)
+            manager.enqueue(level, other)
+            assertEquals(2, manager.activeParcelCount())
+        }
+        ships.clear()
+        val manager = WorldFluidOutflowManager()
+        manager.enqueue(level, first)
+        manager.tick(levels)
+        manager.enqueue(level, next)
+        assertEquals(2, manager.activeParcelCount())
+    }
+
+    @Test fun `nearby ship broad phase keeps a passing stream grouped and preserves pending receipts on reload`() {
+        val manager = WorldFluidOutflowManager()
+        manager.enqueue(level, pour(11, .96, .0625, .2))
+        manager.enqueue(level, pour(12, 1.04, .125, -.3))
+        manager.tick(levels)
+        assertEquals(1, manager.activeParcelCount())
+        val before = manager.save()
+        val restored = WorldFluidOutflowManager().also { it.load(before) }
+        assertEquals(before, restored.save())
+        assertEquals(2, requests.size)
+        for (id in requests.keys) receipts[id] = VsiFluidParcelInterceptionResult(0.0, 1.0, null)
+        manager.tick(levels)
+        assertEquals(1, manager.activeParcelCount())
+        assertEquals(4, requests.size)
+        val latest = requests.values.toList().takeLast(2)
+        for (request in latest) {
+            val caught = request.startX > 1.0
+            receipts[request.id] = VsiFluidParcelInterceptionResult(if (caught) request.fillAmount else 0.0,
+                if (caught) .5 else 1.0, if (caught) 19 else null)
+        }
+        manager.tick(levels)
+        assertEquals(1, manager.activeParcelCount())
+        assertEquals(.0625, entry(manager).getString("volume").toDouble())
+        assertEquals(.2, entry(manager).getCompound("momentum").getDouble("lx"))
+    }
+
     @Test fun `momentum survives airborne parcel reload and partial interception`() {
         val momentum = VsiFluidParcelMomentum(1000.0, .02, .01, -.03, .1, .1, .1, .0, .0, .0)
         val first = WorldFluidOutflowManager(8, 8)

@@ -33,6 +33,7 @@ import org.valkyrienskies.core.internal.physics.VsiFluidOutflow
 import org.valkyrienskies.core.internal.physics.VsiFluidOutflowResult
 import org.valkyrienskies.core.internal.physics.VsiFluidParcelInterception
 import org.valkyrienskies.core.internal.physics.VsiFluidParcelMomentum
+import org.valkyrienskies.core.internal.world.VsiServerShipWorld
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.config.VSGameConfig
@@ -249,12 +250,21 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
         var mergeX = 0
         var mergeY = 0
         var mergeZ = 0
+        var companions: MutableList<OutletFlight>? = null
+        var flightUnits: BigDecimal? = null
         fun blockPosition(): BlockPos =
             BlockPos.containing(worldPosition.x, worldPosition.y, worldPosition.z)
     }
 
     private class ParcelInterception(val id: UUID, val end: Vector3d, val velocity: Vector3d,
-        var applied: Boolean = false, var collisionFraction: Double = 1.0)
+        var applied: Boolean = false, var collisionFraction: Double = 1.0) {
+        var accepted = false
+    }
+
+    private class OutletFlight(val position: Vector3d, val velocity: Vector3d, var units: BigDecimal,
+        val momentum: VsiFluidParcelMomentum?, var interception: ParcelInterception? = null)
+
+    private class OutletCandidate(var event: VsiFluidOutflow, var parcel: Parcel, val next: OutletCandidate?)
 
     private data class PendingPlacement(
         val pos: BlockPos,
@@ -375,6 +385,12 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
             if (--size == 0) tail = null
             return result
         }
+        fun insertAfterFirst(parcel: Parcel) {
+            parcel.queueNext = first.queueNext
+            first.queueNext = parcel
+            if (tail === first) tail = parcel
+            size++
+        }
         override fun iterator(): Iterator<Parcel> = object : Iterator<Parcel> {
             private var next = head
             override fun hasNext() = next != null
@@ -388,6 +404,9 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
 
     private var parcels = ParcelQueue()
     private val mergeBuckets = arrayOfNulls<Parcel>(1024)
+    private val outletSlots = arrayOfNulls<OutletCandidate>(2048)
+    private var indexedOutlets = false
+    private var companionCount = 0
     private var currentTick = 0L
     private var pressureClockNanos: Long? = null
     private var pressureAdvancedTime = false
@@ -400,7 +419,7 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
     private fun canMerge(parcel: Parcel): Boolean = !parcel.consumed && !parcel.hasPlacement &&
         parcel.interception == null && parcel.momentum == null && parcel.settlementAnchor == null &&
         parcel.settledSources == null && parcel.surfaceMotion == SurfaceMotion.NONE &&
-        parcel.mergeFluid != null && parcel.sourceUnits.signum() > 0 &&
+        parcel.companions == null && parcel.mergeFluid != null && parcel.sourceUnits.signum() > 0 &&
         parcel.sourceUnits < MAX_MERGED_PARCEL_UNITS
 
     private fun mergeBucket(parcel: Parcel, x: Int, y: Int, z: Int): Int =
@@ -513,7 +532,7 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
         return enqueueParcel(outflow.dimensionId, fluid,
             Vector3d(outflow.worldPositionX, outflow.worldPositionY, outflow.worldPositionZ),
             Vector3d(outflow.worldVelocityX, outflow.worldVelocityY, outflow.worldVelocityZ),
-            BigDecimal.valueOf(outflow.worldVolume) * FULL_SOURCE, outflow.momentum)
+            BigDecimal.valueOf(outflow.worldVolume) * FULL_SOURCE, outflow.momentum, outflow = outflow)
     }
 
     internal fun enqueueExact(dimension: String, fluidName: String, position: Vector3d, velocity: Vector3d,
@@ -529,8 +548,9 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
     private fun enqueueParcel(dimension: String, fluid: FlowingFluid, position: Vector3d, velocity: Vector3d,
         units: BigDecimal, momentum: VsiFluidParcelMomentum? = null,
         surfaceMotion: SurfaceMotion = SurfaceMotion.NONE,
+        outflow: VsiFluidOutflow? = null,
     ): VsiFluidOutflowResult {
-        if (parcels.size >= maxActiveParcels.coerceAtLeast(1)) {
+        if (parcels.size + companionCount >= maxActiveParcels.coerceAtLeast(1)) {
             return VsiFluidOutflowResult.RETRY_LATER
         }
         val fluidName = BuiltInRegistries.FLUID.getKey(fluid)
@@ -542,6 +562,13 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
         }
         parcelStorage.reserve(bytes)
         try {
+            val outlet = outflow?.outlet
+            val slot = if (!servicing && outflow?.streamId != null && outlet != null && units < MAX_OUTLET_UNITS &&
+                velocity.isFinite) HashCommon.mix(BlockPos.asLong(outlet.x, outlet.y, outlet.z) xor outflow.sourceBodyId xor
+                (outlet.dx + 3L * outlet.dy + 9L * outlet.dz)).toInt() and (outletSlots.size - 1) else -1
+            val candidate = if (slot >= 0) findOutlet(slot, requireNotNull(outflow)) else null
+            if (candidate != null && addToOutlet(candidate, requireNotNull(outflow), position, velocity, units))
+                return VsiFluidOutflowResult.APPLIED
             val parcel = Parcel(
                 dimensionId = dimension,
                 worldPosition = Vector3d(position),
@@ -557,6 +584,14 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
                 momentum = momentum,
             )
             parcel.surfaceMotion = surfaceMotion
+            if (slot >= 0) {
+                if (candidate == null) outletSlots[slot] = OutletCandidate(requireNotNull(outflow), parcel, outletSlots[slot])
+                else {
+                    candidate.event = requireNotNull(outflow)
+                    candidate.parcel = parcel
+                }
+                indexedOutlets = true
+            }
             parcels.addLast(parcel)
             indexParcel(parcel)
         } catch (error: Throwable) {
@@ -564,6 +599,45 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
             throw error
         }
         return VsiFluidOutflowResult.APPLIED
+    }
+
+    private fun findOutlet(slot: Int, event: VsiFluidOutflow): OutletCandidate? {
+        var candidate = outletSlots[slot]
+        while (candidate != null) {
+            val first = candidate.event
+            if (first.streamId == event.streamId && first.sourceBodyId == event.sourceBodyId &&
+                first.sourceRevision == event.sourceRevision && first.fluidId == event.fluidId &&
+                first.dimensionId == event.dimensionId && first.outlet == event.outlet) return candidate
+            candidate = candidate.next
+        }
+        return null
+    }
+
+    private fun addToOutlet(candidate: OutletCandidate, event: VsiFluidOutflow, position: Vector3d,
+        velocity: Vector3d, units: BigDecimal): Boolean {
+        val first = candidate.event
+        if (event.publicationId < first.publicationId || event.publicationId - first.publicationId > 2) return false
+        val owner = candidate.parcel
+        val members = owner.companions
+        val total = (owner.flightUnits ?: owner.sourceUnits) + units
+        if (total > MAX_OUTLET_UNITS || (members?.size ?: 0) >= 7 ||
+            owner.worldPosition.distanceSquared(position) > 0.0625 || owner.velocity.distanceSquared(velocity) > 0.25 ||
+            members?.any { it.position.distanceSquared(position) > 0.0625 || it.velocity.distanceSquared(velocity) > 0.25 } == true)
+            return false
+        val flights = members ?: ArrayList(2)
+        flights.add(OutletFlight(position, velocity, units, event.momentum))
+        if (members == null) {
+            unindexParcel(owner)
+            owner.companions = flights
+        }
+        owner.flightUnits = total
+        companionCount++
+        return true
+    }
+
+    private fun clearOutletIndex() {
+        if (indexedOutlets) outletSlots.fill(null)
+        indexedOutlets = false
     }
 
     fun tick(levels: Map<String, ServerLevel>) {
@@ -605,13 +679,16 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
 
     private fun serviceParcels(levels: Map<String, ServerLevel>, parcelLimit: Int) {
         if (servicing) return
+        clearOutletIndex()
         servicing = true
         var failure: Throwable? = null
         var pendingRetirements = false
         try {
             var motionStepsLeft = MAX_PARCEL_MOTION_STEPS_PER_PASS
             var parcelsLeft = minOf(parcels.size, parcelLimit)
+            var serviced = 0
             while (parcelsLeft-- > 0 && motionStepsLeft > 0) {
+                serviced++
                 // The selected owner stays capacity-counted and saveable during every callback.
                 val parcel = parcels.first
                 unindexParcel(parcel)
@@ -635,7 +712,16 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
                     }
                     val previousStorage = parcelStorage.usedBytes
                     val previousVolume = parcel.sourceUnits
-                    var result = if (parcel.consumed) ParcelUpdateResult.CONSUMED else updateParcel(level, parcel, fluid, elapsed)
+                    val flight = if (parcel.companions != null && elapsed == 1L) advanceOutletGroup(level, parcel, fluid) else null
+                    if (flight == null && parcel.companions != null) {
+                        val split = splitOutletGroup(parcel)
+                        parcelsLeft = minOf(parcelLimit - serviced, parcelsLeft + split)
+                    }
+                    var result = when {
+                        flight != null -> flight
+                        parcel.consumed -> ParcelUpdateResult.CONSUMED
+                        else -> updateParcel(level, parcel, fluid, elapsed)
+                    }
                     if (result == ParcelUpdateResult.PAUSED) parcel.lastUpdatedTick = currentTick
                     if (result != ParcelUpdateResult.CONSUMED && mergeParcel(level, parcel, fluid))
                         result = ParcelUpdateResult.CONSUMED
@@ -716,6 +802,116 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
         parcelStorage.release(parcel.metadataBytes)
     }
 
+    private fun advanceOutletGroup(level: ServerLevel, owner: Parcel, fluid: FlowingFluid): ParcelUpdateResult? {
+        val flights = requireNotNull(owner.companions)
+        val world = (level.server as? IShipObjectWorldServerProvider)?.shipObjectWorld
+        if (owner.interception != null || flights.any { it.interception != null }) {
+            if (world == null) return null
+            var ready = 0
+            fun resolve(pending: ParcelInterception?, units: BigDecimal, setUnits: (BigDecimal) -> Unit): Boolean {
+                if (pending == null) return false
+                resolveInterception(world, pending, units) { remaining ->
+                    owner.flightUnits = requireNotNull(owner.flightUnits) - (units - remaining)
+                    setUnits(remaining)
+                }
+                if (pending.applied) ready++
+                return !pending.accepted && pending.collisionFraction == 1.0
+            }
+            if (!resolve(owner.interception, owner.sourceUnits) { owner.sourceUnits = it } ||
+                flights.any { part -> !resolve(part.interception, part.units) { part.units = it } }) return null
+            if (ready == 0) return ParcelUpdateResult.PAUSED
+            if (ready != flights.size + 1) return null
+            val lo = Vector3d(owner.worldPosition).min(owner.interception!!.end)
+            val hi = Vector3d(owner.worldPosition).max(owner.interception!!.end)
+            for (part in flights) {
+                lo.min(part.position).min(part.interception!!.end)
+                hi.max(part.position).max(part.interception!!.end)
+            }
+            if (!isClearFlight(level, lo, hi)) return null
+            owner.worldPosition.set(owner.interception!!.end)
+            owner.velocity.set(owner.interception!!.velocity)
+            owner.interception = null
+            for (part in flights) {
+                part.position.set(part.interception!!.end)
+                part.velocity.set(part.interception!!.velocity)
+                part.interception = null
+            }
+        }
+        val lo = Vector3d(owner.worldPosition)
+        val hi = Vector3d(lo)
+        val leadEnd = Vector3d(lo).add(advanceFiniteVelocity(Vector3d(owner.velocity)))
+        lo.min(leadEnd)
+        hi.max(leadEnd)
+        for (flight in flights) {
+            val end = Vector3d(flight.position).add(advanceFiniteVelocity(Vector3d(flight.velocity)))
+            if (end.distanceSquared(leadEnd) > 0.0625) return null
+            lo.min(flight.position).min(end)
+            hi.max(flight.position).max(end)
+        }
+        if (!isClearFlight(level, lo, hi)) return null
+        if (world != null && world.supportsFluidParcelInterception) {
+            var reserved = 0L
+            try {
+                val receivers = WorldFluidParcelReceivers.collect(world, owner.dimensionId, lo, hi, sweepReceiverMotion) {
+                    parcelStorage.reserve(it)
+                    reserved += it
+                }
+                if (receivers == null) return null
+                if (receivers.isNotEmpty()) {
+                    val fluidId = MassDatapackResolver.getLiquidStateId(fluid.getSource(false).createLegacyBlock()) ?: return null
+                    fun submit(pos: Vector3d, vel: Vector3d, units: BigDecimal, momentum: VsiFluidParcelMomentum?): ParcelInterception? {
+                        val nextVelocity = Vector3d(vel)
+                        val end = Vector3d(pos).add(advanceFiniteVelocity(nextVelocity))
+                        val amount = offeredAmount(units)
+                        if (amount <= 0) return null
+                        val intent = ParcelInterception(UUID.randomUUID(), end, nextVelocity)
+                        val request = VsiFluidParcelInterception(intent.id, owner.dimensionId, fluidId, amount,
+                            pos.x, pos.y, pos.z, end.x, end.y, end.z, 1.0, receivers,
+                            nextVelocity.x, nextVelocity.y, nextVelocity.z, momentum)
+                        return intent.takeIf { world.submitFluidParcelInterception(request) }
+                    }
+                    owner.interception = submit(owner.worldPosition, owner.velocity, owner.sourceUnits, owner.momentum) ?: return null
+                    for (part in flights) part.interception = submit(part.position, part.velocity, part.units, part.momentum) ?: return null
+                    return ParcelUpdateResult.PAUSED
+                }
+            } finally {
+                parcelStorage.release(reserved)
+            }
+        }
+        owner.worldPosition.add(advanceFiniteVelocity(owner.velocity))
+        for (flight in flights) flight.position.add(advanceFiniteVelocity(flight.velocity))
+        owner.lastUpdatedTick++
+        return ParcelUpdateResult.MOVED
+    }
+
+    private fun isClearFlight(level: ServerLevel, lo: Vector3d, hi: Vector3d): Boolean {
+        val bottom = BlockPos.containing(lo.x, lo.y - 1.0, lo.z)
+        val top = BlockPos.containing(hi.x, hi.y, hi.z)
+        if (bottom.y < level.minBuildHeight || top.y >= level.maxBuildHeight) return false
+        for (pos in BlockPos.betweenClosed(bottom, top)) {
+            if (!level.hasChunkAt(pos)) return false
+            val state = level.getBlockState(pos)
+            if (!state.isAir || !state.fluidState.isEmpty || !state.canBeReplaced()) return false
+        }
+        return true
+    }
+
+    private fun splitOutletGroup(owner: Parcel): Int {
+        val flights = requireNotNull(owner.companions)
+        val members = flights.map { flight ->
+            Parcel(owner.dimensionId, flight.position, flight.velocity, owner.fluidName, owner.fluid, flight.units,
+                owner.lastUpdatedTick, metadataBytes = owner.metadataBytes, momentum = flight.momentum).also {
+                it.interception = flight.interception
+            }
+        }
+        for (i in members.indices.reversed()) parcels.insertAfterFirst(members[i])
+        owner.companions = null
+        owner.flightUnits = null
+        companionCount -= members.size
+        parcelsWithDueMotion += members.size
+        return members.size
+    }
+
     private fun releaseDeliveredRetirements() {
         repeat(parcels.size) {
             val parcel = parcels.removeFirst()
@@ -737,13 +933,7 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
             if (!pending.applied) {
                 val world = (level.server as? IShipObjectWorldServerProvider)?.shipObjectWorld
                     ?: return ParcelUpdateResult.PAUSED
-                world.consumeFluidParcelInterception(pending.id) { receipt ->
-                    val remaining = parcel.sourceUnits - BigDecimal.valueOf(receipt.acceptedAmount)
-                    check(remaining.signum() >= 0) { "Parcel receiver accepted more water than the parcel owns" }
-                    parcel.sourceUnits = remaining
-                    pending.collisionFraction = receipt.collisionFraction
-                    pending.applied = true
-                }
+                resolveInterception(world, pending, parcel.sourceUnits) { parcel.sourceUnits = it }
                 if (!pending.applied) return ParcelUpdateResult.PAUSED
             }
             if (parcel.sourceUnits.signum() == 0) return ParcelUpdateResult.CONSUMED
@@ -1367,8 +1557,7 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
             } ?: return true
             if (receivers.isEmpty()) return false
             val fluidId = MassDatapackResolver.getLiquidStateId(fluid.getSource(false).createLegacyBlock()) ?: return true
-            var amount = parcel.sourceUnits.min(BigDecimal.valueOf(Double.MAX_VALUE)).toDouble()
-            if (BigDecimal.valueOf(amount) > parcel.sourceUnits) amount = Math.nextDown(amount)
+            val amount = offeredAmount(parcel.sourceUnits)
             if (amount <= 0) return false
             val limit = parcelTerrainLimit(level, parcel, staged.worldPosition, displacement, fluid)
             if (limit == 0.0) return false
@@ -1417,6 +1606,26 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
                 if (axes and 4 != 0) dz else 0)
         }
         return 0.0
+    }
+
+    private fun offeredAmount(units: BigDecimal): Double {
+        val amount = units.min(BigDecimal.valueOf(Double.MAX_VALUE)).toDouble()
+        return if (BigDecimal.valueOf(amount) > units) Math.nextDown(amount) else amount
+    }
+
+    private inline fun resolveInterception(world: VsiServerShipWorld, pending: ParcelInterception, units: BigDecimal,
+        crossinline setUnits: (BigDecimal) -> Unit) {
+        if (pending.applied) return
+        world.consumeFluidParcelInterception(pending.id) { receipt ->
+            if (receipt.acceptedAmount > 0) {
+                val remaining = units - BigDecimal.valueOf(receipt.acceptedAmount)
+                check(remaining.signum() >= 0) { "Parcel receiver accepted more water than the parcel owns" }
+                setUnits(remaining)
+                pending.accepted = true
+            }
+            pending.collisionFraction = receipt.collisionFraction
+            pending.applied = true
+        }
     }
 
     private fun advanceParcel(
@@ -1546,43 +1755,16 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
         putInt("version", when {
             parcels.any { it.surfaceMotion != SurfaceMotion.NONE } -> 9
             parcels.any { it.collectionAgeTicks >= 0 } -> 8
-            parcels.any { it.momentum != null } -> 7
+            parcels.any { it.momentum != null || it.companions?.any { part -> part.momentum != null } == true } -> 7
             else -> 6
         })
         put("parcels", ListTag().also { list ->
             parcels.forEach { parcel ->
                 if (parcel.consumed || (parcel.sourceUnits.signum() == 0 && !parcel.hasPlacement && parcel.interception == null)) return@forEach
                 list.add(CompoundTag().apply {
-                    putString("dimension", parcel.dimensionId)
-                    putString("fluid", parcel.fluidName.toString())
-                    putDouble("x", parcel.worldPosition.x); putDouble("y", parcel.worldPosition.y)
-                    putDouble("z", parcel.worldPosition.z)
-                    putDouble("vx", parcel.velocity.x); putDouble("vy", parcel.velocity.y)
-                    putDouble("vz", parcel.velocity.z)
-                    parcel.momentum?.let { motion ->
-                        put("momentum", CompoundTag().apply {
-                            putDouble("density", motion.massDensity)
-                            putDouble("lx", motion.angularMomentumPerMassX)
-                            putDouble("ly", motion.angularMomentumPerMassY)
-                            putDouble("lz", motion.angularMomentumPerMassZ)
-                            putDouble("ixx", motion.inertiaPerMassXX); putDouble("iyy", motion.inertiaPerMassYY)
-                            putDouble("izz", motion.inertiaPerMassZZ); putDouble("ixy", motion.inertiaPerMassXY)
-                            putDouble("ixz", motion.inertiaPerMassXZ); putDouble("iyz", motion.inertiaPerMassYZ)
-                        })
-                    }
-                    putVolume(this, "volume", parcel.sourceUnits)
-                    putLong("lag", currentTick - parcel.lastUpdatedTick)
+                    saveFlight(this, parcel, parcel.worldPosition, parcel.velocity, parcel.sourceUnits, parcel.momentum, parcel.interception)
                     if (parcel.collectionAgeTicks >= 0) putLong("collection_age", parcel.collectionAgeTicks)
                     if (parcel.surfaceMotion != SurfaceMotion.NONE) putString("surface_motion", parcel.surfaceMotion.name)
-                    parcel.interception?.let { pending ->
-                        put("interception", CompoundTag().apply {
-                            putUUID("id", pending.id)
-                            putDouble("x", pending.end.x); putDouble("y", pending.end.y); putDouble("z", pending.end.z)
-                            putDouble("vx", pending.velocity.x); putDouble("vy", pending.velocity.y); putDouble("vz", pending.velocity.z)
-                            putBoolean("applied", pending.applied)
-                            putDouble("collision", pending.collisionFraction)
-                        })
-                    }
                     if (parcel.hasPlacement) {
                         val pos = parcel.placementPosition()
                         put("placement", CompoundTag().apply {
@@ -1604,8 +1786,43 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
                         putIntArray("settlement", intArrayOf(pos.x, pos.y, pos.z))
                     }
                 })
+                parcel.companions?.forEach { part ->
+                    list.add(CompoundTag().apply {
+                        saveFlight(this, parcel, part.position, part.velocity, part.units, part.momentum, part.interception)
+                        putLongArray("settled_sources", LongArrays.EMPTY_ARRAY)
+                    })
+                }
             }
         })
+    }
+
+    private fun saveFlight(tag: CompoundTag, parcel: Parcel, pos: Vector3d, vel: Vector3d, units: BigDecimal,
+        momentum: VsiFluidParcelMomentum?, interception: ParcelInterception?) = with(tag) {
+        putString("dimension", parcel.dimensionId)
+        putString("fluid", parcel.fluidName.toString())
+        putDouble("x", pos.x); putDouble("y", pos.y); putDouble("z", pos.z)
+        putDouble("vx", vel.x); putDouble("vy", vel.y); putDouble("vz", vel.z)
+        putVolume(this, "volume", units)
+        putLong("lag", currentTick - parcel.lastUpdatedTick)
+        interception?.let { pending ->
+            put("interception", CompoundTag().apply {
+                putUUID("id", pending.id)
+                putDouble("x", pending.end.x); putDouble("y", pending.end.y); putDouble("z", pending.end.z)
+                putDouble("vx", pending.velocity.x); putDouble("vy", pending.velocity.y); putDouble("vz", pending.velocity.z)
+                putBoolean("applied", pending.applied)
+                putDouble("collision", pending.collisionFraction)
+            })
+        }
+        momentum?.let { motion ->
+            put("momentum", CompoundTag().apply {
+                putDouble("density", motion.massDensity)
+                putDouble("lx", motion.angularMomentumPerMassX); putDouble("ly", motion.angularMomentumPerMassY)
+                putDouble("lz", motion.angularMomentumPerMassZ)
+                putDouble("ixx", motion.inertiaPerMassXX); putDouble("iyy", motion.inertiaPerMassYY)
+                putDouble("izz", motion.inertiaPerMassZZ); putDouble("ixy", motion.inertiaPerMassXY)
+                putDouble("ixz", motion.inertiaPerMassXZ); putDouble("iyz", motion.inertiaPerMassYZ)
+            })
+        }
     }
 
     /** Validate the entire checkpoint before changing ownership. Missing mod fluids remain paused and saveable. */
@@ -1783,6 +2000,8 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
             }
             // All allocation and validation precedes this reference/scalar publication.
             parcels = restored
+            clearOutletIndex()
+            companionCount = 0
             mergeBuckets.fill(null)
             parcels.forEach { indexParcel(it) }
             currentTick = 0
@@ -1856,10 +2075,7 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
             val recipients = players.filter {
                 it.distanceToSqr(parcel.worldPosition.x, parcel.worldPosition.y, parcel.worldPosition.z) <= VISUAL_RANGE_SQUARED
             }
-            val state = FluidParcelState(BuiltInRegistries.FLUID.getKey(fluid.source).toString(),
-                parcel.worldPosition.x, parcel.worldPosition.y, parcel.worldPosition.z,
-                parcel.velocity.x, parcel.velocity.y, parcel.velocity.z,
-                parcel.sourceUnits.divide(FULL_SOURCE, MathContext.DECIMAL128).toDouble())
+            val state = visualState(parcel, fluid)
             val packet = PacketFluidParcel(parcel.visualId, level.dimension().location().toString(), ++parcel.visualRevision, state)
             val recipientIds = HashSet<UUID>(recipients.size)
             recipients.forEach { recipientIds.add(it.uuid) }
@@ -1873,6 +2089,25 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
         } finally {
             if (!retained) parcelStorage.release(bytes)
         }
+    }
+
+    private fun visualState(parcel: Parcel, fluid: FlowingFluid): FluidParcelState {
+        val units = parcel.flightUnits ?: parcel.sourceUnits
+        var pos = parcel.worldPosition
+        var vel = parcel.velocity
+        parcel.companions?.let { flights ->
+            pos = Vector3d(pos)
+            vel = Vector3d(vel)
+            for (part in flights) {
+                val fraction = part.units.toDouble() / units.toDouble()
+                pos.add((part.position.x - parcel.worldPosition.x) * fraction,
+                    (part.position.y - parcel.worldPosition.y) * fraction, (part.position.z - parcel.worldPosition.z) * fraction)
+                vel.add((part.velocity.x - parcel.velocity.x) * fraction,
+                    (part.velocity.y - parcel.velocity.y) * fraction, (part.velocity.z - parcel.velocity.z) * fraction)
+            }
+        }
+        return FluidParcelState(BuiltInRegistries.FLUID.getKey(fluid.source).toString(), pos.x, pos.y, pos.z,
+            vel.x, vel.y, vel.z, units.divide(FULL_SOURCE, MathContext.DECIMAL128).toDouble())
     }
 
     private fun restoreVisual(level: ServerLevel, parcel: Parcel) {
@@ -1951,6 +2186,7 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
     }
 
     private companion object {
+        val MAX_OUTLET_UNITS = BigDecimal("127.5")
         private val MERGE_CELL_OFFSETS = intArrayOf(0, -1, 1)
         val MAX_PARCEL_UNITS = BigDecimal.valueOf(Double.MAX_VALUE) * FULL_SOURCE
         const val QUANTITY_PLACEMENT_BYTES = 16L * 1024
