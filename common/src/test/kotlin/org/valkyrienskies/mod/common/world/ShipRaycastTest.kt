@@ -15,6 +15,7 @@ import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.phys.HitResult
 import net.minecraft.world.phys.Vec3
 import net.minecraft.world.phys.shapes.VoxelShape
+import net.minecraft.client.multiplayer.ClientChunkCache
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.Direction
 import net.minecraft.world.phys.BlockHitResult
@@ -47,7 +48,6 @@ class ShipRaycastTest {
     private var level = mockk<Level>(relaxed = true)
     private val ship = mockk<Ship>()
     private val chunk = mockk<LevelChunk>()
-    private val chunkSource = mockk<ChunkSource>()
     private val queried = mutableListOf<BlockPos>()
     private val chunks = mutableListOf<Pair<Int, Int>>()
     private var loaded = true
@@ -57,7 +57,7 @@ class ShipRaycastTest {
         stubLevel()
     }
 
-    private fun stubLevel() {
+    private fun stubLevel(chunkSource: ChunkSource = mockk()) {
         every { level.shipObjectWorld } returns mockk(relaxed = true)
         every { level.getShipsIntersecting(any<AABBdc>()) } returns listOf(ship)
         every { ship.id } returns 1L
@@ -201,7 +201,7 @@ class ShipRaycastTest {
     @Test fun `client clipping uses the same interpolated bounds as its ray transform`() {
         val client = mockk<ClientLevel>(relaxed = true)
         level = client
-        stubLevel()
+        stubLevel(mockk<ClientChunkCache>())
         val clientShip = mockk<ClientShip>()
         every { client.isClientSide() } returns true
         every { level.getShipsIntersecting(any<AABBdc>()) } returns emptyList()
