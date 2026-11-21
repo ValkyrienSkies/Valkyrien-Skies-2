@@ -9,13 +9,6 @@ import org.junit.jupiter.api.Test
 import java.math.BigDecimal
 
 class FractionalFluidSourcesTest {
-    private companion object {
-        const val DIMENSION = "minecraft:overworld"
-        const val WATER = "minecraft:water"
-
-        @JvmStatic @BeforeAll fun bootstrap() { SharedConstants.tryDetectVersion(); Bootstrap.bootStrap() }
-    }
-
     @Test
     fun `legacy flowing fluid ownership restores under its source identity`() {
         val sources = FractionalFluidSources()
@@ -103,5 +96,11 @@ class FractionalFluidSourcesTest {
         val restored = FractionalFluidSources().also { it.load(before) }
         assertEquals(BigDecimal(29), restored.amount("minecraft:the_nether", 4, 5, 6, WATER))
         assertEquals(BigDecimal(7), restored.amount(DIMENSION, 4, 5, 6, WATER))
+    }
+
+    private companion object {
+        const val DIMENSION = "minecraft:overworld"
+        const val WATER = "minecraft:water"
+        @JvmStatic @BeforeAll fun bootstrap() { SharedConstants.tryDetectVersion(); Bootstrap.bootStrap() }
     }
 }

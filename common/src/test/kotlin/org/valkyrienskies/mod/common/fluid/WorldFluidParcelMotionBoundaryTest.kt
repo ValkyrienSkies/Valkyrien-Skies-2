@@ -15,19 +15,29 @@ import org.junit.jupiter.api.Assertions.*
 import org.valkyrienskies.core.internal.physics.VsiFluidOutflow
 import org.valkyrienskies.core.internal.physics.VsiFluidOutflowResult
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
-import kotlin.math.nextDown
-import kotlin.math.nextUp
 
 class WorldFluidParcelMotionBoundaryTest {
     companion object {
         private const val DIMENSION = "minecraft:overworld"
-
         @JvmStatic @BeforeAll fun bootstrap() { SharedConstants.tryDetectVersion(); Bootstrap.bootStrap() }
     }
 
     private val level = mockk<ServerLevel>()
     private var loaded: (BlockPos) -> Boolean = { true }
     private val levels get() = mapOf(DIMENSION to level)
+
+    @BeforeEach fun setup() {
+        every { level.server } returns mockk<net.minecraft.server.MinecraftServer>()
+        mockkObject(MassDatapackResolver)
+        every { MassDatapackResolver.getFlowingFluid(17) } returns Fluids.WATER
+        every { level.minBuildHeight } returns -64
+        every { level.maxBuildHeight } returns 320
+        every { level.hasChunkAt(any()) } answers { loaded(firstArg()) }
+        every { level.getBlockState(any()) } returns Blocks.AIR.defaultBlockState()
+        every { level.players() } returns emptyList()
+    }
+
+    @AfterEach fun cleanup() { unmockkAll() }
 
     private fun enqueue(manager: WorldFluidOutflowManager, position: Vector3d, velocity: Vector3d) {
         val event = VsiFluidOutflow(1, 1, 1, DIMENSION, 7, position.x, position.y, position.z,
@@ -53,23 +63,7 @@ class WorldFluidParcelMotionBoundaryTest {
         assertEquals(2.0, saved.getString("volume").toDouble(), context)
     }
 
-    @BeforeEach
-    fun setup() {
-        every { level.server } returns mockk<net.minecraft.server.MinecraftServer>()
-        mockkObject(MassDatapackResolver)
-        every { MassDatapackResolver.getFlowingFluid(17) } returns Fluids.WATER
-        every { level.minBuildHeight } returns -64
-        every { level.maxBuildHeight } returns 320
-        every { level.hasChunkAt(any()) } answers { loaded(firstArg()) }
-        every { level.getBlockState(any()) } returns Blocks.AIR.defaultBlockState()
-        every { level.players() } returns emptyList()
-    }
-
-    @AfterEach
-    fun cleanup() = unmockkAll()
-
-    @Test
-    fun `entry validation and private motion match the general helper across pressure and restore`() {
+    @Test fun `entry validation and private motion match the general helper across pressure and restore`() {
         for (value in listOf(Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY,
             Double.MAX_VALUE, -Double.MAX_VALUE, Double.MIN_VALUE)) for (axis in 0..2)
             for (pressure in listOf(false, true)) {
@@ -97,8 +91,7 @@ class WorldFluidParcelMotionBoundaryTest {
             }
     }
 
-    @Test
-    fun `exact cell faces and nearest reachable endpoints never bypass unloaded terrain`() {
+    @Test fun `exact cell faces and nearest reachable endpoints never bypass unloaded terrain`() {
         val gravityPerTick = -9.81 * (1.0 / 20.0)
         for (origin in listOf(-0.5, 0.5)) for (axis in 0..2) for (direction in listOf(-1, 1))
             for (edge in -1..1) for (pressure in listOf(false, true)) {
@@ -116,7 +109,7 @@ class WorldFluidParcelMotionBoundaryTest {
                 if (edge != 0) {
                     var attempts = 0
                     while (endpoint(chosen) == face && attempts++ < 1024) {
-                        chosen = if (edge < 0) chosen.nextDown() else chosen.nextUp()
+                        chosen = if (edge < 0) Math.nextDown(chosen) else Math.nextUp(chosen)
                     }
                     assertTrue(attempts < 1024)
                     assertTrue(if (edge < 0) endpoint(chosen) < face else endpoint(chosen) > face)

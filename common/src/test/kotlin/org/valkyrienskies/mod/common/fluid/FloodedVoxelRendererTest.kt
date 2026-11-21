@@ -38,12 +38,10 @@ class FloodedVoxelRendererTest {
     @Test
     fun `one unit of fill still emits nondegenerate faces`() {
         val quads = renderCells(1, 1).chunked(4)
-
         assertEquals(12, quads.size)
         for (quad in quads) {
             val edgeA = Vector3d(quad[1].position).sub(quad[0].position)
             val edgeB = Vector3d(quad[2].position).sub(quad[0].position)
-
             assertTrue(edgeA.cross(edgeB).lengthSquared() > 0.0)
         }
     }

@@ -35,7 +35,6 @@ import org.valkyrienskies.mod.common.config.MassDatapackResolver
 class WorldFluidParcelFailureRecoveryTest {
     companion object {
         private const val DIMENSION = "minecraft:overworld"
-
         @JvmStatic @BeforeAll fun bootstrap() { SharedConstants.tryDetectVersion(); Bootstrap.bootStrap() }
     }
 
@@ -51,18 +50,7 @@ class WorldFluidParcelFailureRecoveryTest {
     private val tickQueue = mockk<LevelTicks<Fluid>>(relaxed = true)
     private val levels get() = mapOf(DIMENSION to level)
 
-    private fun outflow(fill: Int = 255, x: Double = 0.5, y: Double = 1.5, dimension: String = DIMENSION,
-        vx: Double = 0.0, fluid: Int = 17) = VsiFluidOutflow(1, 1, 1, dimension, 7, x, y, 0.5,
-        0.0, -1.0, 0.0, vx, 0.0, 0.0, fluid, fill)
-
-    private fun entries(manager: WorldFluidOutflowManager) = manager.save().getList("parcels", Tag.TAG_COMPOUND.toInt())
-
-    private fun pending(manager: WorldFluidOutflowManager) = entries(manager).sumOf { (it as CompoundTag).getString("volume").toDouble() }
-
-    private fun sources() = blocks.values.count { it.fluidState.isSource }
-
-    @BeforeEach
-    fun setup() {
+    @BeforeEach fun setup() {
         every { level.server } returns mockk<MinecraftServer>()
         mockkObject(MassDatapackResolver)
         every { MassDatapackResolver.getFlowingFluid(17) } returns Fluids.WATER
@@ -83,11 +71,17 @@ class WorldFluidParcelFailureRecoveryTest {
         every { level.scheduleTick(any<BlockPos>(), any<Fluid>(), any<Int>()) } answers { fluidTicks++ }
     }
 
-    @AfterEach
-    fun cleanup() = unmockkAll()
+    @AfterEach fun cleanup() { unmockkAll() }
 
-    @Test
-    fun `unknown block payload is budgeted before copy and survives two independent reloads`() {
+    private fun outflow(fill: Int = 255, x: Double = 0.5, y: Double = 1.5, dimension: String = DIMENSION,
+        vx: Double = 0.0, fluid: Int = 17) = VsiFluidOutflow(1, 1, 1, dimension, 7, x, y, 0.5,
+        0.0, -1.0, 0.0, vx, 0.0, 0.0, fluid, fill)
+
+    private fun entries(manager: WorldFluidOutflowManager) = manager.save().getList("parcels", Tag.TAG_COMPOUND.toInt())
+    private fun pending(manager: WorldFluidOutflowManager) = entries(manager).sumOf { (it as CompoundTag).getString("volume").toDouble() }
+    private fun sources() = blocks.values.count { it.fluidState.isSource }
+
+    @Test fun `unknown block payload is budgeted before copy and survives two independent reloads`() {
         val manager = WorldFluidOutflowManager(4, 4)
         val empty = manager.parcelStorageBytes()
         manager.enqueue(level, outflow(510))
@@ -139,8 +133,7 @@ class WorldFluidParcelFailureRecoveryTest {
         assertEquals(empty, restored.parcelStorageBytes())
     }
 
-    @Test
-    fun `overdeep block NBT is rejected before recursive copy without changing ownership`() {
+    @Test fun `overdeep block NBT is rejected before recursive copy without changing ownership`() {
         val manager = WorldFluidOutflowManager(1, 1)
         manager.enqueue(level, outflow(510))
         every { level.setBlock(any(), any(), any()) } throws IllegalStateException("hold journal")
@@ -157,8 +150,7 @@ class WorldFluidParcelFailureRecoveryTest {
         assertEquals(original, manager.save())
     }
 
-    @Test
-    fun `custom placement encoding is admitted before world writes and frozen for retry`() {
+    @Test fun `custom placement encoding is admitted before world writes and frozen for retry`() {
         val property = mockk<Property<String>>()
         val secondProperty = mockk<Property<String>>()
         val state = mockk<BlockState>()
@@ -209,8 +201,7 @@ class WorldFluidParcelFailureRecoveryTest {
         assertEquals(empty, manager.parcelStorageBytes())
     }
 
-    @Test
-    fun `visuals skip at capacity but partial delivery retains prepaid restoration storage`() {
+    @Test fun `visuals skip at capacity but partial delivery retains prepaid restoration storage`() {
         val manager = WorldFluidOutflowManager(8, 8)
         manager.enqueue(level, outflow(y = 100.5))
         val retained = manager.parcelStorageBytes()
@@ -244,8 +235,7 @@ class WorldFluidParcelFailureRecoveryTest {
         assertTrue(manager.peakParcelStorageBytes() <= manager.maxParcelStorageBytes)
     }
 
-    @Test
-    fun `visual restoration and redisplay cannot hide exhausted source storage`() {
+    @Test fun `visual restoration and redisplay cannot hide exhausted source storage`() {
         val manager = WorldFluidOutflowManager(2, 2, 1L)
         manager.enqueue(level, outflow(510))
         manager.enqueue(level, outflow(y = 100.5))
@@ -270,8 +260,7 @@ class WorldFluidParcelFailureRecoveryTest {
     private fun restore(saved: CompoundTag): WorldFluidOutflowManager =
         WorldFluidOutflowManager(1, 1) { 0L }.also { it.load(saved) }
 
-    @Test
-    fun `placement exceptions recover before and after application across a real save load`() {
+    @Test fun `placement exceptions recover before and after application across a real save load`() {
         for (pressure in listOf(false, true)) for (applied in listOf(false, true)) {
             blocks.clear(); loaded = { true }; writes = 0
             var now = 0L
@@ -301,8 +290,7 @@ class WorldFluidParcelFailureRecoveryTest {
         }
     }
 
-    @Test
-    fun `scheduling exceptions retain a zero volume receipt and never repeat placement or scheduling`() {
+    @Test fun `scheduling exceptions retain a zero volume receipt and never repeat placement or scheduling`() {
         for (pressure in listOf(false, true)) for (applied in listOf(false, true)) {
             blocks.clear(); scheduled.clear(); loaded = { true }; writes = 0; fluidTicks = 0
             var now = 0L
@@ -332,8 +320,7 @@ class WorldFluidParcelFailureRecoveryTest {
         }
     }
 
-    @Test
-    fun `interrupted pure motion rolls back and catches up exactly after save load`() {
+    @Test fun `interrupted pure motion rolls back and catches up exactly after save load`() {
         for (pressure in listOf(false, true)) {
             terrain = { Blocks.AIR.defaultBlockState() }; loaded = { true }
             val reference = WorldFluidOutflowManager(1, 1)
@@ -355,8 +342,7 @@ class WorldFluidParcelFailureRecoveryTest {
         }
     }
 
-    @Test
-    fun `later catch-up failure commits preceding completed ticks but not the interrupted tick`() {
+    @Test fun `later catch-up failure commits preceding completed ticks but not the interrupted tick`() {
         for (pressure in listOf(false, true)) {
             terrain = { Blocks.AIR.defaultBlockState() }; loaded = { true }
             val reference = WorldFluidOutflowManager(1, 1)
@@ -383,8 +369,7 @@ class WorldFluidParcelFailureRecoveryTest {
         }
     }
 
-    @Test
-    fun `callback reentry cannot steal capacity replace ownership or advance time twice`() {
+    @Test fun `callback reentry cannot steal capacity replace ownership or advance time twice`() {
         for (pressure in listOf(false, true)) {
             loaded = { true }; terrain = { Blocks.AIR.defaultBlockState() }
             var now = 0L
@@ -410,8 +395,7 @@ class WorldFluidParcelFailureRecoveryTest {
         }
     }
 
-    @Test
-    fun `nested saves retain placement intent before and after a successful write`() {
+    @Test fun `nested saves retain placement intent before and after a successful write`() {
         for (pressure in listOf(false, true)) for (after in listOf(false, true)) {
             blocks.clear(); loaded = { true }; writes = 0
             var now = 0L
@@ -433,8 +417,7 @@ class WorldFluidParcelFailureRecoveryTest {
         }
     }
 
-    @Test
-    fun `unavailable or conflicting placement stays owned and malformed intent load is atomic`() {
+    @Test fun `unavailable or conflicting placement stays owned and malformed intent load is atomic`() {
         val manager = WorldFluidOutflowManager(1, 1)
         manager.enqueue(level, outflow(510))
         every { level.setBlock(any(), any(), any()) } throws IllegalStateException("placement")
@@ -461,8 +444,7 @@ class WorldFluidParcelFailureRecoveryTest {
         assertEquals(1, sources()); assertEquals(1.0, pending(restored))
     }
 
-    @Test
-    fun `shared staging preserves each owner when a later parcel callback fails`() {
+    @Test fun `shared staging preserves each owner when a later parcel callback fails`() {
         for (pressure in listOf(false, true)) {
             terrain = { Blocks.AIR.defaultBlockState() }; loaded = { true }
             val reference = WorldFluidOutflowManager(2, 2)
@@ -492,8 +474,7 @@ class WorldFluidParcelFailureRecoveryTest {
         }
     }
 
-    @Test
-    fun `unknown placement block states retain original serialized ownership`() {
+    @Test fun `unknown placement block states retain original serialized ownership`() {
         for (key in listOf("before", "after")) {
             blocks.clear(); loaded = { true }; writes = 0
             val manager = WorldFluidOutflowManager(1, 1)
@@ -513,8 +494,7 @@ class WorldFluidParcelFailureRecoveryTest {
             assertEquals(independent, restored.save(), "Loaded unknown tags must own their saved state")
         }
     }
-    @Test
-    fun `placement does not reuse an observation across a later world callback`() {
+    @Test fun `placement does not reuse an observation across a later world callback`() {
         for (pressure in listOf(false, true)) {
             blocks.clear()
             val target = BlockPos(0, 1, 0)
@@ -553,8 +533,7 @@ class WorldFluidParcelFailureRecoveryTest {
         every { level.players() } returns players
     }
 
-    @Test
-    fun `partial visual delivery remains recoverable before and after the second client applies it`() {
+    @Test fun `partial visual delivery remains recoverable before and after the second client applies it`() {
         for (pressure in listOf(false,true)) for (applied in listOf(false,true)) {
             val clients = listOf(mutableMapOf<BlockPos, BlockState>(), mutableMapOf())
             var fail = true
@@ -580,8 +559,7 @@ class WorldFluidParcelFailureRecoveryTest {
         }
     }
 
-    @Test
-    fun `partial visual restoration retries all intended recipients`() {
+    @Test fun `partial visual restoration retries all intended recipients`() {
         for (applied in listOf(false,true)) {
             val clients = listOf(mutableMapOf<BlockPos, BlockState>(), mutableMapOf())
             var fail = false
@@ -602,8 +580,7 @@ class WorldFluidParcelFailureRecoveryTest {
         }
     }
 
-    @Test
-    fun `clear requested inside packet delivery takes effect after the in flight send completes`() {
+    @Test fun `clear requested inside packet delivery takes effect after the in flight send completes`() {
         for (pressure in listOf(false,true)) {
             val clients = listOf(mutableMapOf<BlockPos, BlockState>(), mutableMapOf())
             var now = 0L
@@ -620,8 +597,7 @@ class WorldFluidParcelFailureRecoveryTest {
         }
     }
 
-    @Test
-    fun `visual cleanup callbacks cannot replace parcel ownership`() {
+    @Test fun `visual cleanup callbacks cannot replace parcel ownership`() {
         val manager = WorldFluidOutflowManager(1,1)
         val empty = WorldFluidOutflowManager().save()
         var attempted = false
@@ -636,8 +612,7 @@ class WorldFluidParcelFailureRecoveryTest {
         assertTrue(attempted); assertEquals(1, entries(manager).size)
     }
 
-    @Test
-    fun `legacy scheduling receipts without an attempt marker still avoid duplicate enqueue`() {
+    @Test fun `legacy scheduling receipts without an attempt marker still avoid duplicate enqueue`() {
         val manager = WorldFluidOutflowManager(1,1)
         manager.enqueue(level, outflow(fill=128))
         every { level.scheduleTick(any<BlockPos>(),any<Fluid>(),any<Int>()) } answers {
@@ -654,8 +629,7 @@ class WorldFluidParcelFailureRecoveryTest {
         assertEquals(1,fluidTicks); assertEquals(0,restored.activeParcelCount())
     }
 
-    @Test
-    fun `deferred cleanup preserves the primary exception and can retry its own failure`() {
+    @Test fun `deferred cleanup preserves the primary exception and can retry its own failure`() {
         val clients = listOf(mutableMapOf<BlockPos, BlockState>(),mutableMapOf())
         val manager = WorldFluidOutflowManager(1,1)
         val primary = IllegalStateException("delivery primary")
@@ -676,8 +650,7 @@ class WorldFluidParcelFailureRecoveryTest {
         assertTrue(clients.all { client -> client.values.all { it.fluidState.isEmpty } })
     }
 
-    @Test
-    fun `placement journal preserves full width coordinates across failed writes and restore`() {
+    @Test fun `placement journal preserves full width coordinates across failed writes and restore`() {
         for (x in listOf(Int.MIN_VALUE,Int.MAX_VALUE)) for (z in listOf(Int.MIN_VALUE,Int.MAX_VALUE)) {
             blocks.clear();scheduled.clear();writes=0
             val pos=BlockPos(x,1,z)

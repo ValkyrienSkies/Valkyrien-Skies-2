@@ -27,7 +27,6 @@ class FluidBoundaryRegistrationTest {
     fun `slabs retain half capacity including waterlogged states`() {
         val bottom = Blocks.OAK_SLAB.defaultBlockState()
         val top = bottom.setValue(BlockStateProperties.SLAB_TYPE, SlabType.TOP)
-
         assertEquals(2048, solidCount(boundary(bottom)))
         assertEquals(2048, solidCount(boundary(top)))
         assertNotEquals(boundary(bottom), boundary(top))
@@ -40,7 +39,6 @@ class FluidBoundaryRegistrationTest {
         for (block in listOf(Blocks.OAK_DOOR, Blocks.OAK_TRAPDOOR)) {
             val closed = block.defaultBlockState()
             val opened = closed.setValue(BlockStateProperties.OPEN, true)
-
             assertNotEquals(boundary(closed), boundary(opened))
             assertEquals(solidCount(boundary(closed)), solidCount(boundary(opened)))
             assertTrue(solidCount(boundary(closed)) in 1..4095)
@@ -50,7 +48,6 @@ class FluidBoundaryRegistrationTest {
     @Test
     fun `bars preserve openings and empty shapes are permeable`() {
         val bars = boundary(Blocks.IRON_BARS.defaultBlockState())
-
         assertTrue(solidCount(bars) in 1..4095)
         assertEquals(FluidBoundaryRegistration.fromShape(Shapes.empty()), FluidBoundaryShape.OPEN)
         assertEquals(FluidBoundaryShape.CLOSED, boundary(Blocks.STONE.defaultBlockState()))

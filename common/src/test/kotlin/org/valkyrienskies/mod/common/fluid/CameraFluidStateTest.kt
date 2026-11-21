@@ -40,7 +40,12 @@ import org.valkyrienskies.mod.mixin.client.MixinCamera as MountedCamera
 
 class CameraFluidStateTest {
     companion object {
-        @JvmStatic @BeforeAll fun bootstrap() { SharedConstants.tryDetectVersion(); Bootstrap.bootStrap() }
+        @JvmStatic
+        @BeforeAll
+        fun bootstrapMinecraft() {
+            SharedConstants.tryDetectVersion()
+            Bootstrap.bootStrap()
+        }
     }
 
     private val level = mockk<ClientLevel>()
@@ -258,35 +263,24 @@ class CameraFluidStateTest {
         val query = Operation {
             assertTrue((invoke(camera, "vs\$centerFluid", level, BlockPos.ZERO, fluidOperation) as FluidState).isEmpty)
             assertEquals(0.25f, height())
-
             val plane = invoke(camera, "vs\$nearPlaneFluid", level, BlockPos.ZERO, fluidOperation, cameraPosition) as FluidState
-
             assertSame(Fluids.WATER, plane.type)
             assertEquals(Float.POSITIVE_INFINITY, height())
-
             invoke(camera, "vs\$nearPlaneFluid", level, BlockPos(3, 0, 0), fluidOperation, Vec3(3.5, 0.25, 0.5))
-
             assertEquals(0.25f, height())
             FogType.WATER
         }
-
         assertEquals(FogType.WATER, invoke(camera, "vs\$cameraGrace", query))
         assertEquals(0.25f, height())
-
         VSGameConfig.CLIENT.sealedAreaCameraGracePeriod = 2
-
         assertEquals(FogType.NONE, invoke(camera, "vs\$cameraGrace", query))
-
         invoke(camera, "vs\$resetFluid", CallbackInfo("reset", false))
-
         assertEquals(FogType.LAVA, invoke(camera, "vs\$cameraGrace", Operation { FogType.LAVA }))
         // A failed render query must not leave a strong level reference or stale height override.
         assertThrows(InvocationTargetException::class.java) {
             invoke(camera, "vs\$cameraGrace", Operation<FogType> { throw IllegalStateException("render failure") })
         }
-
         val levelField = MixinCamera::class.java.getDeclaredField("vs\$sampleLevel").apply { isAccessible = true }
-
         assertNull(levelField.get(camera))
     }
 
@@ -319,12 +313,10 @@ class CameraFluidStateTest {
                 var actual: Vector3d? = null
                 val original = Operation<Void> { args ->
                     assertSame(target, args[0])
-
                     actual = Vector3d(args[1] as Double, args[2] as Double, args[3] as Double)
                     null
                 }
                 hook.invoke(camera, target, 10.0, 20.0 + interpolatedHeight, z, original, partialTick)
-
                 assertTrue(expected.distance(actual) < 1e-6, "partialTick=$partialTick, z=$z, actual=$actual")
             }
         }

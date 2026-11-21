@@ -19,10 +19,7 @@ import org.valkyrienskies.core.internal.physics.VsiFluidOutflowResult
 import org.valkyrienskies.core.internal.physics.VsiFluidSourceWithdrawal
 import org.valkyrienskies.core.internal.physics.VsiFluidSourceWithdrawalResult
 import org.valkyrienskies.core.internal.world.chunks.VsiBlockType
-import org.valkyrienskies.mod.api.dimensionId
-import org.valkyrienskies.mod.api.getShipManagingPos
-import org.valkyrienskies.mod.common.BlockStateInfo
-import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider
+import org.valkyrienskies.mod.common.*
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import java.math.BigDecimal
 
@@ -30,7 +27,6 @@ class WorldFluidFeedbackTest {
     companion object {
         private const val DIMENSION = "minecraft:overworld"
         private const val WATER = "minecraft:water"
-
         @JvmStatic @BeforeAll fun bootstrap() { SharedConstants.tryDetectVersion(); Bootstrap.bootStrap() }
     }
 
@@ -43,34 +39,9 @@ class WorldFluidFeedbackTest {
     private val airType = mockk<VsiBlockType>()
     private val pos = BlockPos(0, 1, 0)
 
-    private fun settle(volume: Double, at: BlockPos = pos, reloadBeforeLanding: Boolean = false) {
-        blocks[at.below()] = Blocks.STONE.defaultBlockState()
-        val event = VsiFluidOutflow(1, 1, 1, DIMENSION, 7, at.x + 0.5, at.y + 0.5, at.z + 0.5,
-            0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 17, 255).copy(worldVolume = volume)
-        assertEquals(VsiFluidOutflowResult.APPLIED, manager.enqueue(level, event))
-        if (reloadBeforeLanding) reload()
-        repeat(4) { manager.tick(mapOf(DIMENSION to level)) }
-        assertEquals(0, manager.activeParcelCount())
-    }
-
-    private fun reload() {
-        sources = FractionalFluidSources().also { it.load(sources.save()) }
-        manager = WorldFluidOutflowManager().also { it.load(manager.save()) }
-    }
-
-    private fun newLiquidBelow(fluid: FlowingFluid = Fluids.WATER): FluidState {
-        val getNewLiquid = FlowingFluid::class.java.getDeclaredMethod("getNewLiquid", Level::class.java,
-            BlockPos::class.java, BlockState::class.java).apply { isAccessible = true }
-        vanillaQuery = true
-        return try {
-            getNewLiquid.invoke(fluid, level, pos.below(), Blocks.AIR.defaultBlockState()) as FluidState
-        } finally { vanillaQuery = false }
-    }
-
-    @BeforeEach
-    fun setup() {
+    @BeforeEach fun setup() {
         mockkObject(MassDatapackResolver, BlockStateInfo)
-        mockkStatic("org.valkyrienskies.mod.api.ValkyrienSkies")
+        mockkStatic("org.valkyrienskies.mod.common.VSGameUtilsKt")
         val server = mockk<MinecraftServer>(moreInterfaces = arrayOf(IShipObjectWorldServerProvider::class))
         every { (server as IShipObjectWorldServerProvider).fractionalFluidSources } answers { sources }
         every { (server as IShipObjectWorldServerProvider).shipObjectWorld } returns null
@@ -105,11 +76,24 @@ class WorldFluidFeedbackTest {
         blocks[pos.below()] = Blocks.STONE.defaultBlockState()
     }
 
-    @AfterEach
-    fun cleanup() = unmockkAll()
+    @AfterEach fun cleanup() { unmockkAll() }
 
-    @Test
-    fun `tiny scattered droplets do not create water blocks or saved owners`() {
+    private fun settle(volume: Double, at: BlockPos = pos, reloadBeforeLanding: Boolean = false) {
+        blocks[at.below()] = Blocks.STONE.defaultBlockState()
+        val event = VsiFluidOutflow(1, 1, 1, DIMENSION, 7, at.x + 0.5, at.y + 0.5, at.z + 0.5,
+            0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 17, 255).copy(worldVolume = volume)
+        assertEquals(VsiFluidOutflowResult.APPLIED, manager.enqueue(level, event))
+        if (reloadBeforeLanding) reload()
+        repeat(4) { manager.tick(mapOf(DIMENSION to level)) }
+        assertEquals(0, manager.activeParcelCount())
+    }
+
+    private fun reload() {
+        sources = FractionalFluidSources().also { it.load(sources.save()) }
+        manager = WorldFluidOutflowManager().also { it.load(manager.save()) }
+    }
+
+    @Test fun `tiny scattered droplets do not create water blocks or saved owners`() {
         val positions = (0 until 64).map { pos.offset(it * 2, 0, 0) }
         positions.forEach { settle(0.001, it) }
         reload()
@@ -121,8 +105,7 @@ class WorldFluidFeedbackTest {
         assertEquals(0L, sources.retainedBytes)
     }
 
-    @Test
-    fun `flowing water outflows settle with canonical finite ownership`() {
+    @Test fun `flowing water outflows settle with canonical finite ownership`() {
         every { MassDatapackResolver.getFlowingFluid(17) } returns Fluids.FLOWING_WATER
         settle(0.125)
         reload()
@@ -132,8 +115,7 @@ class WorldFluidFeedbackTest {
         assertTrue(newLiquidBelow().isEmpty)
     }
 
-    @Test
-    fun `a droplet just below the minimum survives unloaded transit then disappears on landing`() {
+    @Test fun `a droplet just below the minimum survives unloaded transit then disappears on landing`() {
         val units = BigDecimal("31.87499999999999999999999")
         every { level.hasChunkAt(any()) } returns false
         assertEquals(VsiFluidOutflowResult.APPLIED, manager.enqueueExact(DIMENSION, WATER,
@@ -152,8 +134,7 @@ class WorldFluidFeedbackTest {
         assertEquals(0, sources.size)
     }
 
-    @Test
-    fun `source and flowing variants preserve partial and full deposits through parcel reload`() {
+    @Test fun `source and flowing variants preserve partial and full deposits through parcel reload`() {
         for (fluid in listOf(Fluids.WATER, Fluids.FLOWING_WATER, Fluids.LAVA, Fluids.FLOWING_LAVA)) {
             for (volume in listOf(0.001, 0.1, 0.125, 0.249, 0.501, 1.0)) {
                 sources = FractionalFluidSources()
@@ -179,8 +160,7 @@ class WorldFluidFeedbackTest {
         }
     }
 
-    @Test
-    fun `fractional spray can be withdrawn and re-emitted without increasing its amount`() {
+    @Test fun `fractional spray can be withdrawn and re-emitted without increasing its amount`() {
         every { MassDatapackResolver.getFlowingFluid(17) } returns Fluids.FLOWING_WATER
         val initial = BigDecimal("0.501") * BigDecimal(255)
         settle(0.501)
@@ -201,8 +181,7 @@ class WorldFluidFeedbackTest {
         }
     }
 
-    @Test
-    fun `a full block of settled spray must not become a replenishing vanilla source`() {
+    @Test fun `a full block of settled spray must not become a replenishing vanilla source`() {
         settle(1.0)
         reload()
         blocks.remove(pos.below())
@@ -211,16 +190,14 @@ class WorldFluidFeedbackTest {
         assertEquals(255, FluidSourceWithdrawalHandler.observe(level, pos.x, pos.y, pos.z)!!.sourceFillAmount)
     }
 
-    @Test
-    fun `ordinary unowned water still supplies vanilla flow`() {
+    @Test fun `ordinary unowned water still supplies vanilla flow`() {
         blocks[pos] = Blocks.WATER.defaultBlockState()
         blocks.remove(pos.below())
         assertFalse(newLiquidBelow().isEmpty)
         assertFalse(FractionalFluidSources.owns(level, pos))
     }
 
-    @Test
-    fun `accumulated full spray stays finite through repeated withdrawal and redeposit`() {
+    @Test fun `accumulated full spray stays finite through repeated withdrawal and redeposit`() {
         settle(0.5)
         settle(0.5)
         repeat(8) { cycle ->
@@ -237,5 +214,14 @@ class WorldFluidFeedbackTest {
             settle(1.0)
             assertEquals(255, sources.sourceFillAmount(DIMENSION, pos.x, pos.y, pos.z, WATER))
         }
+    }
+
+    private fun newLiquidBelow(fluid: FlowingFluid = Fluids.WATER): FluidState {
+        val getNewLiquid = FlowingFluid::class.java.getDeclaredMethod("getNewLiquid", Level::class.java,
+            BlockPos::class.java, BlockState::class.java).apply { isAccessible = true }
+        vanillaQuery = true
+        return try {
+            getNewLiquid.invoke(fluid, level, pos.below(), Blocks.AIR.defaultBlockState()) as FluidState
+        } finally { vanillaQuery = false }
     }
 }

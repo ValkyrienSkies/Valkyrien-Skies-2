@@ -25,7 +25,6 @@ class WeldPullDriveTest {
         val torque = Vector3d()
         var isStatic = false
         val ship = mockk<PhysShip>()
-
         init {
             val kinematics = mockk<BodyKinematics>()
             val transform = mockk<ShipTransform>()
@@ -42,7 +41,6 @@ class WeldPullDriveTest {
             every { ship.applyWorldForceToBodyPos(any(), any()) } answers { force.add(firstArg<Vector3dc>()); Unit }
             every { ship.applyWorldTorque(any()) } answers { torque.add(firstArg<Vector3dc>()); Unit }
         }
-
         fun step(delta: Double, gravity: Vector3dc) {
             velocity.add(Vector3d(force).div(mass).add(gravity).mul(delta))
             position.add(Vector3d(velocity).mul(delta))
@@ -82,7 +80,6 @@ class WeldPullDriveTest {
             f.source.rotation.rotateY(Math.PI)
             val initial = Vector3d(f.source.position)
             f.step()
-
             assertTrue(f.source.position.distance(initial) < 0.01)
             repeat(1000) { f.step() }
             assertTrue(f.drive.settledSeconds >= 0.25)
@@ -102,7 +99,6 @@ class WeldPullDriveTest {
             f.step(delta)
             f.target.position.add(Vector3d(f.target.velocity).mul(delta))
         }
-
         assertTrue(f.source.position.distance(f.target.position) < 0.02)
         assertTrue(f.source.velocity.distance(f.target.velocity) < 0.1)
         assertTrue(f.drive.settledSeconds >= 0.25)
@@ -121,7 +117,6 @@ class WeldPullDriveTest {
             f.step(delta)
             f.target.rotation.premul(Quaterniond().rotationY(0.25 * delta)).normalize()
         }
-
         assertTrue(f.drive.settledSeconds >= 0.25)
         val goal = WeldPullController.goal(
             WeldPullController.Pose(f.target.position, f.target.rotation, f.target.velocity, f.target.omega),
@@ -139,10 +134,8 @@ class WeldPullDriveTest {
             f.source.force.zero()
             f.source.torque.zero()
         }
-
         assertEquals(Vector3d(-2.0, 0.0, 0.0), f.source.position)
         assertEquals(0.0, f.drive.settledSeconds)
-
         f.drive.active = false
         f.drive.tick(f.level, 1.0 / 60.0)
         verify(exactly = 300) { f.source.ship.applyWorldForceToBodyPos(any(), any()) }
@@ -154,10 +147,8 @@ class WeldPullDriveTest {
         val f = Fixture()
         repeat(30) { f.step() }
         assertTrue(f.drive.settledSeconds >= 0.25)
-
         f.source.isStatic = true
         f.drive.tick(f.level, 1.0 / 60.0)
-
         assertEquals(0.0, f.drive.settledSeconds)
         every { f.level.getShipById(2L) } returns null
         f.drive.tick(f.level, 1.0 / 60.0)
@@ -169,7 +160,6 @@ class WeldPullDriveTest {
         val f = Fixture()
         f.drive.gravityOverride = -3.0
         f.drive.tick(f.level, 1.0 / 60.0)
-
         assertEquals(300.0, f.source.force.y, 1e-10)
         val invalid = Fixture(Double.NaN)
         invalid.drive.tick(invalid.level, 1.0 / 60.0)

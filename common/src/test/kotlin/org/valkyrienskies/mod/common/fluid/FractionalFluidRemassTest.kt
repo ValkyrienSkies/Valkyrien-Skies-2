@@ -15,8 +15,8 @@ import org.valkyrienskies.core.internal.world.VsiServerShipWorld
 import org.valkyrienskies.core.internal.world.chunks.VsiBlockType
 import org.valkyrienskies.mod.common.BlockStateInfo
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider
-import org.valkyrienskies.mod.api.dimensionId
-import org.valkyrienskies.mod.api.shipWorld
+import org.valkyrienskies.mod.common.dimensionId
+import org.valkyrienskies.mod.common.shipObjectWorld
 import java.math.BigDecimal
 
 class FractionalFluidRemassTest {
@@ -24,14 +24,13 @@ class FractionalFluidRemassTest {
         @JvmStatic @BeforeAll fun bootstrap() { SharedConstants.tryDetectVersion(); Bootstrap.bootStrap() }
     }
 
-    @Test
-    fun `mass recalculation rebuilds the saved source quantity without debiting its carrier`() {
+    @Test fun `mass recalculation rebuilds the saved source quantity without debiting its carrier`() {
         val registry = BlockStateInfo.javaClass.getDeclaredField("SORTED_REGISTRY").apply { isAccessible = true }
         val previousRegistry = registry.get(null)
         try {
             registry.set(null, emptyList<Any>())
             mockkObject(BlockStateInfo)
-            mockkStatic("org.valkyrienskies.mod.api.ValkyrienSkies")
+            mockkStatic("org.valkyrienskies.mod.common.VSGameUtilsKt")
             val level = mockk<ServerLevel>()
             val world = mockk<VsiServerShipWorld>(relaxed = true)
             val ship = mockk<LoadedServerShip>(relaxed = true)
@@ -44,7 +43,7 @@ class FractionalFluidRemassTest {
             every { (server as IShipObjectWorldServerProvider).fractionalFluidSources } returns sources
             every { level.server } returns server
             every { level.dimensionId } returns "water"
-            every { level.shipWorld } returns world
+            every { level.shipObjectWorld } returns world
             every { level.getBlockState(BlockPos.ZERO) } returns Blocks.WATER.defaultBlockState()
             every { ship.shipAABB } returns AABBi(0, 0, 0, 0, 0, 0)
             every { ship.isStatic } returns false

@@ -104,14 +104,12 @@ class BlockMaterialRegistrationTest {
             for ((index, state) in blocks.withIndex()) {
                 val type = requireNotNull(MassDatapackResolver.getBlockStateType(state))
                 val material = registered.entries.single { it.value === type }.key.solidState!!
-
                 assertEquals(listOf(0.0, 0.6, 0.5)[index], material.friction)
                 assertSame(type, BlockStateInfo.get(state)!!.second, "Cached material for $state")
             }
             for ((state, expected) in overrides.zip(listOf(FluidBoundaryShape.CLOSED, FluidBoundaryShape.OPEN))) {
                 val type = MassDatapackResolver.getBlockStateType(state)
                 val material = registered.entries.single { it.value === type }.key.solidState!!
-
                 assertEquals(expected, boundaries[material])
             }
         } finally {

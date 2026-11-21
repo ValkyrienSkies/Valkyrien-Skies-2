@@ -20,8 +20,8 @@ import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.internal.physics.VsiFluidOutflowResult
 import org.valkyrienskies.mod.common.BlockStateInfo
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider
-import org.valkyrienskies.mod.api.dimensionId
-import org.valkyrienskies.mod.api.getShipManagingPos
+import org.valkyrienskies.mod.common.dimensionId
+import org.valkyrienskies.mod.common.getShipManagingPos
 import org.valkyrienskies.mod.common.fluid.FractionalFluidSources.Position
 import org.valkyrienskies.mod.util.relocateBlock
 import java.math.BigDecimal
@@ -31,7 +31,6 @@ class FractionalFluidLifecycleTest {
         private const val DIM = "minecraft:overworld"
         private const val OTHER = "minecraft:the_nether"
         private const val WATER = "minecraft:water"
-
         @JvmStatic @BeforeAll fun bootstrap() { SharedConstants.tryDetectVersion(); Bootstrap.bootStrap() }
     }
 
@@ -45,50 +44,9 @@ class FractionalFluidLifecycleTest {
     private var manager = WorldFluidOutflowManager(8, 8)
     private val levels get() = mapOf(DIM to level, OTHER to other)
 
-    private fun seed(position: Position = from, units: String = "29") {
-        assertTrue(sources.setAmount(position.dimension, position.x, position.y, position.z, WATER, BigDecimal(units)))
-        blocks[position] = Blocks.WATER.defaultBlockState()
-    }
-
-    private fun amount(position: Position) = sources.amount(position.dimension, position.x, position.y, position.z, WATER)
-
-    private fun assertAmount(expected: String?, position: Position = from) {
-        if (expected == null) assertNull(amount(position))
-        else assertEquals(0, BigDecimal(expected).compareTo(requireNotNull(amount(position))))
-    }
-
-    private fun move(destination: Position? = to, sourceVolume: String = "1", destinationVolume: String = "1", copy: Boolean = false) =
-        FractionalFluidTransfers.Move(from, destination, BigDecimal(sourceVolume), BigDecimal(destinationVolume),
-            DIM, Vector3d(1.5, 2.5, 3.5), Vector3d(2.0, 3.0, 4.0), copy)
-
-    private fun begin(move: FractionalFluidTransfers.Move = move()) =
-        requireNotNull(sources.transfers.begin(sequenceOf(move), levels, manager))
-
-    private fun remove(position: Position) {
-        blocks.remove(position)
-        sources.reconcileFluid(position.dimension, position.x, position.y, position.z, null)
-    }
-
-    private fun reload() {
-        val bytes = sources.retainedBytes
-        sources = FractionalFluidSources().also { it.load(sources.save()) }
-        assertEquals(bytes, sources.retainedBytes)
-        manager = WorldFluidOutflowManager(8, 8).also { it.load(manager.save()) }
-    }
-
-    private fun pendingUnits(): BigDecimal = manager.save().getList("parcels", Tag.TAG_COMPOUND.toInt())
-        .fold(BigDecimal.ZERO) { total, entry ->
-            val tag = entry as CompoundTag
-            total + if (tag.contains("volume_units")) tag.getString("volume_units").toBigDecimal()
-            else tag.getString("volume").toBigDecimal() * BigDecimal(255)
-        }
-
-    private fun recover() = sources.recoverTransfers(levels, manager)
-
-    @BeforeEach
-    fun setup() {
+    @BeforeEach fun setup() {
         mockkObject(BlockStateInfo)
-        mockkStatic("org.valkyrienskies.mod.api.ValkyrienSkies")
+        mockkStatic("org.valkyrienskies.mod.common.VSGameUtilsKt")
         every { (server as IShipObjectWorldServerProvider).fractionalFluidSources } answers { sources }
         every { (server as IShipObjectWorldServerProvider).shipObjectWorld } returns null
         every { (server as IShipObjectWorldServerProvider).fluidOutflowManager } answers { manager }
@@ -115,11 +73,41 @@ class FractionalFluidLifecycleTest {
         every { BlockStateInfo.onSourceAmountChanged(any(), any(), any(), any()) } just Runs
     }
 
-    @AfterEach
-    fun cleanup() = unmockkAll()
+    @AfterEach fun cleanup() { unmockkAll() }
 
-    @Test
-    fun `finite carriers move without a transient whole-source owner`() {
+    private fun seed(position: Position = from, units: String = "29") {
+        assertTrue(sources.setAmount(position.dimension, position.x, position.y, position.z, WATER, BigDecimal(units)))
+        blocks[position] = Blocks.WATER.defaultBlockState()
+    }
+    private fun amount(position: Position) = sources.amount(position.dimension, position.x, position.y, position.z, WATER)
+    private fun assertAmount(expected: String?, position: Position = from) {
+        if (expected == null) assertNull(amount(position))
+        else assertEquals(0, BigDecimal(expected).compareTo(requireNotNull(amount(position))))
+    }
+    private fun move(destination: Position? = to, sourceVolume: String = "1", destinationVolume: String = "1", copy: Boolean = false) =
+        FractionalFluidTransfers.Move(from, destination, BigDecimal(sourceVolume), BigDecimal(destinationVolume),
+            DIM, Vector3d(1.5, 2.5, 3.5), Vector3d(2.0, 3.0, 4.0), copy)
+    private fun begin(move: FractionalFluidTransfers.Move = move()) =
+        requireNotNull(sources.transfers.begin(sequenceOf(move), levels, manager))
+    private fun remove(position: Position) {
+        blocks.remove(position)
+        sources.reconcileFluid(position.dimension, position.x, position.y, position.z, null)
+    }
+    private fun reload() {
+        val bytes = sources.retainedBytes
+        sources = FractionalFluidSources().also { it.load(sources.save()) }
+        assertEquals(bytes, sources.retainedBytes)
+        manager = WorldFluidOutflowManager(8, 8).also { it.load(manager.save()) }
+    }
+    private fun pendingUnits(): BigDecimal = manager.save().getList("parcels", Tag.TAG_COMPOUND.toInt())
+        .fold(BigDecimal.ZERO) { total, entry ->
+            val tag = entry as CompoundTag
+            total + if (tag.contains("volume_units")) tag.getString("volume_units").toBigDecimal()
+                else tag.getString("volume").toBigDecimal() * BigDecimal(255)
+        }
+    private fun recover() = sources.recoverTransfers(levels, manager)
+
+    @Test fun `finite carriers move without a transient whole-source owner`() {
         for (units in listOf("0", "29", "127.000000000000000001", "255")) {
             sources = FractionalFluidSources(); blocks.clear()
             seed(units = units)
@@ -134,8 +122,7 @@ class FractionalFluidLifecycleTest {
         }
     }
 
-    @Test
-    fun `interrupted moves recover source destination or exported ownership once`() {
+    @Test fun `interrupted moves recover source destination or exported ownership once`() {
         for (units in listOf("29", "255")) for (sourcePresent in listOf(false, true)) for (targetPresent in listOf(false, true)) {
             sources = FractionalFluidSources(); manager = WorldFluidOutflowManager(8, 8); blocks.clear()
             seed(units = units); begin()
@@ -152,8 +139,7 @@ class FractionalFluidLifecycleTest {
         }
     }
 
-    @Test
-    fun `scaled move keeps physical volume including nonterminating conversion remainder`() {
+    @Test fun `scaled move keeps physical volume including nonterminating conversion remainder`() {
         for ((src, dst) in listOf("8" to "0.5", "1" to "3", "0.125" to "8")) {
             sources = FractionalFluidSources(); manager = WorldFluidOutflowManager(8, 8); blocks.clear()
             seed(units = "127.25")
@@ -170,8 +156,7 @@ class FractionalFluidLifecycleTest {
         }
     }
 
-    @Test
-    fun `copy preserves the original and credits the scaled destination exactly once`() {
+    @Test fun `copy preserves the original and credits the scaled destination exactly once`() {
         seed()
         val scope = begin(move(destinationVolume = "8", copy = true))
         blocks[to] = Blocks.WATER.defaultBlockState(); scope.close()
@@ -180,8 +165,7 @@ class FractionalFluidLifecycleTest {
         assertEquals(0, manager.activeParcelCount())
     }
 
-    @Test
-    fun `interrupted copy with both endpoints absent exports the saved original once`() {
+    @Test fun `interrupted copy with both endpoints absent exports the saved original once`() {
         seed()
         begin(move(copy = true))
         remove(from)
@@ -192,8 +176,7 @@ class FractionalFluidLifecycleTest {
         assertEquals(0, pendingUnits().compareTo(BigDecimal(29)))
     }
 
-    @Test
-    fun `assembly translation carries waterlogged amounts at the destination scale`() {
+    @Test fun `assembly translation carries waterlogged amounts at the destination scale`() {
         seed()
         blocks[from] = Blocks.OAK_SLAB.defaultBlockState()
             .setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.WATERLOGGED, true)
@@ -211,8 +194,7 @@ class FractionalFluidLifecycleTest {
         reload(); recover(); assertAmount("3.625", to)
     }
 
-    @Test
-    fun `bulk clear visits its column and preserves other dimensions and chunk positions`() {
+    @Test fun `bulk clear visits its column and preserves other dimensions and chunk positions`() {
         val positions = listOf(from, from.copy(y = -32), to, from.copy(z = 19), from.copy(dimension = OTHER))
         positions.forEach { seed(it) }
         sources.clearChunk(DIM, 0, 0)
@@ -222,8 +204,7 @@ class FractionalFluidLifecycleTest {
         positions.drop(2).forEach { assertAmount("29", it) }
     }
 
-    @Test
-    fun `batch capacity refusal leaves every original and destination unchanged`() {
+    @Test fun `batch capacity refusal leaves every original and destination unchanged`() {
         sources = FractionalFluidSources(40000)
         seed(); seed(from.copy(x = 2), "17")
         val before = sources.save()
@@ -236,8 +217,7 @@ class FractionalFluidLifecycleTest {
         assertAmount("29"); assertAmount(null, to)
     }
 
-    @Test
-    fun `same-fluid destinations merge exact amounts and spill only their excess`() {
+    @Test fun `same-fluid destinations merge exact amounts and spill only their excess`() {
         for (prior in listOf("50.25", "255")) {
             sources = FractionalFluidSources(); manager = WorldFluidOutflowManager(8, 8); blocks.clear()
             seed(); seed(to, prior)
@@ -253,8 +233,7 @@ class FractionalFluidLifecycleTest {
         }
     }
 
-    @Test
-    fun `occupied dimension destination spills in the destination frame`() {
+    @Test fun `occupied dimension destination spills in the destination frame`() {
         seed()
         val target = to.copy(dimension = OTHER)
         seed(target, "255")
@@ -271,8 +250,7 @@ class FractionalFluidLifecycleTest {
         reload(); recover(); assertEquals(1, manager.activeParcelCount())
     }
 
-    @Test
-    fun `legacy unoccupied transfer saves recover without a destination inventory`() {
+    @Test fun `legacy unoccupied transfer saves recover without a destination inventory`() {
         seed(); begin(); remove(from); blocks[to] = Blocks.WATER.defaultBlockState()
         val saved = sources.save()
         saved.putInt("version", 2)
@@ -284,8 +262,7 @@ class FractionalFluidLifecycleTest {
         assertEquals(0, manager.activeParcelCount())
     }
 
-    @Test
-    fun `save before an occupied-destination move restores both original owners`() {
+    @Test fun `save before an occupied-destination move restores both original owners`() {
         seed()
         seed(to, "50.25")
         begin(); reload(); recover()
@@ -293,8 +270,7 @@ class FractionalFluidLifecycleTest {
         assertEquals(0, manager.activeParcelCount())
     }
 
-    @Test
-    fun `legacy flowing identities recover interrupted transfers and destination ownership`() {
+    @Test fun `legacy flowing identities recover interrupted transfers and destination ownership`() {
         for (complete in listOf(false, true)) {
             sources = FractionalFluidSources(); blocks.clear()
             seed(); seed(to, "50.25")
@@ -318,8 +294,7 @@ class FractionalFluidLifecycleTest {
         }
     }
 
-    @Test
-    fun `copy completion is saved independently of unchanged destination block state`() {
+    @Test fun `copy completion is saved independently of unchanged destination block state`() {
         for (complete in listOf(false, true)) {
             sources = FractionalFluidSources(); blocks.clear()
             seed(); seed(to, "50.25")

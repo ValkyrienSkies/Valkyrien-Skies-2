@@ -20,6 +20,7 @@ import org.lwjgl.opengl.GL12.*
 import org.lwjgl.opengl.GL13.*
 import org.lwjgl.opengl.GL15.*
 import org.lwjgl.opengl.GL21.*
+import org.lwjgl.opengl.GL20.*
 import org.lwjgl.opengl.GL30.*
 import org.lwjgl.opengl.GL33.*
 import org.lwjgl.opengl.GL31.GL_TEXTURE_BUFFER
@@ -29,13 +30,13 @@ import org.valkyrienskies.core.internal.physics.VsiFluidFloodedVoxel
 import org.valkyrienskies.core.internal.physics.VsiFluidGameplaySnapshot
 import org.valkyrienskies.core.internal.physics.VsiFluidTopologyVoxel
 import org.valkyrienskies.core.internal.world.VsiClientShipWorld
+import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.config.VSGameConfig
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.client.renderer.texture.TextureAtlasSprite
 import org.joml.Vector3d
 import org.joml.primitives.AABBd
-import org.valkyrienskies.mod.api.shipWorld
 import java.util.function.Function
 
 /** Run with -PfluidGlTests=true on a machine with an OpenGL 3.3 driver. No visible window. */
@@ -51,7 +52,6 @@ class FluidOcclusionShaderTest {
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE)
         val window = glfwCreateWindow(16, 16, "Fluid mask test", 0, 0)
         assertNotEquals(0L, window, "Could not create hidden GL context")
-
         try {
             glfwMakeContextCurrent(window)
             GL.createCapabilities()
@@ -302,9 +302,9 @@ class FluidOcclusionShaderTest {
         val oldEnabled = VSGameConfig.CLIENT.renderFluidOcclusion
         val white = glGenTextures()
         val vao = glGenVertexArrays()
-        mockkStatic("org.valkyrienskies.mod.api.ValkyrienSkies")
+        mockkStatic("org.valkyrienskies.mod.common.VSGameUtilsKt")
         mockkStatic(Minecraft::class)
-        every { level.shipWorld } returns world
+        every { level.shipObjectWorld } returns world
         every { Minecraft.getInstance() } returns minecraft
         every { minecraft.getTextureAtlas(any()) } returns Function { sprite }
         every { sprite.u0 } returns 0f; every { sprite.v0 } returns 0f

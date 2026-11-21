@@ -51,13 +51,10 @@ class FluidCacheLifecycleTest {
 
         val cachedA = FloodedFluidClientCache.get(first, 7)!!
         val topologyA = FluidTopologyClientCache.get(first, 7)!!
-
         assertSame(cachedA, FloodedFluidClientCache.get(first, 7))
         assertSame(topologyA, FluidTopologyClientCache.get(first, 7))
-
         val cachedB = FloodedFluidClientCache.get(second, 7)!!
         val topologyB = FluidTopologyClientCache.get(second, 7)!!
-
         assertNull(cachedB.get(0, 0, 0))
         assertEquals(18, cachedB.get(9, 0, 0)!!.fluidId)
         assertNull(topologyB.get(0, 0, 0))
@@ -74,7 +71,6 @@ class FluidCacheLifecycleTest {
         val flooding = FloodedFluidClientCache.get(world, 7)
         val topology = FluidTopologyClientCache.get(world, 7)
         clearClientIndices()
-
         assertNotSame(flooding, FloodedFluidClientCache.get(world, 7))
         assertNotSame(topology, FluidTopologyClientCache.get(world, 7))
     }
@@ -97,7 +93,6 @@ class FluidCacheLifecycleTest {
         val ship = mockk<Ship>()
         every { world.allShips.getById(7) } returns ship
         val body = ShipFluidInteraction.bodyFor(world, 7)
-
         assertNotNull(body)
         ShipFluidInteraction.prune(world)
         assertSame(body, ShipFluidInteraction.bodyFor(world, 7))
@@ -106,7 +101,6 @@ class FluidCacheLifecycleTest {
         ShipFluidInteraction.prune(world)
         val cacheField = ShipFluidInteraction::class.java.getDeclaredField("CACHES")
             .apply { isAccessible = true }
-
         assertFalse((cacheField.get(null) as Map<*, *>).containsKey(world))
 
         // Recreating the same ID must build a new index, even if the mock still reports old sequences.

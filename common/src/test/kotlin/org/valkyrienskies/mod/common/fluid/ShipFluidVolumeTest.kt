@@ -28,7 +28,6 @@ class ShipFluidVolumeTest {
     companion object {
         @JvmStatic @BeforeAll fun bootstrap() { SharedConstants.tryDetectVersion(); Bootstrap.bootStrap() }
     }
-
     private val world = mockk<VsiClientShipWorld>()
     private val ship = mockk<Ship>()
     private var transform = Matrix4d()
@@ -37,10 +36,7 @@ class ShipFluidVolumeTest {
     private val water = mockk<FlowingFluid>()
     private val waterState = mockk<FluidState>()
 
-    private fun query(bounds: AABB) = ShipFluidInteraction.prepareVolume(world, listOf(ship), bounds)
-
-    @BeforeEach
-    fun setup() {
+    @BeforeEach fun setup() {
         every { ship.id } returns 7
         every { ship.shipToWorld } answers { transform }
         every { ship.worldToShip } answers { transform.invert(Matrix4d()) }
@@ -51,12 +47,10 @@ class ShipFluidVolumeTest {
         every { waterState.`is`(FluidTags.WATER) } returns true
         every { waterState.`is`(FluidTags.LAVA) } returns false
     }
+    @AfterEach fun cleanup() { ShipFluidInteraction.clear(world); unmockkAll() }
+    private fun query(bounds: AABB) = ShipFluidInteraction.prepareVolume(world, listOf(ship), bounds)
 
-    @AfterEach
-    fun cleanup() { ShipFluidInteraction.clear(world); unmockkAll() }
-
-    @Test
-    fun `entity straddling a dry domain keeps exterior world immersion`() {
+    @Test fun `entity straddling a dry domain keeps exterior world immersion`() {
         flooding = floodingSnapshot()
         val q = query(AABB(0.2, 0.1, 0.2, 1.2, 0.9, 0.8))
         assertTrue(q.worldHeight(BlockPos.ZERO, 1.0f).isNaN())
@@ -64,8 +58,7 @@ class ShipFluidVolumeTest {
         assertEquals(0.0, q.retainedDepth(FluidTags.WATER))
     }
 
-    @Test
-    fun `entity queries capture one pair and ignore orphaned diagnostic components`() {
+    @Test fun `entity queries capture one pair and ignore orphaned diagnostic components`() {
         every { world.getFluidTopologySnapshot(any()) } throws AssertionError("Independent topology read")
         every { world.getFluidFloodingSnapshot(any()) } throws AssertionError("Independent liquid read")
         assertTrue(query(AABB(0.1, 0.1, 0.1, 0.9, 0.9, 0.9)).retainedDepth(FluidTags.WATER) > 0.0)
@@ -77,8 +70,7 @@ class ShipFluidVolumeTest {
         assertEquals(1.0f, missing.worldHeight(BlockPos.ZERO, 1.0f))
     }
 
-    @Test
-    fun `partial cell domain masks only its portion of a world block`() {
+    @Test fun `partial cell domain masks only its portion of a world block`() {
         flooding = floodingSnapshot()
         transform.scale(0.5)
         val q = query(AABB(0.1, 0.1, 0.1, 0.9, 0.9, 0.9))
@@ -87,8 +79,7 @@ class ShipFluidVolumeTest {
         assertTrue(enclosed.worldHeight(BlockPos.ZERO, 1.0f).isNaN())
     }
 
-    @Test
-    fun `retained depth and world masking use distinct ownership and preserve fluid types`() {
+    @Test fun `retained depth and world masking use distinct ownership and preserve fluid types`() {
         val q = query(AABB(0.1, 0.1, 0.1, 0.9, 0.9, 0.9))
         assertEquals(128.0 / 255 - 0.1, q.retainedDepth(FluidTags.WATER), 1e-12)
         assertEquals(0.0, q.retainedDepth(FluidTags.LAVA))
@@ -100,16 +91,14 @@ class ShipFluidVolumeTest {
         assertFalse(q.controlsCell(7, BlockPos(1, 0, 0)))
     }
 
-    @Test
-    fun `tilted cell rejects enclosing box corners`() {
+    @Test fun `tilted cell rejects enclosing box corners`() {
         transform.rotateZ(Math.PI / 4)
         val q = query(AABB(0.6, 0.1, 0.2, 0.65, 0.15, 0.8))
         assertEquals(0.0, q.retainedDepth(FluidTags.WATER))
         assertEquals(1.0f, q.worldHeight(BlockPos.ZERO, 1.0f), 1e-6f)
     }
 
-    @Test
-    fun `tiny scale and huge local coordinates do not scan empty inverse transformed volume`() {
+    @Test fun `tiny scale and huge local coordinates do not scan empty inverse transformed volume`() {
         transform.scale(1e-9)
         assertTimeoutPreemptively(Duration.ofSeconds(5)) {
             val q = query(AABB(-1.0, -1.0, -1.0, 1.0, 1.0, 1.0))
@@ -124,8 +113,7 @@ class ShipFluidVolumeTest {
         }
     }
 
-    @Test
-    fun `cached runs coalesce a complete domain without filling its holes`() {
+    @Test fun `cached runs coalesce a complete domain without filling its holes`() {
         flooding = floodingSnapshot()
         val cells = (0..3).flatMap { x -> (0..3).flatMap { y -> (0..3).map { z -> VsiFluidTopologyVoxel(x, y, z, 1) } } }
         topology = topology.copy(voxels = cells, totalDomainVoxelCount = cells.size)
@@ -140,8 +128,7 @@ class ShipFluidVolumeTest {
         assertEquals(1.0f, query(AABB(0.1, 0.1, 0.1, 3.9, 3.9, 3.9)).worldHeight(BlockPos(1, 1, 1), 1.0f))
     }
 
-    @Test
-    fun `stationary player in a rotated full block room stays dry at shipyard coordinates`() {
+    @Test fun `stationary player in a rotated full block room stays dry at shipyard coordinates`() {
         flooding = floodingSnapshot()
         val localX = -28_661_760
         val localY = 128
@@ -166,8 +153,7 @@ class ShipFluidVolumeTest {
         }
     }
 
-    @Test
-    fun `player colliding with a tilted sealed floor and wall stays dry`() {
+    @Test fun `player colliding with a tilted sealed floor and wall stays dry`() {
         flooding = floodingSnapshot()
         val localX = -28_661_760
         val localY = 128
@@ -208,8 +194,7 @@ class ShipFluidVolumeTest {
         }
     }
 
-    @Test
-    fun `ordinary small queries use bounded hash probes and huge queries enumerate sparse cells`() {
+    @Test fun `ordinary small queries use bounded hash probes and huge queries enumerate sparse cells`() {
         val cells = (0 until 5000).map { VsiFluidFloodedVoxel(it, 0, 0, 17, 255, 0) }
         val body = spyk(ShipFluidInteraction.CachedBody(topology, flooding.copy(voxels = cells)))
         val found = mutableListOf<VsiFluidFloodedVoxel>()
@@ -223,8 +208,7 @@ class ShipFluidVolumeTest {
         verify(exactly = 0) { body.getFloodedVoxel(any(), any(), any()) }
     }
 
-    @Test
-    fun `solid hull masks are lazy and preserve real water beyond the wall`() {
+    @Test fun `solid hull masks are lazy and preserve real water beyond the wall`() {
         flooding = floodingSnapshot()
         val level = mockk<Level>()
         every { level.getBlockCollisions(null, any()) } returns listOf(Shapes.box(1.0, 0.0, 0.0, 2.0, 1.0, 1.0))
@@ -236,8 +220,7 @@ class ShipFluidVolumeTest {
         verify(exactly = 1) { level.getBlockCollisions(null, any()) }
     }
 
-    @Test
-    fun `partial hull shapes leave water in their empty portion and retain interior liquid`() {
+    @Test fun `partial hull shapes leave water in their empty portion and retain interior liquid`() {
         val level = mockk<Level>()
         every { level.getBlockCollisions(null, any()) } returns listOf(Shapes.box(1.0, 0.0, 0.0, 2.0, 0.5, 1.0))
         val q = ShipFluidInteraction.prepareVolume(level, world, listOf(ship), AABB(0.2, 0.1, 0.2, 1.2, 0.9, 0.8))
@@ -247,8 +230,7 @@ class ShipFluidVolumeTest {
         assertTrue(below.worldHeight(BlockPos(1, 0, 0), 1.0f).isNaN())
     }
 
-    @Test
-    fun `tiny ships do not cause unbounded hull block scans`() {
+    @Test fun `tiny ships do not cause unbounded hull block scans`() {
         val level = mockk<Level>()
         transform.scale(1e-9)
         val q = ShipFluidInteraction.prepareVolume(level, world, listOf(ship), AABB(-1.0, -1.0, -1.0, 1.0, 1.0, 1.0))

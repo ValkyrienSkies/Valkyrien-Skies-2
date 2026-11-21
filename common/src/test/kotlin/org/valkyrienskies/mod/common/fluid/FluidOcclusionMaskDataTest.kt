@@ -19,29 +19,6 @@ internal fun maskFlooding(vararg cells: VsiFluidFloodedVoxel) =
     FloodedFluidClientCache.CachedSnapshot(floodingSnapshot(*cells))
 
 class FluidOcclusionMaskDataTest {
-    companion object {
-        internal fun largeSparseMask(): FluidOcclusionMaskData = FluidOcclusionMaskData.build(
-            maskTopology(Triple(255, 255, 255), Triple(0, 0, 0), Triple(0, 0, 128)),
-            maskFlooding(VsiFluidFloodedVoxel(255, 255, 255, 17, 254, 0),
-                VsiFluidFloodedVoxel(0, 0, 128, 17, 1, 0)),
-        )!!
-
-        private fun word(data: FluidOcclusionMaskData, offset: Int): Long = (0..3).fold(0L) { result, b ->
-            result or ((data.bytes.get(offset + b).toLong() and 255) shl (b * 8))
-        }
-
-        private fun stateAt(data: FluidOcclusionMaskData, index: Int): Int {
-            val bits = if (data.partialCount == 0) 1 else 2
-            val bit = index * bits
-            return ((data.bytes.get(bit / 8).toInt() and 255) ushr (bit % 8)) and ((1 shl bits) - 1)
-        }
-
-        private fun partialRecords(data: FluidOcclusionMaskData): List<Long> {
-            val words = (data.sizeX * data.sizeY * data.sizeZ * 2 + 31) / 32
-            return (0 until data.partialCount).map { word(data, (words + it) * 4) }
-        }
-    }
-
     @Test
     fun `all fill amounts preserve exactly their dry fraction`() {
         val topology = maskTopology(*(0..256).map { Triple(it - 20, 0, 0) }.toTypedArray())
@@ -95,6 +72,29 @@ class FluidOcclusionMaskDataTest {
     fun `oversized and overflowing bounds are rejected before allocation`() {
         assertThrows(IllegalArgumentException::class.java) {
             FluidOcclusionMaskData.build(maskTopology(Triple(Int.MIN_VALUE, 0, 0), Triple(Int.MAX_VALUE, 0, 0)), null)
+        }
+    }
+
+    companion object {
+        internal fun largeSparseMask(): FluidOcclusionMaskData = FluidOcclusionMaskData.build(
+            maskTopology(Triple(255, 255, 255), Triple(0, 0, 0), Triple(0, 0, 128)),
+            maskFlooding(VsiFluidFloodedVoxel(255, 255, 255, 17, 254, 0),
+                VsiFluidFloodedVoxel(0, 0, 128, 17, 1, 0)),
+        )!!
+
+        private fun word(data: FluidOcclusionMaskData, offset: Int): Long = (0..3).fold(0L) { result, b ->
+            result or ((data.bytes.get(offset + b).toLong() and 255) shl (b * 8))
+        }
+
+        private fun stateAt(data: FluidOcclusionMaskData, index: Int): Int {
+            val bits = if (data.partialCount == 0) 1 else 2
+            val bit = index * bits
+            return ((data.bytes.get(bit / 8).toInt() and 255) ushr (bit % 8)) and ((1 shl bits) - 1)
+        }
+
+        private fun partialRecords(data: FluidOcclusionMaskData): List<Long> {
+            val words = (data.sizeX * data.sizeY * data.sizeZ * 2 + 31) / 32
+            return (0 until data.partialCount).map { word(data, (words + it) * 4) }
         }
     }
 }

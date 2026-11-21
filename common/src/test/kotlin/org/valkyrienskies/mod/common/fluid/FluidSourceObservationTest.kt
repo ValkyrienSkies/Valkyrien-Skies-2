@@ -13,31 +13,26 @@ import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.internal.physics.VsiFluidSourceWithdrawal
 import org.valkyrienskies.core.internal.world.chunks.VsiBlockType
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
-import org.valkyrienskies.mod.api.getShipManagingPos
+import org.valkyrienskies.mod.common.getShipManagingPos
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider
-import org.valkyrienskies.mod.api.dimensionId
+import org.valkyrienskies.mod.common.dimensionId
 import java.math.BigDecimal
 
 class FluidSourceObservationTest {
     companion object {
         @JvmStatic @BeforeAll fun bootstrap() { SharedConstants.tryDetectVersion(); Bootstrap.bootStrap() }
     }
-
     private val level = mockk<ServerLevel>()
     private val event = VsiFluidSourceWithdrawal(1, 1, "minecraft:overworld", 7, false, 8, -17, 4, 3, 11, 255)
     private val pos = BlockPos(-17, 4, 3)
 
-    @BeforeEach
-    fun setup() {
+    @BeforeEach fun setup() {
         mockkObject(MassDatapackResolver)
-        mockkStatic("org.valkyrienskies.mod.api.ValkyrienSkies")
+        mockkStatic("org.valkyrienskies.mod.common.VSGameUtilsKt")
     }
+    @AfterEach fun cleanup() { unmockkAll() }
 
-    @AfterEach
-    fun cleanup() = unmockkAll()
-
-    @Test
-    fun `missing and unloaded chunks never become air observations`() {
+    @Test fun `missing and unloaded chunks never become air observations`() {
         assertNull(FluidSourceWithdrawalHandler.observe(null, event))
         every { level.hasChunkAt(pos) } returns false
         assertNull(FluidSourceWithdrawalHandler.observe(level, event))
@@ -46,8 +41,7 @@ class FluidSourceObservationTest {
         confirmVerified(level)
     }
 
-    @Test
-    fun `unregistered block is unknown and cannot authorize publication`() {
+    @Test fun `unregistered block is unknown and cannot authorize publication`() {
         every { level.hasChunkAt(pos) } returns true
         every { level.getBlockState(pos) } returns Blocks.STONE.defaultBlockState()
         every { MassDatapackResolver.getBlockStateType(Blocks.STONE.defaultBlockState()) } returns null
@@ -55,8 +49,7 @@ class FluidSourceObservationTest {
         verify(exactly = 0) { level.setBlock(any(), any(), any()) }
     }
 
-    @Test
-    fun `observer returns the current owner and exact block type without changing the source`() {
+    @Test fun `observer returns the current owner and exact block type without changing the source`() {
         val ship = mockk<ServerShip>()
         every { ship.id } returns 27L
         every { level.hasChunkAt(pos) } returns true
@@ -75,8 +68,7 @@ class FluidSourceObservationTest {
         verify(exactly = 0) { level.setBlock(any(), any(), any()) }
     }
 
-    @Test
-    fun `observer publishes restored source units and keeps the sub-unit remainder owned`() {
+    @Test fun `observer publishes restored source units and keeps the sub-unit remainder owned`() {
         val server = mockk<MinecraftServer>(moreInterfaces = arrayOf(IShipObjectWorldServerProvider::class))
         val sources = FractionalFluidSources().apply {
             setAmount(event.dimensionId, pos.x, pos.y, pos.z, "minecraft:water", BigDecimal("127.5"))

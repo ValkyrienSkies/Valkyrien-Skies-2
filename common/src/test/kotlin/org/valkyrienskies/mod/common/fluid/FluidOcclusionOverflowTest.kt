@@ -10,8 +10,7 @@ import org.junit.jupiter.api.Test
 import org.valkyrienskies.core.api.ships.ClientShip
 
 class FluidOcclusionOverflowTest {
-    @Test
-    fun `hundreds of masks pack across pages without a ship count limit`() {
+    @Test fun `hundreds of masks pack across pages without a ship count limit`() {
         val layout = FluidOcclusionOverflow.Layout.plan(IntArray(300) { 4096 }, 4096, 2)
         assertEquals(4096, layout.width())
         assertEquals(256, layout.pageHeight())
@@ -20,8 +19,7 @@ class FluidOcclusionOverflowTest {
         assertArrayEquals(IntArray(300) { it * 4096 }, layout.offsets())
     }
 
-    @Test
-    fun `page height grows for layer limits and small texture hardware`() {
+    @Test fun `page height grows for layer limits and small texture hardware`() {
         val layout = FluidOcclusionOverflow.Layout.plan(intArrayOf(4096 * 400, 8192), 1024, 2)
         assertEquals(1024, layout.width())
         assertEquals(1024, layout.pageHeight())
@@ -29,8 +27,7 @@ class FluidOcclusionOverflowTest {
         assertArrayEquals(intArrayOf(0, 4096 * 400), layout.offsets())
     }
 
-    @Test
-    fun `hardware and address limits reject the whole plan`() {
+    @Test fun `hardware and address limits reject the whole plan`() {
         assertThrows(IllegalArgumentException::class.java) {
             FluidOcclusionOverflow.Layout.plan(intArrayOf(4096 * 600, 8192), 1024, 2)
         }
@@ -45,8 +42,7 @@ class FluidOcclusionOverflowTest {
         }
     }
 
-    @Test
-    fun `descriptor preserves high integer offsets and conservative transformed bounds`() {
+    @Test fun `descriptor preserves high integer offsets and conservative transformed bounds`() {
         val data = FluidOcclusionMaskData.build(maskTopology(Triple(-7, 3, 9)), null)!!
         val transform = Matrix4d().translation(1e6, -17.0, -2e6).rotateXYZ(0.3, 0.6, -0.2).scale(0.25, 2.0, 1.5)
         val ship = mockk<ClientShip>(relaxed = true)

@@ -16,7 +16,6 @@ class LatestValueTaskTest {
         val received = ArrayList<Int>()
         val updates = LatestValueTask<Int>({ tasks.addLast(it) }, { received.add(it) })
         repeat(60) { updates.offer(it) }
-
         assertEquals(1, tasks.size)
         tasks.removeFirst().run()
         assertEquals(listOf(59), received)
@@ -37,7 +36,6 @@ class LatestValueTaskTest {
         }
         updates.offer(1)
         tasks.removeFirst().run()
-
         assertEquals(1, tasks.size)
         tasks.removeFirst().run()
         assertEquals(listOf(1, 3), received)
@@ -52,7 +50,6 @@ class LatestValueTaskTest {
         updates.offer(1)
         updates.clear()
         tasks.removeFirst().run()
-
         assertTrue(received.isEmpty())
         updates.offer(2)
         tasks.removeFirst().run()
@@ -67,7 +64,6 @@ class LatestValueTaskTest {
         updates.offer(1)
         updates.clear()
         updates.offer(2)
-
         assertEquals(1, tasks.size)
         tasks.removeFirst().run()
         assertEquals(listOf(2), received)
@@ -85,7 +81,6 @@ class LatestValueTaskTest {
             }
             received.add(it)
         }
-
         updates.offer(1)
         assertThrows(IllegalStateException::class.java) { tasks.removeFirst().run() }
         tasks.removeFirst().run()
@@ -111,7 +106,6 @@ class LatestValueTaskTest {
             assertTrue(started.await(5, TimeUnit.SECONDS))
             for (sample in 2..1000) updates.offer(sample)
             release.countDown()
-
             assertTrue(finished.await(5, TimeUnit.SECONDS))
             assertEquals(listOf(1, 1000), received)
         } finally {
