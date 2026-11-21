@@ -15,8 +15,9 @@ import org.spongepowered.asm.mixin.injection.At.Shift;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.valkyrienskies.core.api.ships.Ship;
+import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.api.ValkyrienSkies;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Pseudo
 @Mixin(ProjectorDepthRenderer.class)
@@ -24,12 +25,12 @@ public abstract class MixinProjectorDepthRenderer {
 
     @ModifyVariable(method = "renderProjectorDepths", at = @At("STORE"), ordinal = 1, remap = false)
     private static Vec3 valkyrienskies$transformProjectorPosToWorld(Vec3 original, @Local(argsOnly = true) ClientLevel level) {
-        Ship ship = ValkyrienSkies.getShipManagingBlock(level, original);
+        ClientShip ship = VSGameUtilsKt.getLoadedShipManagingPos(level, original);
         if (ship == null) {
             return original;
         }
 
-        return ValkyrienSkies.positionToWorld(ship, original);
+        return ValkyrienSkies.positionToWorld(ship.getRenderTransform(), original);
     }
 
     @Inject(method = "renderProjectorDepths", at = @At(
@@ -38,9 +39,9 @@ public abstract class MixinProjectorDepthRenderer {
         shift = Shift.AFTER
     ), remap = false)
     private static void valkyrienskies$transformViewModelStack(Minecraft minecraft, ClientLevel level, float partialTicks, int projectorCount, CallbackInfo ci, @Local PoseStack stack, @Local ProjectorBlockEntity projector) {
-        Ship ship = ValkyrienSkies.getShipManagingBlock(level, projector.getBlockPos());
+        ClientShip ship = VSGameUtilsKt.getLoadedShipManagingPos(level, projector.getBlockPos());
         if (ship != null) {
-            stack.mulPose(ship.getTransform().getShipToWorldRotation().get(new Quaternionf()).invert());
+            stack.mulPose(ship.getRenderTransform().getShipToWorldRotation().get(new Quaternionf()).invert());
         }
     }
 }

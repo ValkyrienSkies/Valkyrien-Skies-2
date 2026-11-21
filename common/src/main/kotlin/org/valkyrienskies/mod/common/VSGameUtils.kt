@@ -52,10 +52,12 @@ import org.valkyrienskies.core.internal.world.VsiShipWorld
 import org.valkyrienskies.core.internal.world.chunks.VsiBlockType
 import org.valkyrienskies.core.internal.world.chunks.VsiTerrainUpdate
 import org.valkyrienskies.core.util.expand
+import org.valkyrienskies.core.util.intersectsAABB
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod.ASSEMBLE_BLACKLIST
 import org.valkyrienskies.mod.common.entity.ShipMountedToData
 import org.valkyrienskies.mod.common.entity.ShipMountedToDataProvider
 import org.valkyrienskies.mod.common.fluid.FractionalFluidSources
+import org.valkyrienskies.mod.common.render.batched.ShipPieceRenderFrames
 import org.valkyrienskies.mod.common.util.DimensionIdProvider
 import org.valkyrienskies.mod.common.util.EntityDragger.serversidePosition
 import org.valkyrienskies.mod.common.util.ClippedShipBox
@@ -507,6 +509,12 @@ private fun getShipManagingPosImpl(world: Level?, x: Int, z: Int): Ship? {
     }
 }
 
+fun ClientLevel?.transformRenderAABBToWorld(aabb: AABB): AABB {
+    val ship = getLoadedShipManagingPos(aabb.minX, aabb.minY, aabb.minZ) ?: return aabb
+    if (getLoadedShipManagingPos(aabb.maxX, aabb.maxY, aabb.maxZ)?.id != ship.id) return aabb
+    return aabb.toJOML().transform(ship.renderTransform.shipToWorld).toMinecraft()
+}
+
 fun ClientLevel?.transformRenderAABBToWorld(pos: Position, aabb: AABB): AABB {
     val ship = getLoadedShipManagingPos(pos)
     if (ship != null) {
@@ -761,6 +769,25 @@ fun ClientLevel?.toShipRenderCoordinates(shipPos: Vec3, pos: Vec3): Vec3 =
         ?.worldToShip
         ?.transformPosition(pos.toJOML())
         ?.toMinecraft() ?: pos
+
+fun ClientLevel?.toWorldRenderCoordinates(pos: Vec3): Vec3 =
+    getLoadedShipManagingPos(pos)?.renderTransform?.shipToWorld?.transformPosition(pos.toJOML())?.toMinecraft() ?: pos
+
+fun ClientLevel.getRenderShipsIntersecting(bounds: AABBdc): List<ClientShip> {
+    val world = shipObjectWorld
+    val dimension = dimensionId
+    val canonical = world.getRenderShipsIntersecting(bounds, dimension)
+    val split = world.allShips.getSplitShipIds()
+    if (split.isEmpty()) return canonical
+    val result = canonical.filterTo(ArrayList()) { it.id !in split }
+    for (id in split) {
+        val visible = world.allShips.getSplitPieces(id).any {
+            it.dimensionId == dimension && ShipPieceRenderFrames.rendered(it).worldBounds.intersectsAABB(bounds)
+        }
+        if (visible) world.loadedShips.getById(id)?.let(result::add)
+    }
+    return result
+}
 
 fun Level?.toWorldCoordinates(pos: Vector3d): Vector3d {
     return this?.getShipManagingPos(pos)?.shipToWorld?.transformPosition(pos) ?: pos

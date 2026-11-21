@@ -22,7 +22,7 @@ public class MixinPlacementHelpers {
         Level world = Minecraft.getInstance().level;
         if (world != null && VSGameUtilsKt.isBlockInShipyard(world, pos.getX(),pos.getY(),pos.getZ()) && VSGameUtilsKt.getShipManagingPos(world, pos.getX(),pos.getY(),pos.getZ()) instanceof ClientShip ship) {
             Vector3d tempVec = new Vector3d(pos.getX() + .5, pos.getY() + .5, pos.getZ() + .5);
-            ship.getShipToWorld().transformPosition(tempVec, tempVec);
+            ship.getRenderTransform().getShipToWorld().transformPosition(tempVec, tempVec);
             result = VectorConversionsMCKt.toMinecraft(tempVec);
         }
         return result;

@@ -22,7 +22,7 @@ public abstract class MixinChainConveyorRenderer {
     )
     private boolean wrapCloserThan(final Vec3 instance, final Position position, final double d, final Operation<Boolean> original, final @NotNull ChainConveyorBlockEntity be){
         if (VSGameUtilsKt.getShipManagingPos(be.getLevel(), be.getBlockPos()) instanceof ClientShip ship){
-            final Vector3d worldPos = ship.getShipToWorld().transformPosition(position.x(), position.y(), position.z(), new Vector3d());
+            final Vector3d worldPos = ship.getRenderTransform().getShipToWorld().transformPosition(position.x(), position.y(), position.z(), new Vector3d());
             return original.call(instance, VectorConversionsMCKt.toMinecraft(worldPos), d);
         } else return original.call(instance, position, d);
     }

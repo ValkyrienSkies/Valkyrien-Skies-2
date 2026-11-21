@@ -10,7 +10,6 @@ import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(LOD.class)
@@ -35,8 +34,9 @@ public class LODMixin {
     private static Vector3f cameraDirection(Camera camera, Operation<Vector3f> original, @Local(argsOnly = true) Vec3 objCenter){
         ClientLevel level = Minecraft.getInstance().level;
         Vector3f dir = original.call(camera);
-        if (VSGameUtilsKt.isBlockInShipyard(level, objCenter)) {
-            dir = VSClientGameUtils.getClientShip(objCenter.x(), objCenter.y(), objCenter.z()).getWorldToShip().transformDirection(dir);
+        var ship = VSGameUtilsKt.getLoadedShipManagingPos(level, objCenter);
+        if (ship != null) {
+            dir = ship.getRenderTransform().getWorldToShip().transformDirection(dir, new Vector3f());
         }
         return dir;
     }

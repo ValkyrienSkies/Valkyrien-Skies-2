@@ -22,7 +22,7 @@ public abstract class MixinSafeBlockEntityRenderer {
     private boolean cullIfOnShip(Vec3 itemPos, Level level, Operation<Boolean> original){
         ClientShip ship = VSClientGameUtils.getClientShip(itemPos.x, itemPos.y, itemPos.z);
         if (ship != null) {
-            Vector3d shipItemPosD = ship.getShipToWorld().transformPosition(VectorConversionsMCKt.toJOML(itemPos));
+            Vector3d shipItemPosD = ship.getRenderTransform().getShipToWorld().transformPosition(VectorConversionsMCKt.toJOML(itemPos));
             return original.call(VectorConversionsMCKt.toMinecraft(shipItemPosD), level);
         } else return original.call(itemPos, level);
     }

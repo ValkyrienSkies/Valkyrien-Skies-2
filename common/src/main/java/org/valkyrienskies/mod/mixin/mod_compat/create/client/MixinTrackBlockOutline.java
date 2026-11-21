@@ -30,7 +30,7 @@ public class MixinTrackBlockOutline {
         at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/trains/track/BezierConnection;getBounds()Lnet/minecraft/world/phys/AABB;")
     )
     private static AABB getBoundsToWorld(BezierConnection connection, Operation<AABB> original) {
-        return VSGameUtilsKt.transformAabbToWorld(Minecraft.getInstance().level, original.call(connection));
+        return VSGameUtilsKt.transformRenderAABBToWorld(Minecraft.getInstance().level, original.call(connection));
     }
 
     @WrapOperation(
@@ -38,7 +38,7 @@ public class MixinTrackBlockOutline {
         at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/trains/track/BezierConnection;getPosition(D)Lnet/minecraft/world/phys/Vec3;")
     )
     private static Vec3 getPositionToWorld(final BezierConnection connection, final double t, final Operation<Vec3> original){
-        return VSGameUtilsKt.toWorldCoordinates(Minecraft.getInstance().level, original.call(connection, t));
+        return VSGameUtilsKt.toWorldRenderCoordinates(Minecraft.getInstance().level, original.call(connection, t));
     }
 
     @WrapOperation(

@@ -27,7 +27,7 @@ public class ProjectileUtilMixin {
         final Entity entity, final Vec3 vec3, final Vec3 vec32, final AABB aABB, final Predicate<Entity> predicate,
         final double d, final CallbackInfoReturnable<@Nullable EntityHitResult> cir) {
 
-        if (cir.getReturnValue() != null || !VSGameUtilsKt.getShipsIntersecting(entity.level(), aABB).iterator().hasNext()) {
+        if (cir.getReturnValue() != null) {
             return;
         }
 

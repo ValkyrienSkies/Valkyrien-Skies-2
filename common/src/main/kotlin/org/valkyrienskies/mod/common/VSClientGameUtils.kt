@@ -2,14 +2,42 @@ package org.valkyrienskies.mod.common
 
 import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.Minecraft
+import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.BlockPos
+import net.minecraft.world.level.block.RenderShape
 import org.joml.Matrix4d
 import org.joml.Matrix4f
+import org.joml.Vector3d
+import org.joml.primitives.AABBd
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.properties.ShipTransform
 import org.valkyrienskies.mod.common.util.multiply
+import org.valkyrienskies.mod.common.render.batched.ShipPieceRenderFrames
 
 object VSClientGameUtils {
+
+    @JvmStatic
+    fun viewBlockingShipBlock(level: ClientLevel, x: Double, y: Double, z: Double): BlockPos? {
+        val point = Vector3d(x, y, z)
+        fun blocksView(pos: BlockPos): Boolean {
+            val state = level.getBlockState(pos)
+            return state.renderShape != RenderShape.INVISIBLE && state.isViewBlocking(level, pos)
+        }
+        for (ship in level.getRenderShipsIntersecting(AABBd(x, y, z, x, y, z))) {
+            val pieces = level.allShips.getSplitPieces(ship.id)
+            if (pieces.isEmpty()) {
+                val local = ship.renderTransform.worldToShip.transformPosition(point, Vector3d())
+                val pos = BlockPos.containing(local.x, local.y, local.z)
+                if (blocksView(pos)) return pos
+            } else for (piece in pieces) {
+                if (piece.dimensionId != level.dimensionId) continue
+                val local = ShipPieceRenderFrames.rendered(piece).blockPositionAt(point) ?: continue
+                val pos = BlockPos(local.x, local.y, local.z)
+                if (blocksView(pos)) return pos
+            }
+        }
+        return null
+    }
 
     @JvmStatic
     fun multiplyWithShipToWorld(poseStack: PoseStack, ship: ClientShip) {

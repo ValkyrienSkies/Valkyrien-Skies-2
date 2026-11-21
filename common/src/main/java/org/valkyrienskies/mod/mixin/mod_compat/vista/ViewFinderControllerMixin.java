@@ -16,6 +16,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.mod.api.ValkyrienSkies;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
@@ -47,10 +48,8 @@ public class ViewFinderControllerMixin {
     )
     private static void cameraPosToWorld(Camera camera, Vec3 pos, Operation<Void> original, @Share("ship")LocalRef<ClientShip> ship){
         ClientLevel level = Minecraft.getInstance().level;
-        if(VSGameUtilsKt.isBlockInShipyard(level, pos)) {
-            original.call(camera, VSGameUtilsKt.toWorldCoordinates(level, pos));
-            ship.set(VSClientGameUtils.getClientShip(pos.x, pos.y, pos.z));
-        } else original.call(camera, pos);
+        ship.set(VSGameUtilsKt.getLoadedShipManagingPos(level, pos));
+        original.call(camera, ship.get() == null ? pos : ValkyrienSkies.positionToWorld(ship.get().getRenderTransform(), pos));
     }
 
     @WrapOperation(

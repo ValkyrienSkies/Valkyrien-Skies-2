@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
-import org.valkyrienskies.core.api.ships.Ship;
+import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
@@ -44,13 +44,13 @@ public abstract class MixinSchematicTransformation {
     )
     private Translate<?> redirectTranslate(PoseTransformStack instance, Vec3 orig) {
         PoseStack ms = instance.unwrap();
-        Ship ship = VSGameUtilsKt.getLoadedShipManagingPos(Minecraft.getInstance().level, target.getX(), target.getY(), target.getZ());
+        ClientShip ship = VSGameUtilsKt.getLoadedShipManagingPos(Minecraft.getInstance().level, target.getX(), target.getY(), target.getZ());
 
         if (ship != null) {
             float pt = AnimationTickHolder.getPartialTicks();
             Vec3 pos = VecHelper.lerp(pt, prevChasingPos, chasingPos);
             Vec3 camera = pos.subtract(orig);
-            VSClientGameUtils.transformRenderWithShip(ship.getTransform(), ms, pos.x, pos.y, pos.z, camera.x, camera.y, camera.z);
+            VSClientGameUtils.transformRenderWithShip(ship.getRenderTransform(), ms, pos.x, pos.y, pos.z, camera.x, camera.y, camera.z);
             return instance;
         } else {
             return instance.translate(orig);

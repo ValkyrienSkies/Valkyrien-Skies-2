@@ -9,7 +9,7 @@ import net.minecraft.core.Position;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;
-import org.valkyrienskies.core.api.ships.Ship;
+import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
@@ -25,9 +25,9 @@ public abstract class MixinRenderContextImpl {
     private boolean vs$closerToCenterThan(final BlockPos instance, final Position pos, final double dist,
         final Operation<Boolean> orig) {
         // this code has been deemed better by those at the forge discord (since it calls the og function)
-        final Ship ship = VSGameUtilsKt.getShipManagingPos(Minecraft.getInstance().level, instance);
+        final ClientShip ship = VSGameUtilsKt.getLoadedShipManagingPos(Minecraft.getInstance().level, instance);
         if (ship != null) {
-            return orig.call(instance, VectorConversionsMCKt.toMinecraft(ship.getWorldToShip()
+            return orig.call(instance, VectorConversionsMCKt.toMinecraft(ship.getRenderTransform().getWorldToShip()
                 .transformPosition(VectorConversionsMCKt.toJOML(pos))), dist);
         }
         return orig.call(instance, pos, dist);

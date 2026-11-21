@@ -1,6 +1,6 @@
 package org.valkyrienskies.mod.mixin.mod_compat.create.client;
 
-import static org.valkyrienskies.mod.api.ValkyrienSkies.positionToWorld;
+import static org.valkyrienskies.mod.common.VSGameUtilsKt.toWorldRenderCoordinates;
 
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
@@ -12,7 +12,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import org.joml.Quaterniond;
 import org.joml.Quaterniondc;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -37,32 +36,8 @@ public class MixinChasingAABBOutline extends AABBOutline {
         throw new IllegalStateException("Mixin failed to apply");
     }
 
-    @Unique
-    Quaterniond vs$prevRot = new Quaterniond();
-    @Unique
-    Quaterniond vs$rot = new Quaterniond();
-
     public MixinChasingAABBOutline(AABB bb) {
         super(bb);
-    }
-
-    @Inject(method = "<init>", at = @At("RETURN"))
-    private void onInit(AABB bb, CallbackInfo ci) {
-        ClientLevel level = Minecraft.getInstance().level;
-        if (level == null) {
-            return;
-        }
-        ClientShip csOrigin = (ClientShip) VSGameUtilsKt.getShipManagingPos(level, bb.getCenter());
-        if (csOrigin != null) {
-            Quaterniondc initialRot = csOrigin.getRenderTransform().getShipToWorldRotation();
-            vs$prevRot.set(initialRot);
-            vs$rot.set(initialRot);
-        }
-    }
-
-    @Inject(method = "tick", at = @At("HEAD"), remap = false)
-    private void storePrevRot(CallbackInfo ci) {
-        vs$prevRot = vs$rot;
     }
 
     @Inject(
@@ -85,11 +60,9 @@ public class MixinChasingAABBOutline extends AABBOutline {
             return;
         }
         Quaterniondc rotTarget = csTarget.getRenderTransform().getShipToWorldRotation();
-        vs$rot = vs$prevRot.slerp(rotTarget, pt, new Quaterniond());
-        // should probably reuse it but whatever
         Vec3 interBB = interpolateBBs(prevBB, bb, pt).getCenter();
         ms.translate(interBB.x() - camera.x, interBB.y() - camera.y, interBB.z() - camera.z);
-        ms.mulPose(VectorConversionsMCKt.toFloat(vs$rot));
+        ms.mulPose(VectorConversionsMCKt.toFloat(rotTarget));
         ms.translate(camera.x - interBB.x(), camera.y - interBB.y(), camera.z - interBB.z());
     }
 
@@ -126,7 +99,7 @@ public class MixinChasingAABBOutline extends AABBOutline {
         double minY = aabb.minY - currentCenter.y;
         double minZ = aabb.minZ - currentCenter.z;
 
-        Vec3 newCenter = positionToWorld(level, currentCenter);
+        Vec3 newCenter = toWorldRenderCoordinates(level, currentCenter);
         return new AABB(
             minX + newCenter.x, minY + newCenter.y, minZ + newCenter.z,
             maxX + newCenter.x, maxY + newCenter.y, maxZ + newCenter.z

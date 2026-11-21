@@ -24,7 +24,7 @@ public class MixinHexAdditionalRenderers {
     private static void valkyrienskies$renderOnShip(PoseStack instance, double d, double e, double f, Operation<Void> original, @Local(argsOnly = true) Sentinel sentinel, @Local Vec3 playerPos) {
         ClientShip ship = VSClientGameUtils.getClientShip(sentinel.position().x, sentinel.position().y, sentinel.position().z);
         if (ship != null) {
-            Vec3 distance = VectorConversionsMCKt.toMinecraft(ship.getShipToWorld().transformPosition(VectorConversionsMCKt.toJOML(sentinel.position()))).subtract(playerPos);
+            Vec3 distance = VectorConversionsMCKt.toMinecraft(ship.getRenderTransform().getShipToWorld().transformPosition(VectorConversionsMCKt.toJOML(sentinel.position()))).subtract(playerPos);
             original.call(instance, distance.x, distance.y, distance.z);
         } else {
             original.call(instance, d, e, f);

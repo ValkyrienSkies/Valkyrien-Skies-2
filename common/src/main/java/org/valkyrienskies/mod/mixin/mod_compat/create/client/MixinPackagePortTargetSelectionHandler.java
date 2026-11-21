@@ -19,8 +19,8 @@ public class MixinPackagePortTargetSelectionHandler {
         Minecraft mc, Vec3 source, Vec3 target, Color color, Operation<Void> original) {
         original.call(
             mc,
-            VSGameUtilsKt.toWorldCoordinates(mc.level, source),
-            VSGameUtilsKt.toWorldCoordinates(mc.level, target),
+            VSGameUtilsKt.toWorldRenderCoordinates(mc.level, source),
+            VSGameUtilsKt.toWorldRenderCoordinates(mc.level, target),
             color
         );
     }

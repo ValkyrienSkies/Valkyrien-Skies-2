@@ -31,6 +31,8 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.core.api.ships.ShipPhysicalPiece;
+import org.valkyrienskies.mod.common.render.batched.ShipPieceRenderFrames;
 import org.valkyrienskies.core.api.ships.LoadedShip;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
@@ -152,9 +154,10 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
                         } else {
                             shipTransform = shipDraggedBy.getShipTransform();
                         }
+                        ShipPhysicalPiece piece = dragProvider.getDraggingInformation().getSupportPiece();
+                        if (piece != null && shipDraggedBy instanceof ClientShip) piece = ShipPieceRenderFrames.rendered(piece);
                         final Vec3 worldEyePosition = VectorConversionsMCKt.toMinecraft(
-                            (dragProvider.getDraggingInformation().getSupportPiece() == null ? shipTransform.getShipToWorld()
-                                : dragProvider.getDraggingInformation().getSupportPiece().getShipToWorld()).transformPosition(VectorConversionsMCKt.toJOML(localEyePosition))
+                            (piece == null ? shipTransform.getShipToWorld() : piece.getShipToWorld()).transformPosition(VectorConversionsMCKt.toJOML(localEyePosition))
                         );
                         cir.setReturnValue(worldEyePosition);
                     }
@@ -231,8 +234,9 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
                 final ShipTransform shipTransform = (ship instanceof ClientShip ? ((ClientShip) ship).getRenderTransform() : ship.getTransform());
                 final Vector3dc relativePosition = this.draggingInformation.bestRelativeEntityPosition();
                 if (relativePosition != null) {
-                    final Vector3dc renderPosition = (draggingInformation.getSupportPiece() == null ? shipTransform.getShipToWorld()
-                        : draggingInformation.getSupportPiece().getShipToWorld()).transformPosition(relativePosition, new Vector3d());
+                    ShipPhysicalPiece piece = draggingInformation.getSupportPiece();
+                    if (piece != null && ship instanceof ClientShip) piece = ShipPieceRenderFrames.rendered(piece);
+                    final Vector3dc renderPosition = (piece == null ? shipTransform.getShipToWorld() : piece.getShipToWorld()).transformPosition(relativePosition, new Vector3d());
                     cir.setReturnValue(shouldRenderAtSqrDistance(renderPosition.distanceSquared(d, e, f)));
                 }
             }

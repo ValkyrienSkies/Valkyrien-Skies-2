@@ -68,15 +68,7 @@ public abstract class MixinParticle {
             this.zo = p.z;
             return;
         }
-        // in-world position
-
-        // Particles are delayed by one tick before movement so adding the ship's delta by 1 tick here.
-        Vector3d tempVel = ship.getVelocity().get(new Vector3d());
-        tempVel.add(ship.getRenderTransform().getShipToWorld().transformDirection(new Vector3d(x, y, z).sub(ship.getTransform().getPositionInShip())).cross(ship.getOmega()));
-        tempVel.mul(0.05);
-        final Vector3d p = ship.getTransform().getShipToWorld().transformPosition(new Vector3d(x, y, z));
-        ship.getPrevTickTransform().getWorldToShip().transformPosition(p);
-        ship.getTransform().getShipToWorld().transformPosition(p);
+        final Vector3d p = ship.getRenderTransform().getShipToWorld().transformPosition(new Vector3d(x, y, z));
         this.setPos(p.x, p.y, p.z);
         this.xo = p.x;
         this.yo = p.y;
@@ -109,11 +101,7 @@ public abstract class MixinParticle {
             this.zd = v.z;
             return;
         }
-        final Matrix4dc transform = ship.getTransform().getShipToWorld();
-        // in-world position
-        final Vector3d p = transform.transformPosition(new Vector3d(x, y, z));
-        ship.getPrevTickTransform().getWorldToShip().transformPosition(p);
-        transform.transformPosition(p);
+        final Matrix4dc transform = ship.getRenderTransform().getShipToWorld();
         // in-world velocity
         final Vector3d v = transform
             // Rotate velocity wrt ship transform
@@ -121,7 +109,6 @@ public abstract class MixinParticle {
             // Tack on the ships linear velocity (multiplied by 1/20 because particle velocity is given per tick)
             .fma(0.05, ship.getVelocity());
 
-        this.setPos(p.x, p.y, p.z);
         this.xd = v.x;
         this.yd = v.y;
         this.zd = v.z;

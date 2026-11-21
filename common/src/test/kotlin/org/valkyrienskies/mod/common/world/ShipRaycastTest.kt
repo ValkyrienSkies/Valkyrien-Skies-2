@@ -24,6 +24,9 @@ import org.valkyrienskies.mod.common.getShipManagingPos
 import org.valkyrienskies.mod.common.toWorldCoordinates
 import org.valkyrienskies.mod.common.squaredDistanceToUseHit
 import org.valkyrienskies.core.internal.ships.VsiQueryableShipData
+import java.util.function.Predicate
+import net.minecraft.world.phys.AABB
+import org.joml.Vector3d
 import org.joml.Vector4d
 import org.joml.Matrix4d
 import org.joml.primitives.AABBd
@@ -33,6 +36,7 @@ import org.junit.jupiter.api.Assertions.*
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.mod.common.getShipsIntersecting
+import org.valkyrienskies.mod.common.getRenderShipsIntersecting
 import org.valkyrienskies.mod.common.shipObjectWorld
 
 class ShipRaycastTest {
@@ -40,7 +44,7 @@ class ShipRaycastTest {
         @JvmStatic @BeforeAll fun bootstrap() { SharedConstants.tryDetectVersion(); Bootstrap.bootStrap() }
     }
 
-    private val level = mockk<Level>(relaxed = true)
+    private var level = mockk<Level>(relaxed = true)
     private val ship = mockk<Ship>()
     private val chunk = mockk<LevelChunk>()
     private val chunkSource = mockk<ChunkSource>()
@@ -50,6 +54,10 @@ class ShipRaycastTest {
 
     @BeforeEach fun setup() {
         mockkStatic("org.valkyrienskies.mod.common.VSGameUtilsKt")
+        stubLevel()
+    }
+
+    private fun stubLevel() {
         every { level.shipObjectWorld } returns mockk(relaxed = true)
         every { level.getShipsIntersecting(any<AABBdc>()) } returns listOf(ship)
         every { ship.id } returns 1L
@@ -191,15 +199,47 @@ class ShipRaycastTest {
     }
 
     @Test fun `client clipping uses the same interpolated bounds as its ray transform`() {
+        val client = mockk<ClientLevel>(relaxed = true)
+        level = client
+        stubLevel()
         val clientShip = mockk<ClientShip>()
-        every { level.getShipsIntersecting(any<AABBdc>()) } returns listOf(clientShip)
+        every { client.isClientSide() } returns true
+        every { level.getShipsIntersecting(any<AABBdc>()) } returns emptyList()
+        every { client.getRenderShipsIntersecting(any<AABBdc>()) } returns listOf(clientShip)
         every { clientShip.id } returns 1
         every { clientShip.worldAABB } returns AABBd(100.0, 0.0, 0.0, 101.0, 1.0, 1.0)
         every { clientShip.renderAABB } returns AABBd(120.0, 0.0, 0.0, 121.0, 1.0, 1.0)
         every { clientShip.renderTransform.worldToShip } returns Matrix4d().translation(-105.0, 0.0, 0.0)
         every { clientShip.renderTransform.shipToWorld } returns Matrix4d().translation(105.0, 0.0, 0.0)
-        val hit = ray(130.0, 90.0)
+        val hit = ray(125.0, 116.0)
         assertEquals(HitResult.Type.BLOCK, hit.type)
         assertEquals(121.0, hit.location.x, 1e-8)
+    }
+
+    @Test fun `client entity picks use rendered bounds and return a world hit`() {
+        val client = mockk<ClientLevel>(relaxed = true)
+        val ship = mockk<ClientShip>()
+        val shooter = mockk<Entity>(relaxed = true)
+        val target = mockk<Entity>(relaxed = true)
+        val filter = Predicate<Entity> { true }
+        every { client.isClientSide() } returns true
+        every { client.getRenderShipsIntersecting(any()) } returns listOf(ship)
+        every { (client as Level).allShips.getSplitPieces(1L) } returns emptyList()
+        every { ship.id } returns 1L
+        every { ship.renderTransform.worldToShip } returns Matrix4d().translation(-105.0, 0.0, 0.0)
+        every { ship.renderTransform.shipToWorld } returns Matrix4d().translation(105.0, 0.0, 0.0)
+        every { ship.renderTransform.shipToWorldScaling } returns Vector3d(1.0)
+        every { target.boundingBox } returns AABB(15.0, 0.0, 0.0, 16.0, 1.0, 1.0)
+        every { target.pickRadius } returns 0f
+        every { target.rootVehicle } returns target
+        every { shooter.rootVehicle } returns shooter
+        every { client.getEntities(shooter, any(), filter) } answers {
+            if (secondArg<AABB>().contains(15.5, 0.5, 0.5)) listOf(target) else emptyList()
+        }
+        val from = Vec3(125.0, 0.5, 0.5)
+        val to = Vec3(116.0, 0.5, 0.5)
+        val hit = client.raytraceEntities(shooter, from, to, AABB(from, to).inflate(1.0), filter, 81.0)
+        assertSame(target, hit?.entity)
+        assertEquals(Vec3(121.0, 0.5, 0.5), hit?.location)
     }
 }

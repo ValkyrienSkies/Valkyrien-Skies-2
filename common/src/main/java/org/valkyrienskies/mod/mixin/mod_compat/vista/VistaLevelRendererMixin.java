@@ -18,6 +18,7 @@ import org.spongepowered.asm.mixin.injection.At.Shift;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.mod.api.ValkyrienSkies;
 import org.valkyrienskies.mod.client.IVSCamera;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
@@ -31,10 +32,11 @@ public class VistaLevelRendererMixin {
         Vec3 pos = dummyCamera.getPosition();
         if(VSGameUtilsKt.isBlockInShipyard(level, pos)) {
             ClientShip ship = VSClientGameUtils.getClientShip(pos.x, pos.y, pos.z);
+            if (ship == null) return;
             Quaternionf rotation = new Quaternionf().rotationYXZ(-dummyCamera.getYRot() * ((float) Math.PI / 180.0f), dummyCamera.getXRot() * ((float) Math.PI / 180.0f), 0.0f);
             rotation = ship.getRenderTransform().getShipToWorld().getNormalizedRotation(new Quaternionf()).mul(rotation);
             Vector3f eulerAngles = rotation.getEulerAnglesYXZ(new Vector3f()).mul(180.0f / (float) Math.PI);
-            Vec3 worldPos = VSGameUtilsKt.toWorldCoordinates(level, pos);
+            Vec3 worldPos = ValkyrienSkies.positionToWorld(ship.getRenderTransform(), pos);
             ((IVSCamera)dummyCamera).setPositionVS(worldPos);
             ((IVSCamera)dummyCamera).setRotationVS(-eulerAngles.y, eulerAngles.x, eulerAngles.z);
 

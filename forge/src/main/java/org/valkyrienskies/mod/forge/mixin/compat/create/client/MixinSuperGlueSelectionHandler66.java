@@ -3,11 +3,12 @@ package org.valkyrienskies.mod.forge.mixin.compat.create.client;
 import com.simibubi.create.foundation.utility.RaycastHelper;
 import java.lang.reflect.Method;
 import java.util.Iterator;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.ForgeMod;
-import org.joml.Matrix4d;
+import org.joml.Matrix4dc;
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
 import org.joml.primitives.AABBic;
@@ -16,7 +17,7 @@ import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
-import org.valkyrienskies.core.api.ships.Ship;
+import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
@@ -52,12 +53,12 @@ public abstract class MixinSuperGlueSelectionHandler66 {
 
 
         AABB searchAABB = new AABB(origin, target).inflate(0.25, 2, 0.25);
-        final Iterator<Ship> ships = VSGameUtilsKt.getShipsIntersecting(playerIn.level(), searchAABB).iterator();
+        final Iterator<ClientShip> ships = VSGameUtilsKt.getRenderShipsIntersecting((ClientLevel) playerIn.level(), VectorConversionsMCKt.toJOML(searchAABB)).iterator();
 
         if (ships.hasNext()) {
-            Ship ship = ships.next();
+            ClientShip ship = ships.next();
 
-            Matrix4d world2Ship = (Matrix4d) ship.getTransform().getWorldToShip();
+            Matrix4dc world2Ship = ship.getRenderTransform().getWorldToShip();
             AABBic shAABBi = ship.getShipAABB();
 
             // Hopefully fixes https://github.com/ValkyrienSkies/Valkyrien-Skies-2/issues/1341
@@ -72,7 +73,7 @@ public abstract class MixinSuperGlueSelectionHandler66 {
 
                 Quaterniond tempQuat = new Quaterniond();
                 if (playerIn.getVehicle() != null && playerIn.getVehicle().getBoundingBox().intersects(shipAABB.inflate(20))) {
-                    ship.getTransform().getWorldToShip().getNormalizedRotation(tempQuat);
+                    world2Ship.getNormalizedRotation(tempQuat);
                     tempQuat.invert();
                     Vector3d offset = VectorConversionsMCKt.toJOML(target.subtract(origin));
                     tempQuat.transform(offset);

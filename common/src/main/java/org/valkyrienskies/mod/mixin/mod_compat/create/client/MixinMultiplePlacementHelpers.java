@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.mixin.mod_compat.create.client;
 
 import net.createmod.catnip.placement.PlacementOffset;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
@@ -17,6 +18,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
+import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
 
 @Mixin(targets = {
         "com.simibubi.create.content.contraptions.bearing.SailBlock$PlacementHelper",
@@ -36,6 +38,7 @@ public class MixinMultiplePlacementHelpers {
 
     @Redirect(method = "getOffset", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/BlockHitResult;getLocation()Lnet/minecraft/world/phys/Vec3;"))
     private Vec3 redirectGetLocation(BlockHitResult instance) {
+        if (world instanceof ClientLevel client) return RaycastUtilsKt.blockHitForUse(client, instance).getLocation();
         Vec3 result = instance.getLocation();
         Ship ship = VSGameUtilsKt.getShipManagingPos(world, instance.getBlockPos());
         if (ship != null && !VSGameUtilsKt.isBlockInShipyard(world,result.x,result.y,result.z)) {

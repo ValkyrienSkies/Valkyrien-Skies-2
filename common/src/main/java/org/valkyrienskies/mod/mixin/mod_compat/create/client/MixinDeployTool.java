@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.valkyrienskies.core.api.ships.Ship;
+import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
@@ -51,7 +51,7 @@ public abstract class MixinDeployTool extends SchematicToolBase {
         double x = Mth.lerp(pt, lastChasingSelectedPos.x, chasingSelectedPos.x);
         double y = Mth.lerp(pt, lastChasingSelectedPos.y, chasingSelectedPos.y);
         double z = Mth.lerp(pt, lastChasingSelectedPos.z, chasingSelectedPos.z);
-        Ship ship = VSGameUtilsKt.getLoadedShipManagingPos(Minecraft.getInstance().level, x, y, z);
+        ClientShip ship = VSGameUtilsKt.getLoadedShipManagingPos(Minecraft.getInstance().level, x, y, z);
 
         AABB bounds = schematicHandler.getBounds();
         Vec3 center = bounds.getCenter();
@@ -59,7 +59,7 @@ public abstract class MixinDeployTool extends SchematicToolBase {
         int centerZ = (int) center.z;
 
         if (ship != null) {
-            VSClientGameUtils.transformRenderWithShip(ship.getTransform(), ms, x - centerX, y, z - centerZ, camera.x, camera.y, camera.z);
+            VSClientGameUtils.transformRenderWithShip(ship.getRenderTransform(), ms, x - centerX, y, z - centerZ, camera.x, camera.y, camera.z);
         } else {
             ms.translate(x - centerX - camera.x, y - camera.y, z - centerZ - camera.z);
         }

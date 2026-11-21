@@ -14,7 +14,7 @@ import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
-import org.valkyrienskies.core.api.ships.Ship;
+import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 /**
@@ -37,7 +37,7 @@ public abstract class MixinSchematicToolBase {
     )
     public Vec3 redirectGetLocation(BlockHitResult instance) {
         BlockPos b = instance.getBlockPos();
-        Ship ship = VSGameUtilsKt.getLoadedShipManagingPos(Minecraft.getInstance().level, b);
+        ClientShip ship = VSGameUtilsKt.getLoadedShipManagingPos(Minecraft.getInstance().level, b);
         if (ship != null) {
             // The return value is used to form a BlockPos,
             // so the vec position within a block should not make a difference
@@ -60,9 +60,9 @@ public abstract class MixinSchematicToolBase {
         )
     )
     public Vec3 wrapLocalSpaceToShip(SchematicTransformation transformation, Vec3 vec, Operation<Vec3> original) {
-        Ship ship = VSGameUtilsKt.getLoadedShipManagingPos(Minecraft.getInstance().level, transformation.getAnchor());
+        ClientShip ship = VSGameUtilsKt.getLoadedShipManagingPos(Minecraft.getInstance().level, transformation.getAnchor());
         if (ship != null) {
-            return original.call(transformation, toMinecraft(ship.getWorldToShip().transformPosition(toJOML(vec))));
+            return original.call(transformation, toMinecraft(ship.getRenderTransform().getWorldToShip().transformPosition(toJOML(vec))));
         }
 
         return original.call(transformation, vec);

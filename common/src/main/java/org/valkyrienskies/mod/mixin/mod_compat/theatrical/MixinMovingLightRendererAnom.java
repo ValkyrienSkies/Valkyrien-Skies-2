@@ -4,7 +4,6 @@ import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.Vec3i;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -28,15 +27,7 @@ public class MixinMovingLightRendererAnom {
         )
     )
     private Vec3 redirectAtLowerCornerOf(Vec3i pos) {
-        Level level = Minecraft.getInstance().level;
-
-        Vec3 vanilla = Vec3.atLowerCornerOf(pos);
-
-        if (level == null) {
-            return vanilla;
-        }
-
-        return VSGameUtilsKt.toWorldCoordinates(level, vanilla);
+        return VSGameUtilsKt.toWorldRenderCoordinates(Minecraft.getInstance().level, Vec3.atLowerCornerOf(pos));
     }
 
     @WrapMethod(
@@ -44,9 +35,6 @@ public class MixinMovingLightRendererAnom {
         remap = false
     )
     private Vec3 wrapGetPos(float partialTick, Operation<Vec3> original) {
-        Level level = Minecraft.getInstance().level;
-        if (level == null) return original.call(partialTick);
-
-        return VSGameUtilsKt.toWorldCoordinates(level, original.call(partialTick));
+        return VSGameUtilsKt.toWorldRenderCoordinates(Minecraft.getInstance().level, original.call(partialTick));
     }
 }
