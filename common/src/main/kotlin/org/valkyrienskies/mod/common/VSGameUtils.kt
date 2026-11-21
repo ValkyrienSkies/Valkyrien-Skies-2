@@ -779,7 +779,7 @@ fun LevelChunkSection.toDenseVoxelUpdate(chunkPos: Vector3ic, level: Level? = nu
     val sources = (level as? ServerLevel)?.let(FractionalFluidSources::forLevel)?.takeIf {
         it.size != 0 && it.hasChunk(level!!.dimensionId, chunkPos.x(), chunkPos.y(), chunkPos.z())
     }
-    if (sources == null) return toDenseVoxelUpdateWithoutSourceAmounts(chunkPos)
+    if (sources == null && level == null) return toDenseVoxelUpdateWithoutSourceAmounts(chunkPos)
     val update = vsCore.newDenseTerrainUpdateBuilder(chunkPos.x(), chunkPos.y(), chunkPos.z())
     val info = BlockStateInfo.cache
     for (x in 0..15) {
@@ -787,10 +787,20 @@ fun LevelChunkSection.toDenseVoxelUpdate(chunkPos: Vector3ic, level: Level? = nu
             for (z in 0..15) {
                 val blockState = getBlockState(x, y, z)
                 val defaultBlockType = info.get(blockState)?.second ?: vsCore.blockTypes.air
+                val worldPos = BlockPos(
+                    chunkPos.x() shl 4 or x,
+                    chunkPos.y() shl 4 or y,
+                    chunkPos.z() shl 4 or z
+                )
+                val blockType = BlockShapes.typeAt(level, worldPos, blockState) ?: defaultBlockType
                 val fluid = FractionalFluidSources.fluidName(blockState)
-                if (fluid == null) update.addBlock(x, y, z, defaultBlockType)
-                else update.addBlock(x, y, z, defaultBlockType, sources.sourceFillAmount(level!!.dimensionId,
-                    (chunkPos.x() shl 4) + x, (chunkPos.y() shl 4) + y, (chunkPos.z() shl 4) + z, fluid))
+                if (fluid == null || sources == null) {
+                    update.addBlock(x, y, z, blockType)
+                } else {
+                    update.addBlock(x, y, z, blockType, sources.sourceFillAmount(
+                        level.dimensionId, worldPos.x, worldPos.y, worldPos.z, fluid
+                    ))
+                }
             }
         }
     }
