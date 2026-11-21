@@ -4,6 +4,7 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.BlockPos
+import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
@@ -15,6 +16,7 @@ import org.joml.Vector3dc
 import org.joml.primitives.AABBdc
 import org.valkyrienskies.core.api.VsCoreApi
 import org.valkyrienskies.core.api.event.ListenableEvent
+import org.valkyrienskies.core.api.event.RegisteredListener
 import org.valkyrienskies.core.api.ships.*
 import org.valkyrienskies.core.api.util.PhysTickOnly
 import org.valkyrienskies.core.api.world.ClientShipWorld
@@ -24,6 +26,10 @@ import org.valkyrienskies.core.api.world.properties.DimensionId
 import org.valkyrienskies.mod.api.events.PostRenderShipEvent
 import org.valkyrienskies.mod.api.events.PreRenderShipEvent
 import org.valkyrienskies.mod.api.events.RegisterBlockStateEvent
+import org.valkyrienskies.mod.api.render.ShipRenderPredicate
+import org.valkyrienskies.mod.api.render.ShipMaterial
+import org.valkyrienskies.mod.api.render.ShipMaterialSelector
+import org.valkyrienskies.mod.api.render.ShipRenderView
 
 @NonExtendable
 interface VsApi : VsCoreApi {
@@ -39,6 +45,18 @@ interface VsApi : VsCoreApi {
 
     @get:Experimental
     val postRenderShipEvent: ListenableEvent<PostRenderShipEvent>
+
+    @Experimental
+    fun registerShipRenderPredicate(predicate: ShipRenderPredicate): RegisteredListener
+
+    @Experimental
+    fun registerShipMaterial(id: ResourceLocation): ShipMaterial
+
+    @Experimental
+    fun registerShipMaterialSelector(selector: ShipMaterialSelector): RegisteredListener
+
+    @get:Experimental
+    val currentShipRenderView: ShipRenderView?
 
     fun isShipMountingEntity(entity: Entity): Boolean
 

@@ -24,11 +24,14 @@ REPOSITORIES = {
 }
 NATIVE_FILES = {'KrunchJni64.dll', 'KrunchJniArm64.dll', 'libKrunchJni64.so',
                 'libKrunchJniarm64.so', 'libKrunchJni64.dylib', 'libKrunchJniarm64.dylib'}
+# Built by KrunchX CI but not bundled into the bridge jar; older native builds predate them.
+OPTIONAL_NATIVE_FILES = {'libKrunchJniAndroidarm64.so'}
 BUNDLED_FILES = NATIVE_FILES - {'KrunchJniArm64.dll'}
-NATIVE_JOBS = ('build-ubuntu-x86-64', 'build-ubuntu-arm-64', 'build-windows-x86-64',
-               'build-windows-arm-64', 'build-mac-os-x86-64', 'build-mac-os-64', 'commit_artifacts')
-BRIDGE_JOBS = ('test-ubuntu-x86-64', 'test-ubuntu-arm-64', 'test-ubuntu-24-x86-64',
-               'test-ubuntu-20-x86-64', 'test-mac-os-x86-64', 'test-mac-os-64', 'publish_to_maven')
+NATIVE_BUILD_JOBS = ('build-ubuntu-x86-64', 'build-ubuntu-arm-64', 'build-windows-x86-64',
+                     'build-windows-arm-64', 'build-mac-os-universal', 'build-android-arm-64',
+                     'build-mac-os-x86-64', 'build-mac-os-64')
+BRIDGE_TEST_JOBS = ('test-ubuntu-arm-64', 'test-ubuntu-24-x86-64', 'test-ubuntu-20-x86-64', 'test-macos',
+                    'test-ubuntu-x86-64', 'test-mac-os-x86-64', 'test-mac-os-64')
 
 
 class ChainError(RuntimeError):
@@ -160,10 +163,10 @@ def native_manifest(sha):
         raise ChainError('Native manifest commit mismatch')
     entries = {}
     for checksum, size, name in re.findall(r'^([0-9a-f]{64})\s+(\d+)\s+(\S+)\s*$', text, re.MULTILINE):
-        if name not in NATIVE_FILES or name in entries:
+        if name not in NATIVE_FILES | OPTIONAL_NATIVE_FILES or name in entries:
             raise ChainError(f'Unexpected native artifact: {name}')
         entries[name] = {'sha256': checksum, 'size': int(size)}
-    if set(entries) != NATIVE_FILES:
+    if not NATIVE_FILES <= set(entries):
         raise ChainError('Native manifest is missing platform artifacts')
     for name, entry in entries.items():
         result = request(f'{MAVEN}/physxbinaries/krunchxbinaries/{sha}/{name}', method='HEAD', missing_ok=True)
@@ -178,7 +181,7 @@ def start_native(github, sha):
     if native_manifest(sha) is not None:
         return
     statuses = github.statuses('native', sha)
-    if any('ci/circleci: ' + job in statuses for job in NATIVE_JOBS):
+    if any('ci/circleci: ' + job in statuses for job in (*NATIVE_BUILD_JOBS, 'commit_artifacts')):
         return
     tag = 'full-build-chain-' + sha
     existing = github.call('native', 'git/ref/tags/' + tag, missing_ok=True)
@@ -220,22 +223,26 @@ def verify_bundled_native(url, entries):
     return hashlib.sha256(payload).hexdigest()
 
 
-def wait_for(github, key, sha, jobs, artifact, timeout, interval=30, clock=time.monotonic, sleep=time.sleep):
+def wait_for(github, key, sha, jobs, artifact, timeout, interval=30, clock=time.monotonic, sleep=time.sleep,
+             prerequisites=()):
     deadline = clock() + timeout
     required = {'ci/circleci: ' + job for job in jobs}
+    watched = required | {'ci/circleci: ' + job for job in prerequisites}
     while True:
         statuses = github.statuses(key, sha)
-        failed = [s for name, s in statuses.items() if name in required and s['state'] in ('error', 'failure')]
-        if failed:
+        pending = sorted(name for name in required if statuses.get(name, {}).get('state') != 'success')
+        failed = [s for name, s in statuses.items() if name in watched and s['state'] in ('error', 'failure')]
+        if pending and failed:
             raise ChainError(f'{key} CI failed: ' + ', '.join(s['context'] + ' ' + (s.get('target_url') or '') for s in failed))
-        if all(name in statuses and statuses[name]['state'] == 'success' for name in required):
+        if not pending:
             result = artifact()
             if result:
                 print(f'{key}: published artifacts and required CI verified for {sha}', flush=True)
                 return result
         if clock() >= deadline:
             raise ChainError(f'Timed out waiting for {key} {sha}; rerun failed jobs after resolving its CI')
-        print(f'{key}: waiting for CI/publication of {sha[:12]}', flush=True)
+        waiting = ', '.join(pending) if pending else 'published artifacts'
+        print(f'{key}: waiting for {waiting} ({sha[:12]})', flush=True)
         sleep(interval)
 
 
@@ -251,8 +258,8 @@ def run(github, manifest, output, timeout):
         write_json(output, result)
 
     start_native(github, native_sha)
-    native = wait_for(github, 'native', native_sha, NATIVE_JOBS,
-                      lambda: native_manifest(native_sha), timeout)
+    native = wait_for(github, 'native', native_sha, ('commit_artifacts',),
+                      lambda: native_manifest(native_sha), timeout, prerequisites=NATIVE_BUILD_JOBS)
     record('native', native_sha, artifacts=native)
     api_version = '1.0.0+' + api_sha[:10]
     wait_for(github, 'api', api_sha, ('gradle_build', 'publish_to_maven'),
@@ -262,9 +269,9 @@ def run(github, manifest, output, timeout):
     bridge_sha = pin(github, 'bridge', source['bridge']['sha'],
                      {'krunchx_commit_hash': native_sha, 'vs_phys_api_version': api_version}, native_sha)
     bridge_version = '1.0.0+' + bridge_sha[:10]
-    bridge_jar = wait_for(github, 'bridge', bridge_sha, BRIDGE_JOBS,
+    bridge_jar = wait_for(github, 'bridge', bridge_sha, ('publish_to_maven',),
                          lambda: pom_ready('org.valkyrienskies', 'physics_api_krunch', bridge_version,
-                                           ('physics_api', api_version)), timeout)
+                                           ('physics_api', api_version)), timeout, prerequisites=BRIDGE_TEST_JOBS)
     record('bridge', bridge_sha, bridge_version, jar_sha256=verify_bundled_native(bridge_jar, native))
 
     core_sha = pin(github, 'core', source['core']['sha'], {'krunch_version': bridge_version}, native_sha)

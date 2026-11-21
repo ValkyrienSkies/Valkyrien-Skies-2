@@ -18,9 +18,8 @@ import org.valkyrienskies.core.api.ships.ClientShip;
 
 /** Extra masks share two textures instead of consuming another sampler per ship. OpenGL 3.2 only. */
 final class FluidOcclusionOverflow implements AutoCloseable {
-    // Terrain samplers use 0/1; reserve 14/15 beyond direct masks and ship-light resources.
-    static final int MASK_UNIT = 14;
-    static final int DESCRIPTOR_UNIT = 15;
+    static final int MASK_UNIT = FluidOcclusionTextureState.MASK_UNIT;
+    static final int DESCRIPTOR_UNIT = FluidOcclusionTextureState.DESCRIPTOR_UNIT;
     static final int RECORD_TEXELS = 8;
     private int maskTexture;
     private int descriptorTexture;

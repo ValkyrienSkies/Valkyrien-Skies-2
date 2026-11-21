@@ -24,6 +24,8 @@ public final class VsShipWorldLightTerrainUniforms {
     }
 
     public static void disableForProgram(final int programId) {
+        setInt(programId, "u_VsShipShadowMap", ShipShadowMap.TEXTURE_UNIT);
+        setInt(programId, "u_VsShipShadowCompare", ShipShadowMap.COMPARISON_TEXTURE_UNIT);
         setInt(programId, "u_VsShipEmitters", VsDynamicLight.SHIP_EMITTER_LIST_TEXTURE_UNIT);
         setInt(programId, "u_VsShipGlowEnabled", 0);
         setInt(programId, "u_VsShipShadowMapEnabled", 0);

@@ -9,12 +9,14 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.ChunkStatus;
 import org.joml.Vector3d;
 import org.joml.primitives.AABBi;
 import org.joml.primitives.AABBd;
 import org.joml.primitives.AABBic;
 import org.lwjgl.opengl.GL20;
 import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.mod.client.render.ShipRenderViews;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 
@@ -49,7 +51,9 @@ public final class ShipShadowRenderer {
         double minY = level.getMinBuildHeight() - 64.0;
         double maxY = level.getMaxBuildHeight();
         FRAME.begin();
+        final String dimension = VSGameUtilsKt.getDimensionId(level);
         for (final ClientShip ship : VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips()) {
+            if (!dimension.equals(ship.getChunkClaimDimension())) continue;
             final Geometry geometry = GEOMETRY.get(ship.getId(), ship.getShipAABB(),
                 ship.getActiveChunksSet(), level.getGameTime(), Geometry::dynamic,
                 () -> collectGeometry(level, ship));
@@ -70,7 +74,7 @@ public final class ShipShadowRenderer {
         GEOMETRY.endFrame();
         final boolean frameChanged = FRAME.finish();
         final var minecraft = Minecraft.getInstance();
-        final var camera = minecraft.gameRenderer.getMainCamera().getPosition();
+        final var camera = ShipRenderViews.getCameraPosition();
         final double oldX = LAYOUT.originX, oldY = LAYOUT.originY, oldZ = LAYOUT.originZ;
         final boolean layoutChanged = LAYOUT.update(camera.x, camera.y, camera.z, minY, maxY,
             minecraft.options.getEffectiveRenderDistance());
@@ -110,7 +114,7 @@ public final class ShipShadowRenderer {
         final boolean[] dynamic = {false};
         ship.getActiveChunksSet().forEach((cx, cz) -> {
             final var chunk = level.getChunk(cx, cz,
-                net.minecraft.world.level.chunk.ChunkStatus.FULL, false);
+                ChunkStatus.FULL, false);
             if (chunk == null) return;
             for (int sy = Math.max(level.getMinSection(), bounds.minY() >> 4);
                 sy <= Math.min(level.getMaxSection() - 1, (bounds.maxY() - 1) >> 4); sy++) {

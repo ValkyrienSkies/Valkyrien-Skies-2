@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.common.assembly
 
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Vec3i
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.Clearable
@@ -35,6 +36,15 @@ import org.valkyrienskies.mod.api.forEach
 import org.valkyrienskies.mod.api.inAssemblyBlacklist
 import org.valkyrienskies.mod.api.isChunkLoadedForVS
 import org.valkyrienskies.mod.api.playerWrapper
+import org.valkyrienskies.mod.common.assembly.ShipAssembler.assembleToShipFull
+import org.valkyrienskies.mod.common.dimensionId
+import org.valkyrienskies.mod.common.executeIf
+import org.valkyrienskies.mod.common.fluid.FractionalFluidLifecycle
+import org.valkyrienskies.mod.common.forEach
+import org.valkyrienskies.mod.common.getLoadedShipManagingPos
+import org.valkyrienskies.mod.common.getShipManagingPos
+import org.valkyrienskies.mod.common.inAssemblyBlacklist
+import org.valkyrienskies.mod.common.isChunkLoadedForVS
 import org.valkyrienskies.mod.common.networking.sendRestartChunkUpdates
 import org.valkyrienskies.mod.common.networking.sendStopChunkUpdates
 import org.valkyrienskies.mod.common.shipObjectWorld
@@ -92,14 +102,21 @@ object ShipAssembler {
         return minCorner to maxCorner
     }
 
-    @JvmStatic
-    private fun getDistinctChunksFromBlockPosSet(blocks: Set<BlockPos>): Set<ChunkPos> {
-        val chunkSet = hashSetOf<ChunkPos>()
-        for (blockPos in blocks) {
-            val chunkPos = ChunkPos(blockPos)
-            chunkSet.add(chunkPos)
+    private fun destinationCorner(center: Vector3i, offset: Vector3d): BlockPos =
+        Vector3d(center).sub(offset).ceil().let { BlockPos(it.x.toInt(), it.y.toInt(), it.z.toInt()) }
+
+    internal fun chunksForMove(
+        blocks: Set<BlockPos>, sourceCorner: BlockPos, destinationCorner: BlockPos
+    ): Pair<Set<ChunkPos>, Set<ChunkPos>> {
+        val sourceChunks = linkedSetOf<ChunkPos>()
+        val destinationChunks = linkedSetOf<ChunkPos>()
+        val dx = destinationCorner.x - sourceCorner.x
+        val dz = destinationCorner.z - sourceCorner.z
+        for (pos in blocks) {
+            sourceChunks.add(ChunkPos(pos))
+            destinationChunks.add(ChunkPos((pos.x + dx) shr 4, (pos.z + dz) shr 4))
         }
-        return chunkSet
+        return sourceChunks to destinationChunks
     }
 
     data class AssembleContext(val ship: ServerShip, val fromCenter: Vector3d, val toCenter: Vector3d)
@@ -221,7 +238,7 @@ object ShipAssembler {
             .div(2.0)
         val fromCenter = offset.get(Vector3d()).add(oldMin)
 
-        val cornerOfShip = Vector3d(toCenter).sub(offset).ceil().let { BlockPos(it.x.toInt(), it.y.toInt(), it.z.toInt()) }
+        val cornerOfShip = destinationCorner(toCenter, offset)
         FractionalFluidLifecycle.beginMove(level, blocks, fromShip, toShip, minStructurePos, cornerOfShip, !removeOriginal).use { fluidTransfer ->
         var wasSplittingEnabled = true
         if (fromShip is LoadedServerShip) {
@@ -237,28 +254,15 @@ object ShipAssembler {
         template as StructureTemplateFillFromVoxelSet
         template.`vs$fillFromVoxelSet`(
             level, blocks,
-            fromShip?.let { listOf(it) } ?: emptyList(),
+            fromShip, fromShip?.let { listOf(it) } ?: emptyList(),
             SingleItemMap(fromId, fromCenter, Vector3d()),
             minStructurePos, maxStructurePos
         )
 
         // ========== Pause Chunk Updates
 
-        val toChunkCenter = ChunkPos(toCenter.x.toInt() shr 4, toCenter.z.toInt() shr 4)
-
-        val fromChunkX = ((minStructurePos.x + maxStructurePos.x) / 2) shr 4
-        val fromChunkZ = ((minStructurePos.z + maxStructurePos.z) / 2) shr 4
-
-        val deltaX = fromChunkX - toChunkCenter.x
-        val deltaZ = fromChunkZ - toChunkCenter.z
-
-        val chunksToBeUpdated = mutableMapOf<ChunkPos, Pair<ChunkPos, ChunkPos>>()
-        getDistinctChunksFromBlockPosSet(blocks).forEach { sourcePos ->
-            val destPos = ChunkPos(sourcePos.x - deltaX, sourcePos.z - deltaZ)
-            chunksToBeUpdated[sourcePos] = Pair(sourcePos, destPos)
-        }
-        val chunkPairs = chunksToBeUpdated.values.toList()
-        val chunkPoses = chunkPairs.flatMap { it.toList() }
+        val (sourceChunks, destChunks) = chunksForMove(blocks, minStructurePos, cornerOfShip)
+        val chunkPoses = sourceChunks + destChunks
         val chunkPosesJOML = chunkPoses.map { it.toJOML() }
 
         level.players().forEach { player ->
@@ -275,8 +279,7 @@ object ShipAssembler {
                     if (it is Clearable) {
                         Clearable.tryClear(it)
                     } else {
-                        // Clear all NBT if it doesn't implement IClearable
-                        it.load(CompoundTag())
+                        MovedBlockEntityTags.clearBeforeRemoval(it)
                     }
                     // Without this, copycats still drop their items
                     level.removeBlockEntity(pos)
@@ -313,7 +316,8 @@ object ShipAssembler {
         val structureSettings = StructurePlaceSettings().addProcessor(
             ICopyableProcessor(
                 SingleItemMap(fromId, toShip?.id ?: -1L, -1L) {it},
-                SingleItemMap(fromId, Pair(fromCenter, Vector3d(centerOfShip)), Pair(Vector3d(), Vector3d()))
+                SingleItemMap(fromId, Pair(fromCenter, Vector3d(centerOfShip)), Pair(Vector3d(), Vector3d())),
+                cornerOfShip.subtract(minStructurePos)
             )
         )
 
@@ -428,9 +432,8 @@ object ShipAssembler {
             val minB: BlockPos,
             val maxB: BlockPos,
             val fromCenter: Vector3d,
-            val toCenter: Vector3i,
+            val destinationCorner: BlockPos,
             val offset: Vector3d,
-            val sourceChunks: Set<ChunkPos>,
             val destChunks: Set<ChunkPos>
         )
 
@@ -464,20 +467,14 @@ object ShipAssembler {
             )
 
             val toCenter = toShip.chunkClaim.getCenterBlockCoordinates(level.yRange, Vector3i())
-            val toChunkCenter = ChunkPos(toCenter.x.toInt() shr 4, toCenter.z.toInt() shr 4)
-            val fromChunkX = ((minB.x + maxB.x) / 2) shr 4
-            val fromChunkZ = ((minB.z + maxB.z) / 2) shr 4
-            val deltaX = fromChunkX - toChunkCenter.x
-            val deltaZ = fromChunkZ - toChunkCenter.z
-
-            val sourceChunks = getDistinctChunksFromBlockPosSet(blockSet)
-            val destChunks = sourceChunks.map { ChunkPos(it.x - deltaX, it.z - deltaZ) }.toSet()
+            val destinationCorner = destinationCorner(toCenter, offset)
+            val (sourceChunks, destChunks) = chunksForMove(blockSet, minB, destinationCorner)
 
             allSourceChunkPoses.addAll(sourceChunks)
             allDestChunkPoses.addAll(destChunks)
 
             pendingAssemblies.add(PendingAssembly(
-                blockSet, fromShip, toShip, minB, maxB, fromCenter, toCenter, offset, sourceChunks, destChunks
+                blockSet, fromShip, toShip, minB, maxB, fromCenter, destinationCorner, offset, destChunks
             ))
         }
 
@@ -602,10 +599,7 @@ object ShipAssembler {
             try {
                 VSAssemblyEvents.beforeCopy.emit(VSAssemblyEvents.BeforeCopy(level, oldMin, oldMax, fromCenter, pending.fromShip, filteredBlocks, eventData))
 
-                val cornerOfShip = Vector3d(pending.toCenter)
-                    .sub(offset)
-                    .ceil()
-                    .let { BlockPos(it.x.toInt(), it.y.toInt(), it.z.toInt()) }
+                val cornerOfShip = pending.destinationCorner
                 val centerOfShip = cornerOfShip.toJOMLD().add(offset)
 
                 val removeFlags = Block.UPDATE_CLIENTS or Block.UPDATE_KNOWN_SHAPE or Block.UPDATE_SUPPRESS_DROPS or Block.UPDATE_MOVE_BY_PISTON
@@ -614,8 +608,9 @@ object ShipAssembler {
                     pending.minB, cornerOfShip, false).use { fluidTransfer ->
                 if (filteredBlocksWithState.size <= 8) {
                     val destPositions = ArrayList<BlockPos>(filteredBlocksWithState.size)
-                    for ((srcPos, state) in filteredBlocksWithState) {
-                        val beTag = level.getBlockEntity(srcPos)?.saveWithFullMetadata()
+                    val tags = filteredBlocksWithState.map { (pos, _) -> level.getBlockEntity(pos)?.saveWithFullMetadata() }
+                    for ((index, entry) in filteredBlocksWithState.withIndex()) {
+                        val (srcPos, state) = entry
                         val dx = srcPos.x - pending.minB.x
                         val dy = srcPos.y - pending.minB.y
                         val dz = srcPos.z - pending.minB.z
@@ -623,7 +618,7 @@ object ShipAssembler {
                         destPositions.add(destPos)
 
                         level.getBlockEntity(srcPos)?.let {
-                            if (it is Clearable) Clearable.tryClear(it) else it.load(CompoundTag())
+                            if (it is Clearable) Clearable.tryClear(it) else MovedBlockEntityTags.clearBeforeRemoval(it)
                             level.removeBlockEntity(srcPos)
                         }
                         val srcChunk = level.getChunkAt(srcPos)
@@ -631,10 +626,12 @@ object ShipAssembler {
 
                         val destChunk = level.getChunkAt(destPos)
                         destChunk.setBlockState(destPos, state, false)
-                        beTag?.let { tag ->
+                        tags[index]?.let { tag ->
                             tag.putInt("x", destPos.x)
                             tag.putInt("y", destPos.y)
                             tag.putInt("z", destPos.z)
+                            val blockOffset = cornerOfShip.subtract(pending.minB)
+                            MovedBlockEntityTags.relocate(state, tag) { it.offset(blockOffset) }
                             level.getBlockEntity(destPos)?.load(tag)
                         }
 
@@ -649,14 +646,14 @@ object ShipAssembler {
                     template as StructureTemplateFillFromVoxelSet
                     template.`vs$fillFromVoxelSet`(
                         level, filteredBlocks,
-                        pending.fromShip?.let { listOf(it) } ?: emptyList(),
+                        pending.fromShip,pending.fromShip?.let { listOf(it) } ?: emptyList(),
                         SingleItemMap(fromId, fromCenter, Vector3d()),
                         pending.minB, pending.maxB
                     )
 
                     for (pos in filteredBlocks) {
                         level.getBlockEntity(pos)?.let {
-                            if (it is Clearable) Clearable.tryClear(it) else it.load(CompoundTag())
+                            if (it is Clearable) Clearable.tryClear(it) else MovedBlockEntityTags.clearBeforeRemoval(it)
                             level.removeBlockEntity(pos)
                         }
                         level.setBlock(pos, Blocks.AIR.defaultBlockState(), removeFlags)
@@ -668,7 +665,8 @@ object ShipAssembler {
                     val structureSettings = StructurePlaceSettings().addProcessor(
                         ICopyableProcessor(
                             SingleItemMap(fromId, pending.toShip.id, -1L) { it },
-                            SingleItemMap(fromId, Pair(fromCenter, Vector3d(centerOfShip)), Pair(Vector3d(), Vector3d()))
+                            SingleItemMap(fromId, Pair(fromCenter, Vector3d(centerOfShip)), Pair(Vector3d(), Vector3d())),
+                            cornerOfShip.subtract(pending.minB)
                         )
                     )
                     structureSettings.rotationPivot = cornerOfShip
@@ -793,18 +791,24 @@ object ShipAssembler {
         return 1
     }
 
-    class ICopyableProcessor(
+    public class ICopyableProcessor(
         val oldShipIdToNewShipId: Map<ShipId, ShipId>,
-        val centerPositions: Map<Long, Pair<Vector3d, Vector3d>>
+        val centerPositions: Map<Long, Pair<Vector3d, Vector3d>>,
+        /** How far every block moves (destination corner minus source corner), or null when unknown. */
+        val blockOffset: Vec3i? = null
     ): StructureProcessor() {
         override fun processBlock(
             levelReader: LevelReader, oldBPos: BlockPos, newBPos: BlockPos,
             oldStructureBlockInfo: StructureTemplate.StructureBlockInfo,
             newStructureBlockInfo: StructureTemplate.StructureBlockInfo, structurePlaceSettings: StructurePlaceSettings
         ): StructureTemplate.StructureBlockInfo? {
+            val nbt = newStructureBlockInfo.nbt
+            if (nbt != null && blockOffset != null) {
+                MovedBlockEntityTags.relocate(newStructureBlockInfo.state, nbt) { it.offset(blockOffset) }
+            }
             val block = newStructureBlockInfo.state.block
             if (block !is ICopyableBlock) return newStructureBlockInfo
-            block.onPaste((levelReader as ServerLevelAccessor).level, newBPos, newStructureBlockInfo.state, oldShipIdToNewShipId, centerPositions, newStructureBlockInfo.nbt)
+            block.onPaste((levelReader as ServerLevelAccessor).level, newBPos, newStructureBlockInfo.state, oldShipIdToNewShipId, centerPositions, mutableMapOf(), newStructureBlockInfo.nbt)
             return newStructureBlockInfo
         }
 

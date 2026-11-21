@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.mixin.feature.screen_distance_check;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.phys.Vec3;
@@ -25,7 +26,7 @@ public class MixinScreenHandler {
     private static double includeShipsInDistanceCheck(
         final Player receiver, final double x, final double y, final double z) {
         final Vec3 eye = EntityDragger.INSTANCE.serversideEyePosition(receiver);
-        return ValkyrienSkies.shipAwareDistanceToSqr(receiver, eye.x, eye.y, eye.z);
+        return VSGameUtilsKt.squaredDistanceToPhysicalBlock(receiver.level(), BlockPos.containing(x, y, z), eye);
     }
 
 }

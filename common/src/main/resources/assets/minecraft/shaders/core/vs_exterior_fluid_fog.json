@@ -1,0 +1,13 @@
+{
+  "vertex": "vs_exterior_fluid_fog",
+  "fragment": "vs_exterior_fluid_fog",
+  "attributes": [],
+  "samplers": [{ "name": "SceneDepth" }],
+  "uniforms": [
+    { "name": "DistanceOnly", "type": "int", "count": 1, "values": [0] },
+    { "name": "InverseViewProjection", "type": "matrix4x4", "count": 16, "values": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1] },
+    { "name": "CameraInWaterGrid", "type": "float", "count": 3, "values": [0, 0, 0] },
+    { "name": "WaterGridOffset", "type": "float", "count": 3, "values": [0, 0, 0] },
+    { "name": "WaterFogColor", "type": "float", "count": 3, "values": [0, 0, 0] }
+  ]
+}

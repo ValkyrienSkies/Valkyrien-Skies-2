@@ -98,6 +98,49 @@ uint vs_fetchFluidWord(sampler2D mask, int wordIndex, int atlasOffset) {
     return bytes.r | (bytes.g << 8u) | (bytes.b << 16u) | (bytes.a << 24u);
 }
 
+float vs_fluidPlaneValue(sampler2D mask, int word, int atlasOffset) {
+    return float(vs_fetchFluidWord(mask, word, atlasOffset)) / 4194304.0 - 2.0;
+}
+
+bool vs_fluidRegionContains(uint bounds, vec3 point) {
+    vec3 minimum = vec3(bounds & 31u, (bounds >> 5u) & 31u, (bounds >> 10u) & 31u) / 16.0;
+    vec3 maximum = vec3((bounds >> 15u) & 31u, (bounds >> 20u) & 31u, (bounds >> 25u) & 31u) / 16.0;
+    return all(greaterThanEqual(point, minimum)) && all(lessThan(point, maximum));
+}
+
+bool vs_fluidRegionDry(sampler2D mask, int denseWords, int count, int voxelIndex, vec3 point, int atlasOffset) {
+    int low = 0, high = count - 1;
+    while (low <= high) {
+        int middle = low + ((high - low) >> 1);
+        int record = denseWords + middle * 4;
+        uint index = vs_fetchFluidWord(mask, record, atlasOffset);
+        if (index == uint(voxelIndex)) {
+            int domains = int(vs_fetchFluidWord(mask, record + 1, atlasOffset));
+            int liquids = int(vs_fetchFluidWord(mask, record + 2, atlasOffset));
+            int payload = int(vs_fetchFluidWord(mask, record + 3, atlasOffset));
+            bool inside = false;
+            for (int i = 0; i < domains; i++) {
+                inside = inside || vs_fluidRegionContains(vs_fetchFluidWord(mask, payload + i, atlasOffset), point);
+            }
+            if (!inside) return false;
+            payload += domains;
+            for (int i = 0; i < liquids; i++) {
+                int base = payload + i * 6;
+                uint bounds = vs_fetchFluidWord(mask, base, atlasOffset);
+                vec3 normal = vec3(vs_fluidPlaneValue(mask, base + 1, atlasOffset), vs_fluidPlaneValue(mask, base + 2, atlasOffset), vs_fluidPlaneValue(mask, base + 3, atlasOffset));
+                float lower = vs_fluidPlaneValue(mask, base + 4, atlasOffset);
+                float upper = vs_fluidPlaneValue(mask, base + 5, atlasOffset);
+                float projection = dot(normal, point);
+                if (projection >= lower - 0.000001 && projection <= upper + 0.000001 && vs_fluidRegionContains(bounds, point)) return false;
+            }
+            return true;
+        }
+        if (index < uint(voxelIndex)) low = middle + 1;
+        else high = middle - 1;
+    }
+    return false;
+}
+
 bool vs_shouldCullFluidAtOffset(
     sampler2D mask,
     vec3 gridSize,
@@ -126,6 +169,11 @@ bool vs_shouldCullFluidAtOffset(
     // Mixed masks use two-bit states, followed by sorted (24-bit index, 8-bit fill) records.
     uint word = vs_fetchFluidWord(mask, voxelIndex >> 4, atlasOffset);
     uint state = (word >> uint((voxelIndex & 15) * 2)) & 3u;
+    if (partialCount < 0) {
+        if (state != 3u) return state == 1u;
+        return vs_fluidRegionDry(mask, (size.x * size.y * size.z + 15) >> 4,
+            -partialCount, voxelIndex, fract(localPos), atlasOffset);
+    }
     if (state != 2u) return state == 1u;
     int denseWords = (size.x * size.y * size.z + 15) >> 4;
     int low = 0;

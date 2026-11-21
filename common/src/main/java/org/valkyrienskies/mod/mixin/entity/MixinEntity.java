@@ -150,9 +150,9 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
                         } else {
                             shipTransform = shipDraggedBy.getTransform();
                         }
-
-                        final Vec3 worldEyePosition = ValkyrienSkies.toMinecraft(
-                            shipTransform.getShipToWorld().transformPosition(ValkyrienSkies.toJOML(localEyePosition))
+                        final Vec3 worldEyePosition = VectorConversionsMCKt.toMinecraft(
+                            (dragProvider.getDraggingInformation().getSupportPiece() == null ? shipTransform.getShipToWorld()
+                                : dragProvider.getDraggingInformation().getSupportPiece().getShipToWorld()).transformPosition(VectorConversionsMCKt.toJOML(localEyePosition))
                         );
                         cir.setReturnValue(worldEyePosition);
                     }
@@ -229,8 +229,8 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
                 final ShipTransform shipTransform = (ship instanceof ClientShip ? ((ClientShip) ship).getRenderTransform() : ship.getTransform());
                 final Vector3dc relativePosition = this.draggingInformation.bestRelativeEntityPosition();
                 if (relativePosition != null) {
-                    final Vector3dc renderPosition = shipTransform.getShipToWorld()
-                        .transformPosition(relativePosition, new Vector3d());
+                    final Vector3dc renderPosition = (draggingInformation.getSupportPiece() == null ? shipTransform.getShipToWorld()
+                        : draggingInformation.getSupportPiece().getShipToWorld()).transformPosition(relativePosition, new Vector3d());
                     cir.setReturnValue(shouldRenderAtSqrDistance(renderPosition.distanceSquared(d, e, f)));
                 }
             }

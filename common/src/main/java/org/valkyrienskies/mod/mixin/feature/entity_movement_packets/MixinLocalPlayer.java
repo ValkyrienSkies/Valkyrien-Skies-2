@@ -12,6 +12,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.Level;
 import org.joml.Vector3d;
+import org.joml.primitives.AABBd;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -23,7 +24,8 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.networking.PacketPlayerShipMotion;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
-import org.valkyrienskies.mod.common.util.EntityLerper;
+import org.valkyrienskies.mod.common.util.EntityShipCollisionUtils;
+import org.valkyrienskies.mod.common.util.ShipDraggingMath;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 
 @Mixin(LocalPlayer.class)
@@ -71,11 +73,16 @@ public abstract class MixinLocalPlayer extends Entity {
         final Ship ship = VSGameUtilsKt.getShipObjectWorld(level()).getAllShips()
             .getById(info.getLastShipStoodOn());
         if (ship == null) return false;
-        final Vector3d position = ship.getWorldToShip()
+        if (!VSGameUtilsKt.getAllShips(level()).getSplitPieces(ship.getId()).isEmpty()
+            && (info.getSupportPiece() == null || !info.getSupportPiece().getWorldBounds().intersectsAABB(new AABBd(
+                entity.getBoundingBox().minX, entity.getBoundingBox().minY - 0.01, entity.getBoundingBox().minZ,
+                entity.getBoundingBox().maxX, entity.getBoundingBox().maxY, entity.getBoundingBox().maxZ)))
+            && EntityShipCollisionUtils.recordSupportingShip(entity, ship.getId()) == null) return false;
+        final Vector3d position = info.worldToSupport(ship)
             .transformPosition(new Vector3d(entity.getX(), entity.getY(), entity.getZ()));
         ValkyrienSkiesMod.getVsCore().getSimplePacketNetworking().sendToServer(new PacketPlayerShipMotion(
             ship.getId(), position.x, position.y, position.z,
-            EntityLerper.INSTANCE.yawToShip(ship, entity.getYRot()), entity.getXRot(), onGround,
+            ShipDraggingMath.yawToShip(info.supportRotation(ship), entity.getYRot()), entity.getXRot(), onGround,
             info.getTicksSinceStoodOnShip(), vehicleId));
         if (vehicleId == -1) vs$lastSentShip = ship.getId();
         return true;

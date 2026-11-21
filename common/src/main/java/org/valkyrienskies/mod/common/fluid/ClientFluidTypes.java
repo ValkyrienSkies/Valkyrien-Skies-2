@@ -29,6 +29,8 @@ public final class ClientFluidTypes {
         return fluids.get(id);
     }
 
+    static Object identity() { return fluids; }
+
     public static void clear() {
         fluids = Map.of();
     }

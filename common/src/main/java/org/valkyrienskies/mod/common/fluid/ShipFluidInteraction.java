@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.common.fluid;
 
+import java.util.HashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
 import java.util.ArrayList;
@@ -7,6 +8,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
+import java.util.function.ToDoubleFunction;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.material.FluidState;
 import java.util.Map;
@@ -17,6 +20,7 @@ import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FlowingFluid;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4dc;
 import org.joml.Vector3d;
@@ -32,12 +36,10 @@ import org.valkyrienskies.core.internal.world.VsiServerShipWorld;
 import org.valkyrienskies.core.internal.world.VsiShipWorld;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.MassDatapackResolver;
+import org.valkyrienskies.mod.common.config.FluidBoundaryRegistration;
 
 /**
  * Shared client/server view of the fluid occupying a ship topology domain.
- *
- * <p>Flood snapshots do not currently export a velocity field. Entity interaction therefore
- * supplies immersion and vanilla fluid behavior without adding an artificial current.</p>
  */
 public final class ShipFluidInteraction {
     private static final PointSample OUTSIDE = new PointSample(false, null);
@@ -68,9 +70,9 @@ public final class ShipFluidInteraction {
             ship.getWorldToShip().transformPosition(
                 worldPosition.x, worldPosition.y, worldPosition.z, local
             );
-            final LocalPointSample localSample = body.sampleLocal(local.x, local.y, local.z);
+            final LocalPointSample localSample = body.sampleLocal(local.x, local.y, local.z, shipWorld instanceof VsiClientShipWorld);
             if (!localSample.insideDomain()) {
-                if (!body.topologyByPosition.isEmpty() && insideHull(level, local)) {
+                if (!body.topologyByPosition.isEmpty() && insideHull(level, body, local)) {
                     drySample = new PointSample(true, null);
                 }
                 continue;
@@ -87,7 +89,7 @@ public final class ShipFluidInteraction {
         return drySample;
     }
 
-    private static boolean insideHull(final Level level, final Vector3d point) {
+    private static boolean insideHull(final Level level, final CachedBody body, final Vector3d point) {
         final AABB query = new AABB(point.x - 1.0e-6, point.y - 1.0e-6, point.z - 1.0e-6,
             point.x + 1.0e-6, point.y + 1.0e-6, point.z + 1.0e-6);
         if (!boundedHullQuery(query)) return false;
@@ -96,7 +98,39 @@ public final class ShipFluidInteraction {
                 if (box.contains(point.x, point.y, point.z)) return true;
             }
         }
+        final var voxel = body.topologyByPosition.get(FloodedFluidClientCache.pack(
+            floorToInt(point.x), floorToInt(point.y), floorToInt(point.z)));
+        if (voxel != null) {
+            for (final AABB box : nonCollidingBoundaryMasks(level, voxel)) {
+                if (box.contains(point.x, point.y, point.z)) return true;
+            }
+        }
         return false;
+    }
+
+    /**
+     * Topology excludes outline geometry even when a block (such as a torch) has no collision.
+     * That excluded solid space must not be mistaken for exterior world fluid. Only supplement
+     * partial, published domain cells; an exposed torch must not create its own dry domain.
+     */
+    private static List<AABB> nonCollidingBoundaryMasks(final Level level, final VsiFluidTopologyVoxel voxel) {
+        if (voxel.getRegions().isEmpty()) return List.of();
+        final BlockPos pos = new BlockPos(voxel.getPositionX(), voxel.getPositionY(), voxel.getPositionZ());
+        final var state = level.getBlockState(pos);
+        final VoxelShape shape;
+        try {
+            if (!state.getCollisionShape(level, pos).isEmpty()) return List.of();
+            shape = state.getShape(level, pos);
+        } catch (final RuntimeException exception) {
+            // Registration also tolerates shape-query failures. Do not turn a fluid query into a crash.
+            return List.of();
+        }
+        final List<AABB> masks = new ArrayList<>();
+        final boolean valid = FluidBoundaryRegistration.forEachCellBox(shape, box -> masks.add(new AABB(
+            pos.getX() + box.minX() / 16.0, pos.getY() + box.minY() / 16.0, pos.getZ() + box.minZ() / 16.0,
+            pos.getX() + (box.maxX() + 1) / 16.0, pos.getY() + (box.maxY() + 1) / 16.0,
+            pos.getZ() + (box.maxZ() + 1) / 16.0)));
+        return valid ? masks : List.of();
     }
 
     private static boolean boundedHullQuery(final AABB bounds) {
@@ -139,14 +173,40 @@ public final class ShipFluidInteraction {
             final AABB localQuery = new AABB(transformed.minX, transformed.minY, transformed.minZ,
                 transformed.maxX, transformed.maxY, transformed.maxZ);
             if (level != null && !body.topologyByPosition.isEmpty()) {
-                result.hulls.add(new Hull(localQuery, toWorld, toLocal));
+                result.hulls.add(new Hull(localQuery, toWorld, toLocal, body));
             }
             // Use local hash probes for small queries, sparse content for huge inverse-transformed volumes.
             body.forEachDomain(localQuery, domain -> {
                 final FluidVolumeGeometry.Box box = new FluidVolumeGeometry.Box(domain, toWorld, toLocal, result.origin);
                 if (box.bounds.intersects(result.relativeBounds)) result.domains.add(box);
             });
-            body.forEachFlooded(localQuery, voxel -> FluidVoxelGeometry.forEachFlooded(voxel, (fluidId, local) -> {
+            body.forEachFlooded(localQuery, voxel -> {
+                if (!voxel.getSurfaceRegions().isEmpty()) {
+                    for (final var surface : voxel.getSurfaceRegions()) {
+                        final FlowingFluid fluid = MassDatapackResolver.INSTANCE.getFlowingFluid(
+                            FluidVoxelGeometry.dominantFluid(surface, world instanceof VsiClientShipWorld), world instanceof VsiClientShipWorld);
+                        if (fluid == null) continue;
+                        final var current = surface.getCurrent();
+                        if (current == null && result.retained.getDouble(fluid) >= result.relativeBounds.maxY) continue;
+                        final var box = new FluidVolumeGeometry.Box(voxel, surface, toWorld, toLocal, result.origin);
+                        final var contact = current == null ? null : box.contact(result.relativeBounds);
+                        final double top = current == null ? box.intersectionTop(result.relativeBounds) :
+                            contact == null ? Double.NaN : contact.top();
+                        if (Double.isFinite(top) && top > 0) result.retained.put(fluid, Math.max(result.retained.getDouble(fluid), top));
+                        if (contact != null) {
+                            final Vec3 center = contact.center().add(result.origin);
+                            final Vector3d offset = toLocal.transformPosition(center.x, center.y, center.z, new Vector3d())
+                                .sub(voxel.getPositionX() + .5, voxel.getPositionY() + .5, voxel.getPositionZ() + .5);
+                            final Vector3d velocity = new Vector3d(current.getAngularVelocityX(), current.getAngularVelocityY(),
+                                current.getAngularVelocityZ()).cross(offset).add(current.getVelocityX(), current.getVelocityY(), current.getVelocityZ());
+                            toWorld.transformDirection(velocity);
+                            if (velocity.isFinite()) result.currents.computeIfAbsent(fluid, ignored -> new CurrentContact())
+                                .add(contact.volume(), new Vec3(velocity.x, velocity.y, velocity.z));
+                        }
+                    }
+                    return;
+                }
+                FluidVoxelGeometry.forEachFlooded(voxel, (fluidId, local) -> {
                 final FlowingFluid fluid = MassDatapackResolver.INSTANCE.getFlowingFluid(fluidId, world instanceof VsiClientShipWorld);
                 if (fluid == null || result.retained.getDouble(fluid) >= result.relativeBounds.maxY) return;
                 final double top = new FluidVolumeGeometry.Box(local, toWorld, toLocal, result.origin)
@@ -154,12 +214,22 @@ public final class ShipFluidInteraction {
                 if (Double.isFinite(top) && top > 0) {
                     result.retained.put(fluid, Math.max(result.retained.getDouble(fluid), top));
                 }
-            }));
+                });
+            });
         }
         return result;
     }
 
-    private record Hull(AABB bounds, Matrix4dc toWorld, Matrix4dc toLocal) { }
+    private record Hull(AABB bounds, Matrix4dc toWorld, Matrix4dc toLocal, CachedBody body) { }
+
+    private static final class CurrentContact {
+        double volume;
+        Vec3 moment = Vec3.ZERO;
+        void add(final double amount, final Vec3 velocity) {
+            volume += amount;
+            moment = moment.add(velocity.scale(amount));
+        }
+    }
 
     public static final class VolumeQuery {
         private final @Nullable Level level;
@@ -172,6 +242,7 @@ public final class ShipFluidInteraction {
         private final Long2ObjectOpenHashMap<CachedBody> bodies = new Long2ObjectOpenHashMap<>();
         private final Object2DoubleOpenHashMap<FlowingFluid> retained =
             new Object2DoubleOpenHashMap<>();
+        private final Map<FlowingFluid, CurrentContact> currents = new HashMap<>();
 
         private VolumeQuery(final AABB bounds) {
             this(null, bounds);
@@ -219,6 +290,13 @@ public final class ShipFluidInteraction {
             hullsRead = true;
             for (final Hull hull : hulls) {
                 final AABB local = hull.bounds;
+                // Partial topology is sparse and independently bounded, even on very small ships.
+                hull.body.forEachPartialTopologyVoxel(local, voxel -> {
+                    for (final AABB mask : nonCollidingBoundaryMasks(level, voxel)) {
+                        final var box = new FluidVolumeGeometry.Box(mask, hull.toWorld, hull.toLocal, origin);
+                        if (box.bounds.intersects(relativeBounds)) domains.add(box);
+                    }
+                });
                 if (!boundedHullQuery(local)) continue;
                 for (final var shape : level.getBlockCollisions(null, local)) {
                     shape.forAllBoxes((minX, minY, minZ, maxX, maxY, maxZ) -> {
@@ -243,6 +321,24 @@ public final class ShipFluidInteraction {
                 if (entry.getKey().defaultFluidState().is(tag)) depth = Math.max(depth, entry.getDoubleValue());
             }
             return depth;
+        }
+
+        public Vec3 currentMovement(final Vec3 before, final Vec3 after, final Predicate<FluidState> accepts,
+            final ToDoubleFunction<FluidState> motionScale) {
+            if (!valid || currents.isEmpty()) return after;
+            final double entityVolume = relativeBounds.getXsize() * relativeBounds.getYsize() * relativeBounds.getZsize();
+            double volume = 0;
+            Vec3 push = Vec3.ZERO;
+            for (final var entry : currents.entrySet()) {
+                final FluidState fluid = entry.getKey().defaultFluidState();
+                if (!accepts.test(fluid)) continue;
+                final CurrentContact contact = entry.getValue();
+                volume += contact.volume;
+                push = push.add(RetainedFluidCurrent.push(before, contact.moment.scale(1 / contact.volume),
+                    contact.volume / entityVolume, motionScale.applyAsDouble(fluid)));
+            }
+            if (volume > entityVolume) push = push.scale(entityVolume / volume);
+            return before.add(after.subtract(before).scale(1 - Math.min(1, volume / entityVolume))).add(push);
         }
 
         public void forEachRetained(final BiConsumer<FluidState, Double> consumer) {
@@ -324,6 +420,7 @@ public final class ShipFluidInteraction {
         private final long topologySequence;
         private final long floodingSequence;
         private final Long2ObjectOpenHashMap<VsiFluidTopologyVoxel> topologyByPosition;
+        private final List<VsiFluidTopologyVoxel> partialTopologyVoxels;
         private final Long2ObjectOpenHashMap<VsiFluidFloodedVoxel> floodingByPosition;
         private final List<AABB> domainBoxes;
         final @Nullable AABBd domainBounds;
@@ -346,6 +443,7 @@ public final class ShipFluidInteraction {
 
             if (previous != null && previous.topologySequence == topologySequence) {
                 topologyByPosition = previous.topologyByPosition;
+                partialTopologyVoxels = previous.partialTopologyVoxels;
                 domainBoxes = previous.domainBoxes;
                 domainBounds = previous.domainBounds;
             } else {
@@ -354,6 +452,8 @@ public final class ShipFluidInteraction {
                     topologyByPosition.put(FloodedFluidClientCache.pack(
                         voxel.getPositionX(), voxel.getPositionY(), voxel.getPositionZ()), voxel);
                 }
+                partialTopologyVoxels = topologyByPosition.values().stream()
+                    .filter(voxel -> !voxel.getRegions().isEmpty()).toList();
                 domainBoxes = coalesceDomains(topologyByPosition.values());
                 final AABBd bounds = new AABBd();
                 for (final AABB box : domainBoxes) {
@@ -364,7 +464,7 @@ public final class ShipFluidInteraction {
             }
             if (flooding != null) {
                 for (final VsiFluidFloodedVoxel voxel : flooding.getVoxels()) {
-                    if (voxel.getFillAmount() <= 0) continue;
+                    if (voxel.getFillAmount() <= 0 && voxel.getSurfaceRegions().isEmpty()) continue;
                     floodingByPosition.put(
                         FloodedFluidClientCache.pack(
                             voxel.getPositionX(), voxel.getPositionY(), voxel.getPositionZ()
@@ -434,6 +534,20 @@ public final class ShipFluidInteraction {
             }
         }
 
+        private void forEachPartialTopologyVoxel(final AABB bounds, final Consumer<VsiFluidTopologyVoxel> visitor) {
+            if (visitIndexedCells(bounds, partialTopologyVoxels.size(), (x, y, z) -> {
+                final var voxel = topologyByPosition.get(FloodedFluidClientCache.pack(x, y, z));
+                if (voxel != null && !voxel.getRegions().isEmpty()) visitor.accept(voxel);
+            })) return;
+            for (final var voxel : partialTopologyVoxels) {
+                if (voxel.getPositionX() < bounds.maxX && voxel.getPositionX() + 1.0 > bounds.minX
+                    && voxel.getPositionY() < bounds.maxY && voxel.getPositionY() + 1.0 > bounds.minY
+                    && voxel.getPositionZ() < bounds.maxZ && voxel.getPositionZ() + 1.0 > bounds.minZ) {
+                    visitor.accept(voxel);
+                }
+            }
+        }
+
         private void forEachDomain(final AABB bounds, final Consumer<AABB> visitor) {
             if (visitIndexedCells(bounds, domainBoxes.size(), (x, y, z) -> {
                 final var voxel = topologyByPosition.get(FloodedFluidClientCache.pack(x, y, z));
@@ -464,6 +578,10 @@ public final class ShipFluidInteraction {
         }
 
         LocalPointSample sampleLocal(final double x, final double y, final double z) {
+            return sampleLocal(x, y, z, false);
+        }
+
+        LocalPointSample sampleLocal(final double x, final double y, final double z, final boolean clientSide) {
             final int voxelX = floorToInt(x);
             final int voxelY = floorToInt(y);
             final int voxelZ = floorToInt(z);
@@ -474,7 +592,7 @@ public final class ShipFluidInteraction {
             }
 
             final VsiFluidFloodedVoxel flooded = floodingByPosition.get(packed);
-            final int fluidId = flooded == null ? 0 : FluidVoxelGeometry.fluidAt(flooded, x - voxelX, y - voxelY, z - voxelZ);
+            final int fluidId = flooded == null ? 0 : FluidVoxelGeometry.fluidAt(flooded, x - voxelX, y - voxelY, z - voxelZ, clientSide);
             if (fluidId != 0) return new LocalPointSample(true, fluidId);
             return new LocalPointSample(true, null);
         }

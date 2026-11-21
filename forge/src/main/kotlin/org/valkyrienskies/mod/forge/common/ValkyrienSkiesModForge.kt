@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.forge.common
 
+import org.valkyrienskies.mod.common.fluid.ExteriorFluidFog
+import org.valkyrienskies.mod.common.fluid.RetainedFluidRenderer
 import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import dev.engine_room.flywheel.api.event.ReloadLevelRendererEvent
 import net.minecraft.client.renderer.ShaderInstance
@@ -83,6 +85,7 @@ import org.valkyrienskies.mod.common.item.ConnectionCheckerItem
 import org.valkyrienskies.mod.common.item.PhysicsEntityCreatorItem
 import org.valkyrienskies.mod.common.item.ShipAssemblerItem
 import org.valkyrienskies.mod.common.item.ShipWelderItem
+import org.valkyrienskies.mod.common.item.DebugGravitronItem
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
 import org.valkyrienskies.mod.common.item.ShipRemoverItem
 import org.valkyrienskies.mod.common.item.VSBlockItem
@@ -121,6 +124,7 @@ class ValkyrienSkiesModForge {
     private val PHYSICS_ENTITY_TYPE_REGISTRY: RegistryObject<EntityType<VSPhysicsEntity>>
     private val SHIP_ASSEMBLER_ITEM_REGISTRY: RegistryObject<Item>
     private val SHIP_WELDER_ITEM_REGISTRY: RegistryObject<Item>
+    private val DEBUG_GRAVITRON_ITEM_REGISTRY: RegistryObject<Item>
     private val TEST_HINGE_BLOCK_ENTITY_TYPE_REGISTRY: RegistryObject<BlockEntityType<TestHingeBlockEntity>>
     private val TEST_THRUSTER_BLOCK_ENTITY_TYPE_REGISTRY: RegistryObject<BlockEntityType<TestThrusterBlockEntity>>
     private val TEST_ANTIGRAV_BLOCK_ENTITY_TYPE_REGISTRY: RegistryObject<BlockEntityType<TestAntigravBlockEntity>>
@@ -249,6 +253,7 @@ class ValkyrienSkiesModForge {
         SHIP_ASSEMBLER_ITEM_REGISTRY =
             ITEMS.register("ship_assembler") { ShipAssemblerItem(Properties()) }
         SHIP_WELDER_ITEM_REGISTRY = ITEMS.register("ship_welder") { ShipWelderItem(Properties()) }
+        DEBUG_GRAVITRON_ITEM_REGISTRY = ITEMS.register("debug_gravitron") { DebugGravitronItem(Properties()) }
         TEST_HINGE_BLOCK_ENTITY_TYPE_REGISTRY = BLOCK_ENTITIES.register("test_hinge_block_entity") {
             BlockEntityType.Builder.of(::TestHingeBlockEntity, TestHingeBlock).build(null)
         }
@@ -297,6 +302,7 @@ class ValkyrienSkiesModForge {
             event.accept(SHIP_REMOVER_ITEM)
             event.accept(SHIP_ASSEMBLER_ITEM)
             event.accept(SHIP_WELDER_ITEM)
+            event.accept(ValkyrienSkiesMod.DEBUG_GRAVITRON_ITEM)
             event.accept(SHIP_CREATOR_ITEM_SMALLER)
             event.accept(AREA_ASSEMBLER_ITEM)
             event.accept(CLASSIC_AREA_ASSEMBLER_ITEM)
@@ -378,6 +384,12 @@ class ValkyrienSkiesModForge {
             ShaderInstance(event.resourceProvider, "rendertype_ship_cutout", DefaultVertexFormat.BLOCK)
         ) { shaderInstance: ShaderInstance? -> VSRenderTypes.shipCutoutShader = shaderInstance }
         event.registerShader(
+            ShaderInstance(event.resourceProvider, "vs_exterior_fluid_fog", DefaultVertexFormat.POSITION)
+        ) { shader -> ExteriorFluidFog.setShader(shader) }
+        event.registerShader(
+            ShaderInstance(event.resourceProvider, "vs_retained_fluid", DefaultVertexFormat.NEW_ENTITY)
+        ) { shader -> RetainedFluidRenderer.setShader(shader) }
+        event.registerShader(
             ShaderInstance(event.resourceProvider, "rendertype_ship_translucent", DefaultVertexFormat.BLOCK)
         ) { shaderInstance: ShaderInstance? -> VSRenderTypes.shipTranslucentShader = shaderInstance }
         event.registerShader(
@@ -392,6 +404,15 @@ class ValkyrienSkiesModForge {
         event.registerShader(
             ShaderInstance(event.resourceProvider, "rendertype_ship_batched_translucent", DefaultVertexFormat.BLOCK)
         ) { shaderInstance: ShaderInstance? -> VSRenderTypes.shipBatchedTranslucentShader = shaderInstance }
+        event.registerShader(
+            ShaderInstance(event.resourceProvider, "rendertype_ship_batched_mask", DefaultVertexFormat.BLOCK)
+        ) { VSRenderTypes.shipMaskShader = it }
+        event.registerShader(
+            ShaderInstance(event.resourceProvider, "rendertype_ship_material", DefaultVertexFormat.BLOCK)
+        ) { VSRenderTypes.shipMaterialShader = it }
+        event.registerShader(
+            ShaderInstance(event.resourceProvider, "rendertype_ship_terrain_mask", DefaultVertexFormat.BLOCK)
+        ) { VSRenderTypes.shipTerrainMaskShader = it }
     }
 
     private fun tagsUpdated(event: TagsUpdatedEvent) {
@@ -410,21 +431,22 @@ class ValkyrienSkiesModForge {
     }
 
     private fun loadComplete(event: FMLLoadCompleteEvent) {
-        TEST_CHAIR = TEST_CHAIR_REGISTRY.get()
-        TEST_HINGE = TEST_HINGE_REGISTRY.get()
-        TEST_FLAP = TEST_FLAP_REGISTRY.get()
-        TEST_WING = TEST_WING_REGISTRY.get()
-        TEST_THRUSTER = TEST_THRUSTER_REGISTRY.get()
-        TEST_ANTIGRAV = TEST_ANTIGRAV_REGISTRY.get()
-        CONNECTION_CHECKER_ITEM = CONNECTION_CHECKER_ITEM_REGISTRY.get()
-        SHIP_CREATOR_ITEM = SHIP_CREATOR_ITEM_REGISTRY.get()
-        SHIP_REMOVER_ITEM = SHIP_REMOVER_ITEM_REGISTRY.get()
-        SHIP_ASSEMBLER_ITEM = SHIP_ASSEMBLER_ITEM_REGISTRY.get()
-        SHIP_WELDER_ITEM = SHIP_WELDER_ITEM_REGISTRY.get()
-        SHIP_CREATOR_ITEM_SMALLER = SHIP_CREATOR_SMALLER_ITEM_REGISTRY.get()
-        AREA_ASSEMBLER_ITEM = AREA_ASSEMBLER_ITEM_REGISTRY.get()
-        CLASSIC_AREA_ASSEMBLER_ITEM = CLASSIC_AREA_ASSEMBLER_ITEM_REGISTRY.get()
-        PHYSICS_ENTITY_CREATOR_ITEM = PHYSICS_ENTITY_CREATOR_ITEM_REGISTRY.get()
+        ValkyrienSkiesMod.TEST_CHAIR = TEST_CHAIR_REGISTRY.get()
+        ValkyrienSkiesMod.TEST_HINGE = TEST_HINGE_REGISTRY.get()
+        ValkyrienSkiesMod.TEST_FLAP = TEST_FLAP_REGISTRY.get()
+        ValkyrienSkiesMod.TEST_WING = TEST_WING_REGISTRY.get()
+        ValkyrienSkiesMod.TEST_THRUSTER = TEST_THRUSTER_REGISTRY.get()
+        ValkyrienSkiesMod.TEST_ANTIGRAV = TEST_ANTIGRAV_REGISTRY.get()
+        ValkyrienSkiesMod.CONNECTION_CHECKER_ITEM = CONNECTION_CHECKER_ITEM_REGISTRY.get()
+        ValkyrienSkiesMod.SHIP_CREATOR_ITEM = SHIP_CREATOR_ITEM_REGISTRY.get()
+        ValkyrienSkiesMod.SHIP_REMOVER_ITEM = SHIP_REMOVER_ITEM_REGISTRY.get()
+        ValkyrienSkiesMod.SHIP_ASSEMBLER_ITEM = SHIP_ASSEMBLER_ITEM_REGISTRY.get()
+        ValkyrienSkiesMod.SHIP_WELDER_ITEM = SHIP_WELDER_ITEM_REGISTRY.get()
+        ValkyrienSkiesMod.DEBUG_GRAVITRON_ITEM = DEBUG_GRAVITRON_ITEM_REGISTRY.get()
+        ValkyrienSkiesMod.SHIP_CREATOR_ITEM_SMALLER = SHIP_CREATOR_SMALLER_ITEM_REGISTRY.get()
+        ValkyrienSkiesMod.AREA_ASSEMBLER_ITEM = AREA_ASSEMBLER_ITEM_REGISTRY.get()
+        ValkyrienSkiesMod.CLASSIC_AREA_ASSEMBLER_ITEM = CLASSIC_AREA_ASSEMBLER_ITEM_REGISTRY.get()
+        ValkyrienSkiesMod.PHYSICS_ENTITY_CREATOR_ITEM = PHYSICS_ENTITY_CREATOR_ITEM_REGISTRY.get()
         ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE = SHIP_MOUNTING_ENTITY_REGISTRY.get()
         ValkyrienSkiesMod.PHYSICS_ENTITY_TYPE = PHYSICS_ENTITY_TYPE_REGISTRY.get()
         ValkyrienSkiesMod.TEST_HINGE_BLOCK_ENTITY_TYPE = TEST_HINGE_BLOCK_ENTITY_TYPE_REGISTRY.get()

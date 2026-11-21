@@ -3,12 +3,15 @@ package org.valkyrienskies.mod.common.util
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.LivingEntity
 import org.joml.Vector3d
+import org.valkyrienskies.mod.mixinducks.client.ShipWalkAnimation
+import kotlin.math.sqrt
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.Ship
 
 object EntityLerper {
     fun prepareTick(entity: Entity) {
         val info = (entity as? IEntityDraggingInformationProvider)?.draggingInformation ?: return
+        info.pendingWalkAnimation = null
         if (!info.usesShipInterpolation || entity.isControlledByLocalInstance) return
         entity.lerpTo(entity.x, entity.y, entity.z, entity.yRot, entity.xRot, 0, true)
         entity.lerpHeadTo(entity.yHeadRot, 0)
@@ -31,6 +34,15 @@ object EntityLerper {
         }
         val next = ship.transform.shipToWorld.transformPosition(position, Vector3d())
         entity.setPos(next.x, next.y, next.z)
+        info.pendingWalkAnimation?.let { includeVertical ->
+            // Exclude translation and rotation of the deck itself. Do not update twice:
+            // vanilla's earlier update was deferred, preserving its smoothing and phase.
+            val dx = next.x - carried.x
+            val dy = if (includeVertical) next.y - carried.y else 0.0
+            val dz = next.z - carried.z
+            (entity as? ShipWalkAnimation)?.`vs$updateShipWalkAnimation`(sqrt(dx * dx + dy * dy + dz * dz).toFloat())
+            info.pendingWalkAnimation = null
+        }
         val yawChange = ShipDraggingMath.wrapDegrees(nextYaw - entity.yRot)
         entity.yRot = nextYaw.toFloat()
         if (entity is LivingEntity) entity.yBodyRot += yawChange.toFloat()

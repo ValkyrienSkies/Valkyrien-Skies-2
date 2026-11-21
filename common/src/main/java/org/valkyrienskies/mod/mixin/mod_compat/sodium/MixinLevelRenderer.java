@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.mixin.mod_compat.sodium;
 
+import me.jellysquid.mods.sodium.client.world.WorldRendererExtended;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.LevelRenderer;
@@ -14,12 +15,21 @@ import org.valkyrienskies.mod.compat.LoadedMods;
 import org.valkyrienskies.mod.compat.LoadedMods.FlywheelVersion;
 import org.valkyrienskies.mod.compat.flywheel.FlywheelDynLightCompat;
 import org.valkyrienskies.mod.compat.sodium.SodiumCompat;
+import org.valkyrienskies.mod.mixinducks.client.render.NestedShipView;
+import org.valkyrienskies.mod.mixinducks.mod_compat.sodium.SodiumWorldRendererDuck;
 import org.valkyrienskies.mod.common.render.light.ShipLightUpdateScheduler;
 
 @Mixin(LevelRenderer.class)
-public class MixinLevelRenderer {
+public class MixinLevelRenderer implements NestedShipView {
     @Shadow
     private @Nullable ClientLevel level;
+
+    @Override
+    public void vs$renderNestedShipView(final Runnable draw) {
+        final var renderer = ((WorldRendererExtended) this).sodium$getWorldRenderer();
+        if (renderer instanceof SodiumWorldRendererDuck duck) duck.vs$renderNestedShipView(draw);
+        else draw.run();
+    }
 
     @Unique
     private final ShipLightUpdateScheduler vs$shipLightUpdates = new ShipLightUpdateScheduler();

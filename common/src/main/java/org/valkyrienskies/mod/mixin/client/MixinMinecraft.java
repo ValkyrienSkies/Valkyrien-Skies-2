@@ -1,9 +1,14 @@
 package org.valkyrienskies.mod.mixin.client;
 
+import org.valkyrienskies.mod.common.fluid.ClientFluidTypes;
+import org.valkyrienskies.mod.common.fluid.ExteriorFluidFog;
+import org.valkyrienskies.mod.common.fluid.FluidParcelRenderer;
+import org.valkyrienskies.mod.common.fluid.RetainedFluidRenderer;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
+import org.valkyrienskies.mod.common.render.batched.ShipPieceRenderFrames;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.MultiPlayerGameMode;
 import net.minecraft.client.player.LocalPlayer;
@@ -35,6 +40,7 @@ import org.valkyrienskies.mod.common.fluid.FluidTopologyClientCache;
 import org.valkyrienskies.mod.common.fluid.ShipFluidInteraction;
 import org.valkyrienskies.mod.common.util.EntityDragger;
 import org.valkyrienskies.mod.common.networking.ClientShipMovement;
+import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
 import org.valkyrienskies.mod.compat.LoadedMods;
 import org.valkyrienskies.mod.compat.LoadedMods.FlywheelVersion;
 import org.valkyrienskies.mod.mixinducks.client.MinecraftDuck;
@@ -87,7 +93,7 @@ public abstract class MixinMinecraft
         final BlockHitResult blockHitResult, final Operation<InteractionResult> useItemOn) {
 
         return useItemOn.call(instance, localPlayer, interactionHand,
-            (BlockHitResult) this.originalCrosshairTarget);
+            RaycastUtilsKt.blockHitForUse(localPlayer.clientLevel, blockHitResult));
     }
 
     @NotNull
@@ -143,9 +149,11 @@ public abstract class MixinMinecraft
         if (!pause && shipObjectWorld != null && level != null && getConnection() != null) {
             shipObjectWorld.tickNetworking(getConnection().getConnection().getRemoteAddress());
             shipObjectWorld.postTick();
+            ShipPieceRenderFrames.tick(level);
             ShipFluidInteraction.prune(shipObjectWorld);
             FloodedFluidClientCache.prune(shipObjectWorld);
             FluidTopologyClientCache.prune(shipObjectWorld);
+            FluidOcclusionRenderer.prune(shipObjectWorld);
             ClientShipMovement.INSTANCE.tick();
             EntityDragger.INSTANCE.dragEntitiesWithShips(level.entitiesForRendering(), false);
             if(player != null && level.isClientSide) ((PlayerKnownShipsDuck)player).vs_flushKnownShips();
@@ -197,6 +205,8 @@ public abstract class MixinMinecraft
         FloodedFluidClientCache.clear();
         FluidTopologyClientCache.clear();
         FluidOcclusionRenderer.clear();
+        RetainedFluidRenderer.clear();
+        ExteriorFluidFog.clear();
         shipObjectWorldCopy.destroyWorld();
         shipObjectWorld = null;
     }
@@ -206,7 +216,9 @@ public abstract class MixinMinecraft
         at = @At("TAIL")
     )
     private void postClearLevel(final CallbackInfo ci) {
-        org.valkyrienskies.mod.common.fluid.ClientFluidTypes.clear();
+        ShipPieceRenderFrames.clear();
+        FluidParcelRenderer.clear();
+        ClientFluidTypes.clear();
         org.valkyrienskies.mod.client.debug.ShipDebugRenderer.clear();
         if (shipObjectWorld != null) {
             deleteShipObjectWorldClient();
@@ -214,6 +226,8 @@ public abstract class MixinMinecraft
             FloodedFluidClientCache.clear();
             FluidTopologyClientCache.clear();
             FluidOcclusionRenderer.clear();
+            RetainedFluidRenderer.clear();
+            ExteriorFluidFog.clear();
         }
     }
 }

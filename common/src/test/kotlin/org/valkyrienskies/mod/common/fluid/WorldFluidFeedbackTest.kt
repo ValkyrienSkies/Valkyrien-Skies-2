@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.common.fluid
 import io.mockk.*
 import net.minecraft.SharedConstants
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
 import net.minecraft.server.Bootstrap
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
@@ -21,6 +22,7 @@ import org.valkyrienskies.core.internal.physics.VsiFluidSourceWithdrawalResult
 import org.valkyrienskies.core.internal.world.chunks.VsiBlockType
 import org.valkyrienskies.mod.common.*
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
+import org.valkyrienskies.mod.common.config.VSGameConfig
 import java.math.BigDecimal
 
 class WorldFluidFeedbackTest {
@@ -73,18 +75,26 @@ class WorldFluidFeedbackTest {
         every { MassDatapackResolver.getBlockStateType(any()) } answers {
             if (firstArg<BlockState>().fluidState.isEmpty) airType else waterType
         }
-        blocks[pos.below()] = Blocks.STONE.defaultBlockState()
+        supportFlatLanding(pos)
+    }
+
+    private fun supportFlatLanding(at: BlockPos) {
+        val floor = at.below()
+        blocks[floor] = Blocks.STONE.defaultBlockState()
+        for (direction in Direction.Plane.HORIZONTAL) {
+            blocks[floor.relative(direction)] = Blocks.STONE.defaultBlockState()
+        }
     }
 
     @AfterEach fun cleanup() { unmockkAll() }
 
     private fun settle(volume: Double, at: BlockPos = pos, reloadBeforeLanding: Boolean = false) {
-        blocks[at.below()] = Blocks.STONE.defaultBlockState()
+        supportFlatLanding(at)
         val event = VsiFluidOutflow(1, 1, 1, DIMENSION, 7, at.x + 0.5, at.y + 0.5, at.z + 0.5,
             0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 17, 255).copy(worldVolume = volume)
         assertEquals(VsiFluidOutflowResult.APPLIED, manager.enqueue(level, event))
         if (reloadBeforeLanding) reload()
-        repeat(4) { manager.tick(mapOf(DIMENSION to level)) }
+        repeat(4 + VSGameConfig.SERVER.SpilledWater.parcelCollectionSeconds * 20) { manager.tick(mapOf(DIMENSION to level)) }
         assertEquals(0, manager.activeParcelCount())
     }
 
@@ -93,7 +103,7 @@ class WorldFluidFeedbackTest {
         manager = WorldFluidOutflowManager().also { it.load(manager.save()) }
     }
 
-    @Test fun `tiny scattered droplets do not create water blocks or saved owners`() {
+    @Test fun `tiny scattered droplets expire without creating water blocks or saved owners`() {
         val positions = (0 until 64).map { pos.offset(it * 2, 0, 0) }
         positions.forEach { settle(0.001, it) }
         reload()
@@ -115,7 +125,7 @@ class WorldFluidFeedbackTest {
         assertTrue(newLiquidBelow().isEmpty)
     }
 
-    @Test fun `a droplet just below the minimum survives unloaded transit then disappears on landing`() {
+    @Test fun `a droplet just below the minimum survives unloaded transit then expires after landing`() {
         val units = BigDecimal("31.87499999999999999999999")
         every { level.hasChunkAt(any()) } returns false
         assertEquals(VsiFluidOutflowResult.APPLIED, manager.enqueueExact(DIMENSION, WATER,
@@ -124,7 +134,7 @@ class WorldFluidFeedbackTest {
         assertEquals(1, manager.activeParcelCount())
         reload()
         every { level.hasChunkAt(any()) } returns true
-        repeat(4) { manager.tick(mapOf(DIMENSION to level)) }
+        repeat(4 + VSGameConfig.SERVER.SpilledWater.parcelCollectionSeconds * 20) { manager.tick(mapOf(DIMENSION to level)) }
         assertEquals(0, manager.activeParcelCount())
         assertTrue(level.getBlockState(pos).isAir)
         assertEquals(0, sources.size)

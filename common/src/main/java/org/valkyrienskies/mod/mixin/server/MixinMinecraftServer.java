@@ -1,5 +1,10 @@
 package org.valkyrienskies.mod.mixin.server;
 
+import org.valkyrienskies.core.internal.physics.VsiFluidGameplaySnapshot;
+import org.valkyrienskies.mod.common.fluid.FractionalFluidLifecycle;
+import org.valkyrienskies.mod.common.fluid.FractionalFluidTransferScope;
+import org.valkyrienskies.mod.common.fluid.RetainedFluidBlockInteractions;
+import org.valkyrienskies.mod.common.fluid.ShipFluidInteraction;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -71,6 +76,7 @@ import org.valkyrienskies.mod.common.fluid.FluidSourceWithdrawalHandler;
 import org.valkyrienskies.mod.common.fluid.FractionalFluidSources;
 import org.valkyrienskies.mod.common.fluid.WorldFluidOutflowManager;
 import org.valkyrienskies.mod.common.hooks.VSGameEvents;
+import org.valkyrienskies.mod.common.portals.ShipPortalRegistry;
 import org.valkyrienskies.mod.common.util.EntityDragger;
 import org.valkyrienskies.mod.common.util.ShipSettingsKt;
 import org.valkyrienskies.mod.common.util.VSLevelChunk;
@@ -79,6 +85,7 @@ import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.common.world.ChunkManagement;
 import org.valkyrienskies.mod.compat.LoadedMods;
 import org.valkyrienskies.mod.compat.Weather2Compat;
+import org.valkyrienskies.mod.compat.immersiveportals.ImmersiveShipPortals;
 import org.valkyrienskies.mod.util.KrunchSupport;
 import org.valkyrienskies.mod.util.McMathUtilKt;
 
@@ -111,6 +118,9 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     @Unique
     private FractionalFluidSources fractionalFluidSources;
 
+    @Unique
+    private RetainedFluidBlockInteractions fluidBlockInteractions;
+
     @Inject(
         at = @At(value = "INVOKE", target = "Lnet/minecraft/server/MinecraftServer;initServer()Z"),
         method = "runServer"
@@ -124,6 +134,8 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         org.valkyrienskies.mod.common.debug.ShipDebugService.clear();
         org.valkyrienskies.mod.common.hooks.VSGameEvents.INSTANCE.getServerStopped().emit(kotlin.Unit.INSTANCE);
         org.valkyrienskies.mod.common.util.ShipShadows.clear();
+        ShipPortalRegistry.clear();
+        if (LoadedMods.getImmersivePortals()) ImmersiveShipPortals.clear();
         ValkyrienSkiesMod.setCurrentServer(null);
     }
 
@@ -176,6 +188,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         vsPipeline = shipSavedData.getPipeline();
         fluidOutflowManager = shipSavedData.getFluidOutflowManager();
         fractionalFluidSources = shipSavedData.getFractionalFluidSources();
+        fluidBlockInteractions = shipSavedData.getFluidBlockInteractions();
 
         KrunchSupport.INSTANCE.setKrunchSupported(!vsPipeline.isUsingDummyPhysics());
 
@@ -273,7 +286,8 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     private void postTick(final CallbackInfo ci) {
         fractionalFluidSources.recoverTransfers(dimensionToLevelMap, fluidOutflowManager);
         vsPipeline.postTickGame();
-        org.valkyrienskies.mod.common.fluid.ShipFluidInteraction.prune(shipWorld);
+        fluidBlockInteractions.tick(shipWorld, dimensionToLevelMap);
+        ShipFluidInteraction.prune(shipWorld);
         org.valkyrienskies.mod.common.debug.ShipDebugService.tick((MinecraftServer) (Object) this);
         fluidOutflowManager.tick(dimensionToLevelMap);
         fractionalFluidSources.tickSplashes(dimensionToLevelMap);
@@ -455,6 +469,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     )
     private void preStopServer(final CallbackInfo ci) {
         org.valkyrienskies.mod.common.assembly.ShipWelder.cancelAll(MinecraftServer.class.cast(this));
+        org.valkyrienskies.mod.common.item.DebugGravitron.releaseAll(MinecraftServer.class.cast(this));
         if (vsPipeline != null) {
             vsPipeline.setDeleteResources(true);
             vsPipeline.setArePhysicsRunning(true);
@@ -488,7 +503,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         at = @At("RETURN")
     )
     private void postStopServer(final CallbackInfo ci) {
-        org.valkyrienskies.mod.common.fluid.ShipFluidInteraction.clear(shipWorld);
+        ShipFluidInteraction.clear(shipWorld);
         fluidOutflowManager.clearVisuals(dimensionToLevelMap);
         dimensionToLevelMap.clear();
         shipWorld.setGameServer(null);
@@ -537,13 +552,24 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     }
 
     @Override
+    public RetainedFluidBlockInteractions getFluidBlockInteractions() {
+        return fluidBlockInteractions;
+    }
+
+    @Override
+    public void onFluidGameplaySnapshot(
+        final VsiFluidGameplaySnapshot snapshot) {
+        fluidBlockInteractions.onSnapshot(snapshot);
+    }
+
+    @Override
     public WorldFluidOutflowManager getFluidOutflowManager() {
         return fluidOutflowManager;
     }
 
     @Override
     public void beforeShipDeletion(@NotNull final org.valkyrienskies.core.api.ships.ServerShip ship) {
-        org.valkyrienskies.mod.common.fluid.FractionalFluidLifecycle.releaseShip(
+        FractionalFluidLifecycle.releaseShip(
             fractionalFluidSources, dimensionToLevelMap, fluidOutflowManager, ship);
     }
 
@@ -567,8 +593,8 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         final ServerLevel srcLevel = getLevelFromDimensionId(srcDimension);
         final ServerLevel destLevel = getLevelFromDimensionId(destDimension);
 
-        try (final org.valkyrienskies.mod.common.fluid.FractionalFluidTransferScope transfer =
-                 org.valkyrienskies.mod.common.fluid.FractionalFluidLifecycle.beginDimensionMove(srcLevel, destLevel, shipChunks)) {
+        try (final FractionalFluidTransferScope transfer =
+                 FractionalFluidLifecycle.beginDimensionMove(srcLevel, destLevel, shipChunks)) {
         // Copy ship chunks from srcLevel to destLevel
         shipChunks.forEach((final int x, final int z) -> {
             final LevelChunk srcChunk = srcLevel.getChunk(x, z);

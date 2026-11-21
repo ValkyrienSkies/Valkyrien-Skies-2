@@ -48,7 +48,7 @@ public final class CameraFluidState {
             final FloodedFluidClientCache.CachedSnapshot flooding =
                 FloodedFluidClientCache.get(world, ship.getId(), pair);
             final VsiFluidFloodedVoxel voxel = flooding == null ? null : flooding.get(x, y, z);
-            final int fluidId = voxel == null ? 0 : FluidVoxelGeometry.fluidAt(voxel, local.x - x, local.y - y, local.z - z);
+            final int fluidId = voxel == null ? 0 : FluidVoxelGeometry.fluidAt(voxel, local.x - x, local.y - y, local.z - z, true);
             if (fluidId != 0) {
                 final FlowingFluid fluid = MassDatapackResolver.INSTANCE.getFlowingFluid(fluidId, true);
                 if (fluid != null) {

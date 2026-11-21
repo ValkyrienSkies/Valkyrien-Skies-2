@@ -48,6 +48,8 @@ public abstract class MixinEntity {
 
     @Shadow
     public abstract boolean touchingUnloadedChunk();
+    @Shadow public abstract Vec3 getDeltaMovement();
+    @Shadow public abstract void setDeltaMovement(Vec3 movement);
     @Unique
     private ShipFluidInteraction.VolumeQuery vs$fluidQuery;
     @Unique
@@ -61,7 +63,12 @@ public abstract class MixinEntity {
         final ShipFluidInteraction.VolumeQuery previous = vs$fluidQuery;
         vs$fluidQuery = ShipFluidInteraction.prepareVolume(level, bb.deflate(0.001));
         try {
+            final Vec3 before = getDeltaMovement();
             original.call(predicate);
+            setDeltaMovement(vs$fluidQuery.currentMovement(before, getDeltaMovement(), predicate, fluid -> {
+                final Entity entity = (Entity) (Object) this;
+                return entity.isPushedByFluid(fluid.getFluidType()) ? entity.getFluidMotionScale(fluid.getFluidType()) : 0;
+            }));
             vs$fluidQuery.forEachRetained((fluid, depth) -> {
                 if (predicate.test(fluid)) {
                     final FluidType type = fluid.getFluidType();

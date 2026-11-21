@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.ListIterator;
 import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Predicate;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -35,6 +36,12 @@ import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
+import org.joml.Matrix4d;
+import org.valkyrienskies.core.api.ships.ShipPhysicalPiece;
+import org.lwjgl.opengl.GL20;
+import org.valkyrienskies.mod.common.render.NativeShipPieces;
+import org.valkyrienskies.mod.common.render.batched.ShipPieceRenderFrames;
+import org.lwjgl.opengl.GL11;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.joml.Vector3f;
@@ -62,6 +69,10 @@ import org.valkyrienskies.mod.common.hooks.VSGameEvents;
 import org.valkyrienskies.mod.common.render.ShipSectionCache;
 import org.valkyrienskies.mod.common.render.ShipSectionCandidate;
 import org.valkyrienskies.mod.common.render.batched.ShipBatchRenderer;
+import org.valkyrienskies.mod.common.render.batched.VanillaShipMask;
+import org.valkyrienskies.mod.client.render.ShipRenderViews;
+import org.valkyrienskies.mod.client.render.ShipMaterialStack;
+import org.valkyrienskies.mod.common.render.batched.ShipMaterialUniforms;
 import org.valkyrienskies.mod.common.render.light.VsShipWorldLightRenderContext;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.compat.LoadedMods;
@@ -72,9 +83,10 @@ import org.valkyrienskies.mod.mixinducks.client.render.IVSViewAreaMethods;
 import org.valkyrienskies.mod.mixin.mod_compat.optifine.RenderChunkInfoAccessorOptifine;
 import org.valkyrienskies.mod.mixinducks.mod_compat.vanilla_renderer.LevelRendererDuck;
 import org.valkyrienskies.mod.mixinducks.client.render.LevelRendererVanillaDuck;
+import org.valkyrienskies.mod.mixinducks.client.render.NestedShipView;
 
 @Mixin(value = LevelRenderer.class, priority = 999)
-public abstract class MixinLevelRendererVanilla implements LevelRendererDuck, LevelRendererVanillaDuck {
+public abstract class MixinLevelRendererVanilla implements LevelRendererDuck, LevelRendererVanillaDuck, NestedShipView {
     @Unique
     private final WeakHashMap<ClientShip, ObjectList<RenderChunkInfo>> shipRenderChunks = new WeakHashMap<>();
     @Unique
@@ -143,9 +155,16 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererDuck, Le
     }
 
     @Unique
-    private static long vs$shipVisibilitySignature(final ClientShip ship) {
-        long sig = ship.getId();
-        final AABBdc renderAabb = ship.getRenderAABB();
+    private long vs$shipVisibilitySignature(final ClientShip ship) {
+        long sig = vs$boundsSignature(ship.getId(), ship.getRenderAABB());
+        for (var piece : NativeShipPieces.pieces(level, ship.getId())) {
+            sig = vs$boundsSignature(31L * sig + System.identityHashCode(piece), ShipPieceRenderFrames.rendered(piece).getWorldBounds());
+        }
+        return sig;
+    }
+
+    @Unique
+    private static long vs$boundsSignature(long sig, final AABBdc renderAabb) {
         sig = 31L * sig + vs$quantizeRenderCoord(renderAabb.minX());
         sig = 31L * sig + vs$quantizeRenderCoord(renderAabb.minY());
         sig = 31L * sig + vs$quantizeRenderCoord(renderAabb.minZ());
@@ -242,6 +261,7 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererDuck, Le
         this.vs$shipChunkVisibilityDirty = true;
         this.vs$renderableLayerCachesDirty = true;
         this.vs$shipSectionCacheGeneration++;
+        needsFrustumUpdate.set(true);
     }
 
     /**
@@ -387,11 +407,14 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererDuck, Le
 
         final IVSViewAreaMethods shipViewArea = (IVSViewAreaMethods) viewArea;
         final AABBd tempAABB = new AABBd();
+        final AABBd imageBounds = new AABBd();
+        final Predicate<AABBd> visible = box -> frustum.isVisible(VectorConversionsMCKt.toMinecraft(box));
         for (final ClientShip shipObject : VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips()) {
             if (!ShipRendererKt.getUsesTerrainChunkRenderer(shipObject))
                 continue;
 
-            if (!frustum.isVisible(VectorConversionsMCKt.toMinecraft(shipObject.getRenderAABB()))) {
+            final var pieces = NativeShipPieces.pieces(level, shipObject.getId());
+            if (pieces.isEmpty() && !frustum.isVisible(VectorConversionsMCKt.toMinecraft(shipObject.getRenderAABB()))) {
                 continue;
             }
 
@@ -408,9 +431,8 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererDuck, Le
 
                 tempAABB.setMin((x << 4) - 6e-1, (y << 4) - 6e-1, (z << 4) - 6e-1);
                 tempAABB.setMax((x << 4) + 15.6, (y << 4) + 15.6, (z << 4) + 15.6);
-                tempAABB.transform(shipToWorld);
-
-                if (!frustum.isVisible(VectorConversionsMCKt.toMinecraft(tempAABB))) {
+                if (pieces.isEmpty() ? !frustum.isVisible(VectorConversionsMCKt.toMinecraft(tempAABB.transform(shipToWorld)))
+                    : !NativeShipPieces.sectionVisible(pieces, tempAABB, imageBounds, visible)) {
                     continue;
                 }
 
@@ -509,43 +531,79 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererDuck, Le
         ShipBatchRenderer.INSTANCE.drawLayer(renderType, poseStack, camX, camY, camZ, matrix4f,
             this.vs$lastFrustum);
 
+        if (renderType == RenderType.solid() && ShipRenderViews.hasOverlayListeners()) {
+            ShipRenderViews.recordNativeTerrain(poseStack, matrix4f, camX, camY, camZ, (target, ship, terrain) -> {
+                final var shader = VSRenderTypes.Companion.getShipTerrainMaskShader();
+                final var sections = shipRenderChunks.get(ship);
+                if (shader == null || sections == null || sections.isEmpty()) return null;
+                return target.render(terrain, ship.getRenderAABB(), () -> VanillaShipMask.draw(shader, terrain, ship, sections));
+            });
+        }
         if (this.vs$renderableLayerCachesDirty) {
             vs$rebuildRenderableChunkCaches();
         }
         final WeakHashMap<ClientShip, ObjectList<RenderChunkInfo>> renderableChunkMap =
             vs$getRenderableChunkMap(renderType);
-        if (renderableChunkMap != null && !renderableChunkMap.isEmpty()) {
-            final ObjectArrayList<ClientShip> renderableShips = new ObjectArrayList<>();
-            final ObjectArrayList<ObjectList<RenderChunkInfo>> renderableChunkLists = new ObjectArrayList<>();
-            renderableChunkMap.forEach((ship, chunks) -> {
-                renderableShips.add(ship);
-                renderableChunkLists.add(chunks);
-            });
-            if (renderableShips.isEmpty()) {
-                return;
-            }
+        if (renderableChunkMap == null) return;
+        final boolean materialPass = renderType != RenderType.tripwire() && ShipRenderViews.getMaterialTable() != null
+            && VSRenderTypes.Companion.getShipMaterialShader() != null;
+        final boolean translucent = renderType == RenderType.translucent();
+        final var candidates = materialPass && translucent ? shipRenderChunks : renderableChunkMap;
+        final ObjectArrayList<ClientShip> renderableShips = new ObjectArrayList<>();
+        boolean sort = false;
+        for (final ClientShip ship : candidates.keySet()) {
+            if (!ShipRenderViews.shouldRenderShip(ship)) continue;
+            final var materials = materialPass ? ShipRenderViews.materialsFor(ship) : null;
+            if (materials != null && materials.getBlended()) {
+                if (!translucent) continue;
+                sort = true;
+            } else if (!renderableChunkMap.containsKey(ship)) continue;
+            renderableShips.add(ship);
+        }
+        if (sort) renderableShips.sort((a, b) -> Double.compare(
+            b.getRenderTransform().getPosition().distanceSquared(camX, camY, camZ),
+            a.getRenderTransform().getPosition().distanceSquared(camX, camY, camZ)));
 
-            for (int i = 0; i < renderableShips.size(); i++) {
-                final ClientShip ship = renderableShips.get(i);
-                final ObjectList<RenderChunkInfo> chunks = renderableChunkLists.get(i);
+        for (final ClientShip ship : renderableShips) {
+            final var materials = materialPass ? ShipRenderViews.materialsFor(ship) : null;
+            final var pieces = NativeShipPieces.pieces(level, ship.getId());
+            for (int i = 0; i < Math.max(1, pieces.size()); i++) {
+                final var piece = pieces.isEmpty() ? null : ShipPieceRenderFrames.rendered(pieces.get(i));
+                if (piece != null && vs$lastFrustum != null && !vs$lastFrustum.isVisible(VectorConversionsMCKt.toMinecraft(piece.getWorldBounds()))) continue;
+                final Vector3dc camera = (piece == null ? ship.getRenderTransform().getWorldToShip() : piece.getWorldToShip()).transformPosition(new Vector3d(camX, camY, camZ));
                 poseStack.pushPose();
-                final ShipTransform shipTransform = ship.getRenderTransform();
-                final Vector3dc cameraShipSpace = shipTransform.getWorldToShip().transformPosition(new Vector3d(camX, camY, camZ));
-                VSClientGameUtils.transformRenderWithShip(ship.getRenderTransform(), poseStack,
-                    cameraShipSpace.x(), cameraShipSpace.y(), cameraShipSpace.z(),
-                    camX, camY, camZ);
-
-                final var event = new VSGameEvents.ShipRenderEvent(
-                    receiver, renderType, poseStack, camX, camY, camZ, matrix4f, ship, chunks
-                );
-
-                VSGameEvents.INSTANCE.getRenderShip().emit(event);
-                RenderSystem.setShaderTexture(2, 0);
-                renderChunkLayer(renderType, poseStack, cameraShipSpace.x(), cameraShipSpace.y(), cameraShipSpace.z(), matrix4f, chunks);
-                VSGameEvents.INSTANCE.getPostRenderShip().emit(event);
-                poseStack.popPose();
+                try {
+                    if (piece == null) {
+                        VSClientGameUtils.transformRenderWithShip(ship.getRenderTransform(), poseStack, camera.x(), camera.y(), camera.z(), camX, camY, camZ);
+                    } else {
+                        var matrix = new Matrix4d().translation(-camX, -camY, -camZ).mul(piece.getShipToWorld()).translate(camera);
+                        VectorConversionsMCKt.multiply(poseStack, matrix);
+                    }
+                    if (translucent && materials != null && materials.getBlended()) {
+                        for (final RenderType source : RenderType.chunkBufferLayers()) {
+                            if (source == RenderType.tripwire() || source == renderType) continue;
+                            vs$drawShipSections(receiver, ship, source, renderType, materials, piece, camera, poseStack, matrix4f, camX, camY, camZ);
+                        }
+                    }
+                    vs$drawShipSections(receiver, ship, renderType, renderType, materials, piece, camera, poseStack, matrix4f, camX, camY, camZ);
+                } finally {
+                    poseStack.popPose();
+                }
             }
         }
+    }
+
+    @Unique
+    private void vs$drawShipSections(final LevelRenderer receiver, final ClientShip ship, final RenderType source,
+        final RenderType pass, final ShipMaterialStack materials, final ShipPhysicalPiece piece, final Vector3dc camera, final PoseStack poseStack,
+        final Matrix4f projection, final double camX, final double camY, final double camZ) {
+        final var chunks = vs$getRenderableChunkMap(source).get(ship);
+        if (chunks == null || chunks.isEmpty()) return;
+        final var event = new VSGameEvents.ShipRenderEvent(receiver, source, poseStack, camX, camY, camZ, projection, ship, chunks);
+        VSGameEvents.INSTANCE.getRenderShip().emit(event);
+        RenderSystem.setShaderTexture(2, 0);
+        renderChunkLayer(source, pass, materials, ship, poseStack, camera.x(), camera.y(), camera.z(), projection, chunks, piece, camX, camY, camZ);
+        VSGameEvents.INSTANCE.getPostRenderShip().emit(event);
     }
 
     @Unique
@@ -601,11 +659,15 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererDuck, Le
     }
 
     @Unique
-    private void renderChunkLayer(final RenderType renderType, final PoseStack poseStack, final double d,
+    private void renderChunkLayer(final RenderType renderType, final RenderType pass, final ShipMaterialStack materials,
+        final ClientShip ship, final PoseStack poseStack, final double d,
         final double e, final double f,
-        final Matrix4f matrix4f, final ObjectList<RenderChunkInfo> chunksToRender) {
+        final Matrix4f matrix4f, final ObjectList<RenderChunkInfo> chunksToRender, final ShipPhysicalPiece piece,
+        final double camX, final double camY, final double camZ) {
         RenderSystem.assertOnRenderThread();
-        renderType.setupRenderState();
+        final boolean blended = materials != null && materials.getBlended();
+        final boolean depthWrite = blended && GL11.glGetBoolean(GL11.GL_DEPTH_WRITEMASK);
+        pass.setupRenderState();
         this.minecraft.getProfiler().push("filterempty");
         this.minecraft.getProfiler().popPush(() -> {
             return "render_" + renderType;
@@ -614,8 +676,8 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererDuck, Le
         final ListIterator objectListIterator = chunksToRender.listIterator(bl ? 0 : chunksToRender.size());
 
         // Use custom shader for existing render types
-        ShaderInstance shaderInstance = null;
-        if (VSGameConfig.CLIENT.getBetterVanillaShipShading()) {
+        ShaderInstance shaderInstance = materials == null && piece == null ? null : VSRenderTypes.Companion.getShipMaterialShader();
+        if (shaderInstance == null && VSGameConfig.CLIENT.getBetterVanillaShipShading()) {
             ShaderInstance shipShader = VSRenderTypes.Companion.shipShaderFor(renderType);
             if (shipShader != null) shaderInstance = shipShader;
         }
@@ -671,38 +733,75 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererDuck, Le
         shaderInstance.apply();
         Uniform uniform = shaderInstance.CHUNK_OFFSET;
 
-        while(true) {
-            if (bl) {
-                if (!objectListIterator.hasNext()) {
-                    break;
-                }
-            } else if (!objectListIterator.hasPrevious()) {
-                break;
-            }
-
-            RenderChunkInfo renderChunkInfo2 = bl ? (RenderChunkInfo)objectListIterator.next() : (RenderChunkInfo)objectListIterator.previous();
-            ChunkRenderDispatcher.RenderChunk renderChunk = ((RenderChunkInfoAccessor) renderChunkInfo2).getChunk();
-            if (!renderChunk.getCompiledChunk().isEmpty(renderType)) {
-                VertexBuffer vertexBuffer = renderChunk.getBuffer(renderType);
-                BlockPos blockPos = renderChunk.getOrigin();
-                if (uniform != null) {
-                    uniform.set((float)((double)blockPos.getX() - d), (float)((double)blockPos.getY() - e), (float)((double)blockPos.getZ() - f));
-                    uniform.upload();
-                }
-
-                vertexBuffer.bind();
-                vertexBuffer.draw();
-            }
+        boolean pieceShader = shaderInstance == VSRenderTypes.Companion.getShipMaterialShader();
+        final int previousPlanes = pieceShader ? NativeShipPieces.bind(shaderInstance.getId(), piece, camX, camY, camZ) : -1;
+        if (pieceShader) {
+            GL20.glUniform1i(GL20.glGetUniformLocation(shaderInstance.getId(), "vs_PieceCutout"),
+                piece == null ? 0 : renderType == RenderType.cutout() ? 1 : renderType == RenderType.cutoutMipped() ? 2 : 0);
+            GL20.glUniform1i(GL20.glGetUniformLocation(shaderInstance.getId(), "vs_DisableShipShade"),
+                VSGameConfig.CLIENT.getBetterVanillaShipShading() ? 0 : 1);
         }
+        final var uniforms = pieceShader ? ShipMaterialUniforms.forShader(shaderInstance) : null;
+        final int unit = ShipMaterialUniforms.TERRAIN_TEXTURE_UNIT;
+        final int previous = uniforms == null ? -1 : uniforms.bindTable(materials == null ? null : materials.getTable(), unit);
+        try {
+            if (uniforms != null) {
+                uniforms.select(materials);
+                uniforms.setDeferredLayer(renderType);
+            }
+            if (blended) {
+                RenderSystem.enableBlend();
+                RenderSystem.defaultBlendFunc();
+                RenderSystem.depthMask(false);
+            }
+            while (bl ? objectListIterator.hasNext() : objectListIterator.hasPrevious()) {
+                RenderChunkInfo renderChunkInfo2 = bl ? (RenderChunkInfo)objectListIterator.next() : (RenderChunkInfo)objectListIterator.previous();
+                ChunkRenderDispatcher.RenderChunk renderChunk = ((RenderChunkInfoAccessor) renderChunkInfo2).getChunk();
+                if (!renderChunk.getCompiledChunk().isEmpty(renderType)) {
+                    VertexBuffer vertexBuffer = renderChunk.getBuffer(renderType);
+                    BlockPos blockPos = renderChunk.getOrigin();
+                    if (uniform != null) {
+                        uniform.set((float)((double)blockPos.getX() - d), (float)((double)blockPos.getY() - e), (float)((double)blockPos.getZ() - f));
+                        uniform.upload();
+                    }
 
-        if (uniform != null) {
-            uniform.set(new Vector3f());
+                    if (uniforms != null) uniforms.origin(blockPos.getX() - (ship.getChunkClaim().getXStart() << 4),
+                        blockPos.getY(), blockPos.getZ() - (ship.getChunkClaim().getZStart() << 4));
+                    vertexBuffer.bind();
+                    vertexBuffer.draw();
+                }
+            }
+        } finally {
+            NativeShipPieces.restore(previousPlanes);
+            ShipMaterialUniforms.restoreTable(previous, unit);
+            if (blended) RenderSystem.depthMask(depthWrite);
+            if (uniform != null) uniform.set(new Vector3f());
+            shaderInstance.clear();
+            VertexBuffer.unbind();
+            this.minecraft.getProfiler().pop();
+            pass.clearRenderState();
         }
+    }
 
-        shaderInstance.clear();
-        VertexBuffer.unbind();
-        this.minecraft.getProfiler().pop();
-        renderType.clearRenderState();
+    @Override
+    public void vs$renderNestedShipView(final Runnable draw) {
+        final VisibleChunkData outer = vs$captureShipVisibleChunks();
+        final var outerChunks = renderChunksInFrustum;
+        final boolean started = vs$emittedShipsStartRenderingThisFrame;
+        final int tail = vs$lastShipFrustumTailCount;
+        final Frustum outerFrustum = vs$lastFrustum;
+        renderChunksInFrustum = new ObjectArrayList<>(outerChunks);
+        vs$setNeedsFrustumUpdate();
+        try {
+            draw.run();
+        } finally {
+            renderChunksInFrustum = outerChunks;
+            vs$reloadShipVisibleChunks(outer);
+            vs$lastShipFrustumTailCount = tail;
+            vs$lastFrustum = outerFrustum;
+            vs$emittedShipsStartRenderingThisFrame = started;
+            vs$setNeedsFrustumUpdate();
+        }
     }
 
     @Override

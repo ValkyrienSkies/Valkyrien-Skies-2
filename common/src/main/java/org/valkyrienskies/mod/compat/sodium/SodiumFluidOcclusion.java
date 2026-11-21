@@ -1,9 +1,10 @@
 package org.valkyrienskies.mod.compat.sodium;
 
-import net.minecraft.client.Minecraft;
+import com.mojang.blaze3d.platform.GlStateManager;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL13;
 import org.lwjgl.opengl.GL20;
+import org.valkyrienskies.mod.client.render.ShipRenderViews;
 import org.valkyrienskies.mod.common.fluid.FluidOcclusionRenderer;
 import org.valkyrienskies.mod.common.fluid.FluidOcclusionTextureState;
 
@@ -15,21 +16,21 @@ public final class SodiumFluidOcclusion {
     public static void begin() {
         final int program = GL11.glGetInteger(GL20.GL_CURRENT_PROGRAM);
         if (!FluidOcclusionRenderer.supportsProgram(program)) return;
-        final var minecraft = Minecraft.getInstance();
-        if (SodiumCompat.isRenderingShip() || minecraft.level == null) {
+        final var level = ShipRenderViews.getRenderLevel();
+        if (SodiumCompat.isRenderingShip() || level == null) {
             FluidOcclusionRenderer.disableForProgram(program);
             return;
         }
         final int active = GL11.glGetInteger(GL13.GL_ACTIVE_TEXTURE);
         textures = new FluidOcclusionTextureState();
-        final var camera = minecraft.gameRenderer.getMainCamera().getPosition();
+        final var camera = ShipRenderViews.getCameraPosition();
         try {
-            FluidOcclusionRenderer.setupForProgram(program, minecraft.level, camera.x, camera.y, camera.z);
+            FluidOcclusionRenderer.setupForProgram(program, level, camera.x, camera.y, camera.z);
         } catch (final RuntimeException exception) {
             end();
             throw exception;
         } finally {
-            com.mojang.blaze3d.platform.GlStateManager._activeTexture(active);
+            GlStateManager._activeTexture(active);
         }
     }
 

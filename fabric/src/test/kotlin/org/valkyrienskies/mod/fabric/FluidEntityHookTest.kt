@@ -23,11 +23,16 @@ class FluidEntityHookTest {
     companion object {
         @JvmStatic @BeforeAll fun bootstrap() { SharedConstants.tryDetectVersion(); Bootstrap.bootStrap() }
     }
+    private var movement = Vec3.ZERO
+    private var pushed = true
     private val entity = object : MixinEntity() {
         override fun getX() = 0.5
         override fun getZ() = 0.5
         override fun getEyeY() = 1.5
         override fun touchingUnloadedChunk() = false
+        override fun getDeltaMovement() = movement
+        override fun setDeltaMovement(value: Vec3) { movement = value }
+        override fun isPushedByFluid() = pushed
     }
     private val level = mockk<Level>()
     private val query = mockk<ShipFluidInteraction.VolumeQuery>()
@@ -40,12 +45,28 @@ class FluidEntityHookTest {
         mockkStatic(ShipFluidInteraction::class)
         every { ShipFluidInteraction.prepareVolume(level, any()) } returns query
         every { query.retainedDepth(FluidTags.WATER) } returns 0.4
+        every { query.currentMovement(any(), any(), any(), any()) } answers { secondArg() }
     }
     @AfterEach fun cleanup() = unmockkAll()
     private fun field(name: String, value: Any?) = MixinEntity::class.java.getDeclaredField(name)
         .apply { isAccessible = true }.set(entity, value)
     private fun invoke(name: String, vararg args: Any): Any? = MixinEntity::class.java.declaredMethods
         .single { it.name == name }.apply { isAccessible = true }.invoke(entity, *args)
+
+    @Test fun `retained current replaces motion once after vanilla and respects push immunity`() {
+        val world = Vec3(.01, 0.0, 0.0)
+        val retained = Vec3(0.0, .005, 0.0)
+        every { query.currentMovement(Vec3.ZERO, world, any(), any()) } returns retained
+        val original = Operation<Boolean> { movement = world; true }
+        invoke("vs\$mergeRetainedFluid", FluidTags.WATER, .014, original)
+        assertEquals(retained, movement)
+        verify(exactly = 1) { query.currentMovement(Vec3.ZERO, world, any(), any()) }
+        clearMocks(query, answers = false)
+        pushed = false; movement = Vec3.ZERO
+        invoke("vs\$mergeRetainedFluid", FluidTags.WATER, .014, original)
+        assertEquals(world, movement)
+        verify(exactly = 0) { query.currentMovement(any(), any(), any(), any()) }
+    }
 
     @Test fun `original world flow runs and retained depth merges without replacing greater world immersion`() {
         var calls = 0

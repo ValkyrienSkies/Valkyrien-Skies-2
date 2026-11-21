@@ -41,6 +41,8 @@ object FlywheelCompat {
         // }
     }
 
+    fun tryAddBlockEntity(blockEntity: BlockEntity): Boolean = VisualizationHelper.tryAddBlockEntity(blockEntity)
+
     fun validate(blockEntity: BlockEntity, level: Level): Boolean {
         if (!VisualizationHelper.canVisualize(blockEntity)) return false
         if (VisualizationManager.get(level) == null) return false

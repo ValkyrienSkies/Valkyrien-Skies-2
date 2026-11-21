@@ -2,6 +2,7 @@ package org.valkyrienskies.mod.mixin.mod_compat.sodium;
 
 import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -15,6 +16,7 @@ import me.jellysquid.mods.sodium.client.render.chunk.shader.ChunkFogMode;
 import me.jellysquid.mods.sodium.client.render.chunk.shader.ChunkShaderOptions;
 import me.jellysquid.mods.sodium.client.render.chunk.terrain.TerrainRenderPass;
 
+import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.compat.LoadedMods;
 import org.valkyrienskies.mod.compat.iris.IrisCompat;
 import org.valkyrienskies.mod.compat.sodium.SodiumCompat;
@@ -24,17 +26,9 @@ public abstract class MixinDefaultChunkRenderer {
     @Redirect(method = "render", at = @At(value = "INVOKE", target = "Lme/jellysquid/mods/sodium/client/render/chunk/ShaderChunkRenderer;begin(Lme/jellysquid/mods/sodium/client/render/chunk/terrain/TerrainRenderPass;)V"), remap = false)
     private void redirectBegin(ShaderChunkRenderer instance, TerrainRenderPass renderPass, ChunkRenderMatrices matrices) {
         Matrix4f transform = SodiumCompat.popTransform();
-        // Only swap in the VS ship shader when something actually needs it:
-        //   - we're rendering a ship pass,
-        //   - iris isn't running its own shader pack,
-        //   - and at least one of the three VS shader features is enabled.
-        // With all three off, the mesher mixin's gates fall through to sodium's
-        // native byte format, so sodium's stock shader renders ship blocks
-        // correctly. Skipping the swap also avoids compiling/binding an
-        // effectively-empty program.
         boolean irisActive = LoadedMods.getIris() && IrisCompat.isIrisShaderActive();
         if (SodiumCompat.isRenderingShip() && !irisActive && SodiumCompat.anyShipShaderFeatureEnabled()) {
-            renderPass.startDrawing();
+            SodiumCompat.drawingPass(renderPass).startDrawing();
             ChunkShaderOptions options = new ChunkShaderOptions(ChunkFogMode.SMOOTH, renderPass, ((ShaderChunkRendererAccessor) instance).getVertexType());
             ((ShaderChunkRendererAccessor) instance).setActiveProgram(SodiumCompat.getOrCreateShipProgram(options));
             ((ShaderChunkRendererAccessor) instance).getActiveProgram().bind();
@@ -43,7 +37,7 @@ public abstract class MixinDefaultChunkRenderer {
             // setupShipShaderState wrote into the shader's samplers. Without
             // this the ship shader would sample whatever was last bound
             // (typically nothing on the first ship pass of the frame).
-            if (org.valkyrienskies.mod.common.config.VSGameConfig.CLIENT.isShipToWorldLightingEnabled()) {
+            if (VSGameConfig.CLIENT.isShipToWorldLightingEnabled()) {
                 SodiumCompat.getShipEmitterList().bind(SodiumCompat.SHIP_EMITTER_LIST_TEXTURE_UNIT);
                 SodiumCompat.getShipOccluderList().bind(SodiumCompat.SHIP_OCCLUDER_LIST_TEXTURE_UNIT);
             }
@@ -61,7 +55,7 @@ public abstract class MixinDefaultChunkRenderer {
             ((ShaderChunkRendererAccessor) instance).getActiveProgram().bind();
             SodiumCompat.setupWorldShaderState(((ShaderChunkRendererAccessor) instance).getActiveProgram(), matrices);
             // Bind ship-voxel storage to the units the world FSH samples.
-            if (org.valkyrienskies.mod.common.config.VSGameConfig.CLIENT.isShipToWorldLightingEnabled()) {
+            if (VSGameConfig.CLIENT.isShipToWorldLightingEnabled()) {
                 SodiumCompat.getShipEmitterList().bind(SodiumCompat.SHIP_EMITTER_LIST_TEXTURE_UNIT);
                 // World-from-ship storage (occluder strength) for the AO sample.
                 SodiumCompat.getWorldFromShipStorage().bind(
@@ -76,6 +70,12 @@ public abstract class MixinDefaultChunkRenderer {
         }
         ((ShaderChunkRendererAccessor) (Object) this).invokeBegin(renderPass);
         SodiumFluidOcclusion.begin();
+    }
+
+    @ModifyArg(method = "render", at = @At(value = "INVOKE",
+        target = "Lme/jellysquid/mods/sodium/client/render/chunk/ShaderChunkRenderer;end(Lme/jellysquid/mods/sodium/client/render/chunk/terrain/TerrainRenderPass;)V"), index = 0, remap = false)
+    private TerrainRenderPass vs$endShipPass(TerrainRenderPass source) {
+        return SodiumCompat.drawingPass(source);
     }
 
     @Inject(method = "render", at = @At("RETURN"), remap = false)

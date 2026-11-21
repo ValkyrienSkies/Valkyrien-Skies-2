@@ -19,6 +19,7 @@ import org.valkyrienskies.core.internal.physics.VsiFluidOutflowResult
 import org.valkyrienskies.mod.common.BlockStateInfo
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
+import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.dimensionId
 import java.math.BigDecimal
 
@@ -42,6 +43,7 @@ class FractionalFluidSettlementTest {
         mockkObject(MassDatapackResolver, BlockStateInfo)
         mockkStatic("org.valkyrienskies.mod.common.VSGameUtilsKt")
         every { MassDatapackResolver.getFlowingFluid(17) } returns Fluids.WATER
+        every { MassDatapackResolver.getFlowingFluid(18) } returns Fluids.LAVA
         every { level.server } returns server
         every { level.dimensionId } returns DIMENSION
         every { (server as IShipObjectWorldServerProvider).fractionalFluidSources } answers { sources }
@@ -68,9 +70,9 @@ class FractionalFluidSettlementTest {
         }
     }
 
-    private fun enqueue(volume: Double, x: Double = 0.5, y: Double = 1.5, vx: Double = 0.0) {
+    private fun enqueue(volume: Double, x: Double = 0.5, y: Double = 1.5, vx: Double = 0.0, fluid: Int = 17) {
         val event = VsiFluidOutflow(1, 1, 1, DIMENSION, 7, x, y, 0.5,
-            0.0, -1.0, 0.0, vx, 0.0, 0.0, 17, 255).copy(worldVolume = volume)
+            0.0, -1.0, 0.0, vx, 0.0, 0.0, fluid, 255).copy(worldVolume = volume)
         assertEquals(VsiFluidOutflowResult.APPLIED, manager.enqueue(level, event))
     }
 
@@ -85,6 +87,74 @@ class FractionalFluidSettlementTest {
     private fun reload(parcelSave: CompoundTag = manager.save(), sourceSave: CompoundTag = sources.save()) {
         sources = FractionalFluidSources().also { it.load(sourceSave) }
         manager = WorldFluidOutflowManager(8, 8).also { it.load(parcelSave) }
+    }
+
+    @Test fun `shallow water solidifies lava by exact target volume`() {
+        every { level.levelEvent(any<Int>(), any<BlockPos>(), any<Int>()) } just Runs
+        val target = pos.below()
+        blocks[target] = Blocks.LAVA.defaultBlockState()
+        enqueue(0.0625)
+        manager.tick(levels)
+        assertEquals(Blocks.OBSIDIAN, blocks.getValue(target).block)
+        repeat(VSGameConfig.SERVER.SpilledWater.parcelCollectionSeconds * 20) { manager.tick(levels) }
+        assertEquals(0, manager.activeParcelCount())
+
+        val lava = Fluids.LAVA.getFlowing(1, false).createLegacyBlock()
+        blocks[target] = lava
+        assertTrue(sources.setAmount(DIMENSION, target.x, target.y, target.z, "minecraft:lava", BigDecimal("31.874")))
+        enqueue(0.0625)
+        manager.tick(levels)
+        assertEquals(lava, blocks.getValue(target))
+
+        assertTrue(sources.setAmount(DIMENSION, target.x, target.y, target.z, "minecraft:lava", BigDecimal("31.875")))
+        enqueue(0.0625)
+        manager.tick(levels)
+        assertEquals(Blocks.COBBLESTONE, blocks.getValue(target).block)
+        assertNull(sources.amount(DIMENSION, target.x, target.y, target.z, "minecraft:lava"))
+    }
+
+    @Test fun `descending lava turns water into stone and spends the parcel`() {
+        every { level.levelEvent(1501, pos.below(), 0) } just Runs
+        blocks[pos.below()] = Blocks.WATER.defaultBlockState()
+        enqueue(0.0625, fluid = 18)
+        manager.tick(levels)
+        assertEquals(Blocks.STONE, blocks.getValue(pos.below()).block)
+        assertEquals(0, manager.activeParcelCount())
+        assertNull(amount())
+    }
+
+    @Test fun `sub-layer impacts wet farmland and sponges before the dry landing cutoff`() {
+        every { level.levelEvent(any<Int>(), any<BlockPos>(), any<Int>()) } just Runs
+        for (target in listOf(Blocks.FARMLAND, Blocks.SPONGE)) {
+            blocks[pos.below()] = target.defaultBlockState()
+            enqueue(0.0625)
+            manager.tick(levels)
+            val state = blocks.getValue(pos.below())
+            if (target == Blocks.FARMLAND) assertEquals(7, state.getValue(BlockStateProperties.MOISTURE))
+            else assertEquals(Blocks.WET_SPONGE, state.block)
+            assertEquals(0, manager.activeParcelCount())
+            assertNull(amount())
+        }
+    }
+
+    @Test fun `water breaks a replaceable block only at or above one layer`() {
+        blocks[pos.below()] = Blocks.GRASS.defaultBlockState()
+        every { level.destroyBlock(pos.below(), true) } answers {
+            blocks[pos.below()] = Blocks.AIR.defaultBlockState()
+            true
+        }
+        enqueue(0.124)
+        manager.tick(levels)
+        assertEquals(Blocks.GRASS, blocks.getValue(pos.below()).block)
+        repeat(VSGameConfig.SERVER.SpilledWater.parcelCollectionSeconds * 20) { manager.tick(levels) }
+        assertEquals(0, manager.activeParcelCount())
+        verify(exactly = 0) { level.destroyBlock(any(), any<Boolean>()) }
+
+        enqueue(0.125)
+        manager.tick(levels)
+        verify(exactly = 1) { level.destroyBlock(pos.below(), true) }
+        assertTrue(blocks.getValue(pos.below()).isAir)
+        assertEquals(0, pending().compareTo(BigDecimal("31.875")))
     }
 
     @Test fun `same visible flowing level accumulates exact amounts across reload`() {
@@ -103,7 +173,7 @@ class FractionalFluidSettlementTest {
         verify { BlockStateInfo.onSourceAmountChanged(level, pos, requireNotNull(state), 34) }
     }
 
-    @Test fun `refill retains its exact remainder until an undersized dry landing discards it`() {
+    @Test fun `refill retains its exact remainder until an undersized dry landing expires`() {
         blocks[pos] = Blocks.WATER.defaultBlockState()
         sources.setAmount(DIMENSION, 0, 1, 0, WATER, BigDecimal(29))
         enqueue(1.0)
@@ -115,7 +185,7 @@ class FractionalFluidSettlementTest {
         verify { BlockStateInfo.onSourceAmountChanged(level, pos, Blocks.WATER.defaultBlockState(), 255) }
         verify(exactly = 1) { level.scheduleTick(pos, Fluids.WATER, any<Int>()) }
         reload()
-        repeat(8) { manager.tick(levels) }
+        repeat(8 + VSGameConfig.SERVER.SpilledWater.parcelCollectionSeconds * 20) { manager.tick(levels) }
         assertEquals(0, manager.activeParcelCount())
         val stored = sources.save().getList("sources", Tag.TAG_COMPOUND.toInt())
         assertEquals(1, stored.size)

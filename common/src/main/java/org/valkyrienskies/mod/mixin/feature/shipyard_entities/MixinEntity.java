@@ -149,8 +149,14 @@ public abstract class MixinEntity {
             ServerShip ship = VSGameUtilsKt.getShipManagingPos(sl, x, y, z);
             // Attempt to get the ship a different way
             if (ship == null) {
-                long id = ((IEntityDraggingInformationProvider) this).getDraggingInformation().getLastShipStoodOn();
-                ship = VSGameUtilsKt.getShipObjectWorld(sl).getAllShips().getById(id);
+                // lastShipStoodOn is a nullable ShipId (Long?) -- an entity that has never stood on a ship
+                // (e.g. a projectile that flew straight to an out-of-bounds position without ever touching
+                // one) is an entirely ordinary state here, not an edge case, so it must not be unboxed
+                // unconditionally.
+                Long id = ((IEntityDraggingInformationProvider) this).getDraggingInformation().getLastShipStoodOn();
+                if (id != null) {
+                    ship = VSGameUtilsKt.getShipObjectWorld(sl).getAllShips().getById(id);
+                }
             }
             if (ship != null) {
                 ValkyrienSkiesMod.getVsCore().teleportShip(

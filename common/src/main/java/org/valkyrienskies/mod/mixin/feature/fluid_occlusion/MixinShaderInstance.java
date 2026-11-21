@@ -10,6 +10,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.mod.common.fluid.FluidOcclusionRenderContext;
 import org.valkyrienskies.mod.common.fluid.FluidOcclusionRenderer;
+import org.valkyrienskies.mod.common.fluid.FluidOcclusionTextureState;
 
 @Mixin(ShaderInstance.class)
 public abstract class MixinShaderInstance {
@@ -21,8 +22,24 @@ public abstract class MixinShaderInstance {
     @Unique
     private boolean vs$fluidOcclusionSupported;
 
+    @Unique
+    private FluidOcclusionTextureState vs$fluidTextures;
+
+    @Unique
+    private void vs$restoreFluidTextures() {
+        if (vs$fluidTextures == null) return;
+        vs$fluidTextures.close();
+        vs$fluidTextures = null;
+    }
+
+    @Inject(method = "clear()V", at = @At("HEAD"))
+    private void vs$clearFluidTextures(final CallbackInfo ci) {
+        vs$restoreFluidTextures();
+    }
+
     @Inject(method = "close()V", at = @At("HEAD"))
     private void vs$closeFluidOcclusion(final CallbackInfo ci) {
+        vs$restoreFluidTextures();
         FluidOcclusionRenderer.onProgramClosed(programId);
         vs$fluidOcclusionChecked = false;
         vs$fluidOcclusionSupported = false;
@@ -37,15 +54,22 @@ public abstract class MixinShaderInstance {
         }
         if (!vs$fluidOcclusionSupported) return;
 
+        vs$restoreFluidTextures();
         final ClientLevel level = FluidOcclusionRenderContext.getLevel();
         if (FluidOcclusionRenderContext.isActive() && level != null) {
-            FluidOcclusionRenderer.setupForProgram(
-                programId,
-                level,
-                FluidOcclusionRenderContext.getCameraX(),
-                FluidOcclusionRenderContext.getCameraY(),
-                FluidOcclusionRenderContext.getCameraZ()
-            );
+            vs$fluidTextures = new FluidOcclusionTextureState();
+            try {
+                FluidOcclusionRenderer.setupForProgram(
+                    programId,
+                    level,
+                    FluidOcclusionRenderContext.getCameraX(),
+                    FluidOcclusionRenderContext.getCameraY(),
+                    FluidOcclusionRenderContext.getCameraZ()
+                );
+            } catch (final RuntimeException exception) {
+                vs$restoreFluidTextures();
+                throw exception;
+            }
         } else {
             FluidOcclusionRenderer.disableForProgram(programId);
         }

@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.mixin.world.chunk;
 
+import org.valkyrienskies.mod.common.fluid.FractionalFluidSources;
+import org.valkyrienskies.mod.common.fluid.RetainedFluidBlockInteractions;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -113,6 +115,7 @@ public abstract class MixinLevelChunk extends ChunkAccess implements VSLevelChun
         VSGameUtilsKt.executeOrSchedule(level, () -> {
             BlockStateInfo.INSTANCE.onSetBlock(level, pos, prevState, state);
             VanillaFluidFlowWindProvider.INSTANCE.markDirty(level, pos, prevState, state);
+            RetainedFluidBlockInteractions.onBlockChanged(level, pos, prevState, state);
         });
         // VS benchmark patch (air pockets removed): per-block fluid snapshot updates are no longer needed.
     }
@@ -145,8 +148,8 @@ public abstract class MixinLevelChunk extends ChunkAccess implements VSLevelChun
         registerTickContainerInLevel((ServerLevel) level);
         this.unsaved = true;
         if (level instanceof ServerLevel serverLevel) {
-            final org.valkyrienskies.mod.common.fluid.FractionalFluidSources sources =
-                org.valkyrienskies.mod.common.fluid.FractionalFluidSources.Companion.forLevel(serverLevel);
+            final FractionalFluidSources sources =
+                FractionalFluidSources.Companion.forLevel(serverLevel);
             if (sources != null) sources.clearChunk(VSGameUtilsKt.getDimensionId(serverLevel), chunkPos.x, chunkPos.z);
         }
     }

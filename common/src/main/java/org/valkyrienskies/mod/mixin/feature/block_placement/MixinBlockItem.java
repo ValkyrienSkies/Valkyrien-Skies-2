@@ -20,6 +20,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.PlayerUtil;
+import org.valkyrienskies.mod.common.util.ClippedShipBox;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
@@ -40,10 +41,10 @@ public abstract class MixinBlockItem {
         if (ctx == null || ctx.getPlayer() == null) {
             return original.call(this, ctx);
         }
-        return PlayerUtil.transformPlayerTemporarily(
+        return PlayerUtil.withPlacementPose(
             ctx.getPlayer(),
             ctx.getLevel(),
-            ctx.getClickedPos(),
+            ctx.getClickedPos(), ctx.getClickLocation(),
             () -> original.call(this, ctx)
         );
     }
@@ -66,16 +67,15 @@ public abstract class MixinBlockItem {
                 VoxelShape voxelShape = blockState.getCollisionShape(level, blockPos, ctx);
                 Player player = blockPlaceContext.getPlayer();
 
-                if (player != null
-                    && !player.isRemoved()
-                    && player.blocksBuilding
-                    && !voxelShape.isEmpty()
-                    && vs_testObAab(
-                        VectorConversionsMCKt.toJOML(voxelShape.bounds().move(blockPos)),
-                        ship.getShipToWorld(),
-                        VectorConversionsMCKt.toJOML(player.getBoundingBox().deflate(0.1))
-                    )
-                ) return false;
+                if (player != null && !player.isRemoved() && player.blocksBuilding && !voxelShape.isEmpty()) {
+                    final var pieces = VSGameUtilsKt.getAllShips(level).getSplitPieces(ship.getId());
+                    final var bounds = VectorConversionsMCKt.toJOML(player.getBoundingBox().deflate(0.1));
+                    if (!pieces.isEmpty()) {
+                        return !ClippedShipBox.Companion.intersectsPlacement(pieces, voxelShape, blockPos, bounds);
+                    }
+                    return !vs_testObAab(VectorConversionsMCKt.toJOML(voxelShape.bounds().move(blockPos)),
+                        ship.getShipToWorld(), bounds);
+                }
             }
         }
         return result;

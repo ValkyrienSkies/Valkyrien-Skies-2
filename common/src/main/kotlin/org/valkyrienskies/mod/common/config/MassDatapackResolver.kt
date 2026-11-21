@@ -28,6 +28,7 @@ import org.joml.primitives.AABBic
 import org.valkyrienskies.core.api.physics.blockstates.BoxesBlockShape
 import org.valkyrienskies.core.api.physics.blockstates.CollisionPoint
 import org.valkyrienskies.core.api.physics.blockstates.FluidBoundaryShape
+import org.valkyrienskies.core.api.physics.blockstates.FluidBoundarySolidState
 import org.valkyrienskies.core.api.physics.blockstates.LiquidState
 import org.valkyrienskies.core.api.physics.blockstates.SolidBlockShape
 import org.valkyrienskies.core.internal.physics.blockstates.VsiBlockState
@@ -54,9 +55,11 @@ private data class VSBlockStateInfo(
     val mass: Double,
     val friction: Double,
     val elasticity: Double,
+    val hardness: Double,
     val type: VsiBlockType?,
     val noCollision: Boolean?,
     val fluidBoundary: String?,
+    val fluidMixingGroup: String?,
 )
 
 object MassDatapackResolver : BlockStateInfoProvider {
@@ -80,6 +83,9 @@ object MassDatapackResolver : BlockStateInfoProvider {
 
     fun getBlockStateElasticity(blockState: BlockState): Double? =
         map[BuiltInRegistries.BLOCK.getKey(blockState.block)]?.elasticity
+
+    fun getBlockStateHardness(blockState: BlockState): Double? =
+        map[BuiltInRegistries.BLOCK.getKey(blockState.block)]?.hardness
 
     override fun getBlockStateType(blockState: BlockState): VsiBlockType? {
         val vsState = mcBlockStateToVs[blockState] ?: return null
@@ -165,7 +171,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
                             add(
                                 VSBlockStateInfo(
                                     BuiltInRegistries.BLOCK.getKey(it.value()), tagInfo.priority, tagInfo.mass, tagInfo.friction,
-                                    tagInfo.elasticity, tagInfo.type, tagInfo.noCollision, tagInfo.fluidBoundary
+                                    tagInfo.elasticity, tagInfo.hardness, tagInfo.type, tagInfo.noCollision, tagInfo.fluidBoundary, tagInfo.fluidMixingGroup
                                 )
                             )
                         }
@@ -195,6 +201,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
             val weight = element.asJsonObject["mass"]?.asDouble ?: VSGameConfig.SERVER.defaultBlockMass
             val friction = element.asJsonObject["friction"]?.asDouble ?: VSGameConfig.SERVER.defaultBlockFriction
             val elasticity = element.asJsonObject["elasticity"]?.asDouble ?: VSGameConfig.SERVER.defaultBlockElasticity
+            val hardness = element.asJsonObject["hardness"]?.asDouble ?: VSGameConfig.SERVER.defaultBlockHardness
 
             val priority = element.asJsonObject["priority"]?.asInt ?: decideDefaultPriority(origin)
 
@@ -203,14 +210,18 @@ object MassDatapackResolver : BlockStateInfoProvider {
             require(fluidBoundary == null || fluidBoundary in setOf("shape", "open", "closed")) {
                 "fluid_boundary must be shape, open, or closed in $origin"
             }
+            val fluidMixingGroup = element.asJsonObject["fluid_mixing_group"]?.asString?.let {
+                require(it.isNotBlank()) { "fluid_mixing_group must not be blank in $origin" }
+                ResourceLocation(it).toString()
+            }
 
             if (tag != null) {
-                addToBeAddedTags(VSBlockStateInfo(ResourceLocation(tag), priority, weight, friction, elasticity, null, noCollision, fluidBoundary))
+                addToBeAddedTags(VSBlockStateInfo(ResourceLocation(tag), priority, weight, friction, elasticity, hardness, null, noCollision, fluidBoundary, fluidMixingGroup))
             } else {
                 val block = element.asJsonObject["block"]?.asString
                     ?: throw IllegalArgumentException("No block or tag in file $origin")
 
-                add(VSBlockStateInfo(ResourceLocation(block), priority, weight, friction, elasticity, null, noCollision, fluidBoundary))
+                add(VSBlockStateInfo(ResourceLocation(block), priority, weight, friction, elasticity, hardness, null, noCollision, fluidBoundary, fluidMixingGroup))
             }
         }
     }
@@ -374,7 +385,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
         val fluidStateToBlockTypeMap = HashMap<FluidState, LiquidState>()
 
         // Get the id of the fluid state/create a new fluid state if necessary
-        fun getFluidState(fluidState: FluidState, blockStateInfo: VSBlockStateInfo?, isLiquid: Boolean = false): LiquidState {
+        fun getFluidState(fluidState: FluidState): LiquidState {
             val cached = fluidStateToBlockTypeMap[fluidState]
             if (cached != null) return cached
             // Treat source fluids as full blocks in VS physics registration.
@@ -384,40 +395,24 @@ object MassDatapackResolver : BlockStateInfoProvider {
                 ((fluidState.ownHeight * 16.0).roundToInt() - 1).coerceIn(0, 15)
             }
             val fluidBox = AABBi(0, 0, 0, 15, maxY, 15)
-            return if (fluidState.type in liquidMaterialToDensityMap) {
-                val (density, dragCoefficient) = liquidMaterialToDensityMap[fluidState.type]!!
-                val newFluidBlockState = vsCore.newLiquidStateBuilder()
-                    .boxShape(fluidBox)
-                    .density(density)
-                    .dragCoefficient(dragCoefficient)
-                    .velocity(Vector3d())
-                    .build()
-
-                newFluidBlockState
-            } else {
-                if (isLiquid) {
-                    val density = blockStateInfo?.mass ?: VSGameConfig.SERVER.defaultBlockMass
-                    val dragCoefficient = blockStateInfo?.friction ?: VSGameConfig.SERVER.defaultBlockFriction
-                    val newFluidBlockState = vsCore.newLiquidStateBuilder()
-                        .boxShape(fluidBox)
-                        .density(density)
-                        .dragCoefficient(dragCoefficient)
-                        .velocity(Vector3d())
-                        .build()
-
-                    liquidMaterialToDensityMap[fluidState.type] = Pair(density, dragCoefficient)
-                    newFluidBlockState
-                } else {
-                    //default
-                    val newFluidBlockState = vsCore.newLiquidStateBuilder()
-                        .boxShape(fluidBox)
-                        .density(VSGameConfig.SERVER.defaultBlockMass)
-                        .dragCoefficient(liquidMaterialToDensityMap[Fluids.WATER]!!.second)
-                        .velocity(Vector3d())
-                        .build()
-                    newFluidBlockState
-                }
-            }
+            val material = (fluidState.type as? FlowingFluid)?.source ?: fluidState.type
+            val materialKey = BuiltInRegistries.FLUID.getKey(material).toString()
+            val materialBlock = BuiltInRegistries.BLOCK.getKey(material.defaultFluidState().createLegacyBlock().block)
+            val materialInfo = map[materialBlock]
+            val mixingGroup = materialInfo?.fluidMixingGroup ?: materialKey
+            val (density, dragCoefficient) = liquidMaterialToDensityMap[material] ?: Pair(
+                materialInfo?.mass ?: VSGameConfig.SERVER.defaultBlockMass,
+                materialInfo?.friction ?: VSGameConfig.SERVER.defaultBlockFriction
+            )
+            return vsCore.newLiquidStateBuilder()
+                .materialKey(materialKey)
+                .mixingGroup(mixingGroup)
+                .boxShape(fluidBox)
+                .density(density)
+                .dragCoefficient(dragCoefficient)
+                .velocity(Vector3d())
+                .build()
+                .also { fluidStateToBlockTypeMap[fluidState] = it }
         }
 
 
@@ -427,7 +422,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
                 vsBlockState = vsCore.blockTypes.airState
             } else {
                 vsBlockState = if (blockState.liquid()) { //TODO: This is also deprecated. I could check if the blockState is wet and not waterlogged but couldn't be sure if that's what this is for.
-                    VsiBlockState(null, getFluidState(blockState.fluidState, map[BuiltInRegistries.BLOCK.getKey(blockState.block)], true))
+                    VsiBlockState(null, getFluidState(blockState.fluidState))
                 } else {
                     val voxelShape: VoxelShape
                     if (blockState.isSolid) {
@@ -477,11 +472,11 @@ object MassDatapackResolver : BlockStateInfoProvider {
                         })
                         .elasticity(vsBlockStateInfo?.elasticity ?: VSGameConfig.SERVER.defaultBlockElasticity)
                         .friction(vsBlockStateInfo?.friction ?: VSGameConfig.SERVER.defaultBlockFriction)
-                        .hardness(VSGameConfig.SERVER.defaultBlockHardness) // Unused for now, placeholder for later
+                        .hardness(vsBlockStateInfo?.hardness ?: VSGameConfig.SERVER.defaultBlockHardness) // Unused for now, placeholder for later
                         .build()
 
                     val fluidState = if (!blockState.fluidState.isEmpty) {
-                        getFluidState(blockState.fluidState, null)
+                        getFluidState(blockState.fluidState)
                     } else {
                         null
                     }
@@ -532,6 +527,15 @@ object MassDatapackResolver : BlockStateInfoProvider {
         val event = RegisterBlockStateEventImpl()
         ValkyrienSkiesMod.api.registerBlockStateEvent.emit(event)
         mcBlockStateToVs.putAll(event.toRegister)
+        event.tireSurfaces.forEach { (state, surface) ->
+            val previous = mcBlockStateToVs[state] ?: return@forEach
+            val solid = previous.solidState ?: return@forEach
+            val updated = vsCore.newSolidStateBuilder()
+                .shape(solid.shape).elasticity(solid.elasticity).friction(solid.friction).hardness(solid.hardness)
+                .fluidBoundary((solid as? FluidBoundarySolidState)?.fluidBoundary)
+                .tireSurface(surface).build()
+            mcBlockStateToVs[state] = VsiBlockState(updated, previous.liquidState, previous.displacementState)
+        }
         liquidIdToFlowingFluid.clear()
         cachedFluidTypes = null
     }

@@ -18,11 +18,12 @@ import org.joml.FrustumIntersection
 import org.joml.Matrix3f
 import org.joml.Matrix4f
 import org.valkyrienskies.core.api.world.LevelYRange
-import org.valkyrienskies.mod.common.config.ShipRenderer.FLYWHEEL
-import org.valkyrienskies.mod.common.config.shipRenderer
+import org.valkyrienskies.mod.common.config.usesFlywheelHull
+import org.valkyrienskies.mod.common.render.batched.SplitShipRenderer
 import org.valkyrienskies.mod.common.util.toBlockPos
 import org.valkyrienskies.mod.common.util.toFloat
 import org.valkyrienskies.mod.common.util.toJOMLD
+import org.valkyrienskies.mod.mixinducks.mod_compat.flywheel.ShipVisualEmbedding
 
 class EmbeddingShipVisual(val effect: ShipEffect, val visualContext: VisualizationContext) :
     EffectVisual<ShipEffect>, DynamicVisual, ShaderLightVisual, LightUpdatedVisual
@@ -32,7 +33,7 @@ class EmbeddingShipVisual(val effect: ShipEffect, val visualContext: Visualizati
         effect.ship.chunkClaim.getCenterBlockCoordinates(
             LevelYRange(effect.level.minBuildHeight, effect.level.maxBuildHeight - 1)
         ).toBlockPos()
-    )
+    ).also { (it as? ShipVisualEmbedding)?.`vs$setShip`(ship) }
     val camera = ShipEffectCamera(ship)
     val frustum = FrustumIntersection()
 
@@ -43,10 +44,10 @@ class EmbeddingShipVisual(val effect: ShipEffect, val visualContext: Visualizati
     var renderingShipVisual: RenderingShipVisual? = null
 
     override fun update(partialTick: Float) {
-        if (renderingShipVisual == null && ship.shipRenderer == FLYWHEEL) {
+        if (renderingShipVisual == null && ship.usesFlywheelHull) {
             renderingShipVisual = RenderingShipVisual(effect, embedding)
         } else if (renderingShipVisual != null) {
-            if (ship.shipRenderer != FLYWHEEL) {
+            if (!ship.usesFlywheelHull) {
                 renderingShipVisual!!.delete()
                 renderingShipVisual = null
             } else {
@@ -86,6 +87,7 @@ class EmbeddingShipVisual(val effect: ShipEffect, val visualContext: Visualizati
 
         val normal = Matrix3f().set(rotation)
 
+        if (SplitShipRenderer.split(effect.level, ship.id)) pose.scale(0f)
         embedding.transforms(pose, normal)
     }
 

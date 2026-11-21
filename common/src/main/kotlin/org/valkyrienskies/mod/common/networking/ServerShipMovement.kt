@@ -5,11 +5,12 @@ import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket
 import net.minecraft.network.protocol.game.ServerboundMoveVehiclePacket
 import net.minecraft.server.level.ServerPlayer
+import org.joml.Quaterniond
 import org.joml.Vector3d
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation
-import org.valkyrienskies.mod.common.util.EntityLerper
+import org.valkyrienskies.mod.common.util.ShipDraggingMath
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider
 
 object ServerShipMovement {
@@ -29,10 +30,14 @@ object ServerShipMovement {
         }
         val ship = player.serverLevel().shipObjectWorld.allShips.getById(packet.shipID) ?: return
         if (ship.chunkClaimDimension != player.level().dimensionId) return
-        val position = ship.shipToWorld.transformPosition(Vector3d(packet.x, packet.y, packet.z))
-        if (!position.isFinite) return
-        val yaw = EntityLerper.yawToWorld(ship, packet.yRot).toFloat()
         val info = (entity as IEntityDraggingInformationProvider).draggingInformation
+        val local = Vector3d(packet.x, packet.y, packet.z)
+        val pieces = player.serverLevel().shipObjectWorld.allShips.getSplitPieces(ship.id)
+        val piece = pieces.minByOrNull { it.shipToWorld.transformPosition(local, Vector3d()).distanceSquared(entity.x, entity.y, entity.z) }
+        val position = (piece?.shipToWorld ?: ship.shipToWorld).transformPosition(local, Vector3d())
+        if (!position.isFinite) return
+        val rotation = piece?.shipToWorld?.getUnnormalizedRotation(Quaterniond()) ?: ship.transform.shipToWorldRotation
+        val yaw = ShipDraggingMath.yawToWorld(rotation, packet.yRot).toFloat()
         info.handlingClientMovement = true
         try {
             if (packet.vehicleID == -1) {
@@ -54,8 +59,9 @@ object ServerShipMovement {
         }
         if (position.distanceSquared(entity.x, entity.y, entity.z) < 1e-8) {
             info.applyNetworkShip(ship.id, packet.ticksSinceContact)
-            info.serverRelativePlayerPosition = ship.worldToShip.transformPosition(Vector3d(entity.x, entity.y, entity.z))
-            info.serverRelativePlayerYaw = EntityLerper.yawToShip(ship, entity.yRot.toDouble())
+            info.supportPiece = piece
+            info.serverRelativePlayerPosition = info.worldToSupport(ship).transformPosition(Vector3d(entity.x, entity.y, entity.z))
+            info.serverRelativePlayerYaw = ShipDraggingMath.yawToShip(rotation, entity.yRot.toDouble())
         }
     }
 

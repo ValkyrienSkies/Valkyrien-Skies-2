@@ -13,6 +13,8 @@ uniform int ShipIndex;
 uniform mat4 ProjMat;
 uniform mat3 IViewRotMat;
 uniform vec3 ChunkOffset;
+uniform vec3 vs_MaterialOrigin;
+out vec3 vs_ShipPos;
 uniform int FogShape;
 
 uniform vec3 u_VsCameraFrac;
@@ -44,24 +46,8 @@ mat4 vs_shipLocalToCameraRel() {
         texelFetch(ShipTransforms, b + 3));
 }
 
+#moj_import <vs_batched_ship_vertex.glsl>
+
 void main() {
-    mat4 modelView = vs_shipModelView();
-    vec3 pos = Position + ChunkOffset;
-    gl_Position = ProjMat * modelView * vec4(pos, 1.0);
-
-    vertexDistance = fog_distance(modelView, pos, FogShape);
-    texCoord0 = UV0;
-
-    v_IsShaded = Color.a == 0.0 ? 0.0 : 1.0;
-
-    v_CameraRelWorldPos = (vs_shipLocalToCameraRel() * vec4(pos, 1.0)).xyz;
-
-    v_BakedLightCoord = clamp(vec2(UV2) / 256.0, vec2(1.0 / 32.0), vec2(31.0 / 32.0));
-    v_Fullbright = (UV2.x >= 240 && UV2.y >= 240) ? 1.0 : 0.0;
-
-    if (Color.a == 0.0) {
-        vertexColor = vec4(Color.rgb, 1.0);
-    } else {
-        vertexColor = vec4(Color.rgb, Color.a);
-    }
+    vs_shipVertex(vs_shipModelView(), vs_shipLocalToCameraRel());
 }

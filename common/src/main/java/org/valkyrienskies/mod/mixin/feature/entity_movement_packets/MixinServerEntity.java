@@ -88,7 +88,9 @@ public class MixinServerEntity {
         if (mounted != null && mounted.getShipMountedTo() instanceof ServerShip ship) return ship;
         final EntityDraggingInformation info = ((IEntityDraggingInformationProvider) entity).getDraggingInformation();
         if (!info.isEntityBeingDraggedByAShip() || info.getLastShipStoodOn() == null) return null;
-        return ValkyrienSkies.getShipById(level, info.getLastShipStoodOn());
+        final var ships = VSGameUtilsKt.getShipObjectWorld(level).getAllShips();
+        if (!ships.getSplitPieces(info.getLastShipStoodOn()).isEmpty()) return null;
+        return ships.getById(info.getLastShipStoodOn());
     }
 
     @Unique

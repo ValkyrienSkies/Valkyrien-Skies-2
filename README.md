@@ -26,6 +26,8 @@ performance, collisions, interactions and physics than anything prior!*
 
 You can download official releases of Valkyrien Skies from our [website](https://www.valkyrienskies.org/download)
 
+You can help [translate Valkyrien Skies](https://www.valkyrienskies.org/translate/valkyrien-skies) into your language.
+
 ## Development
 
 ### IntelliJ

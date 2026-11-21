@@ -125,7 +125,7 @@ object VSGameConfig {
         }
 
         @ConfigEntry(
-            description = "The default ship renderer. Changes rebuild client render state. FLYWHEEL requires an active Flywheel 1.x backend; otherwise ships use VANILLA."
+            description = "The default ship renderer. Changes rebuild client render state. FLYWHEEL draws hulls with the terrain renderer if its 1.x backend is unavailable or shader packs are off and an addon registers a material selector or requests a geometry mask."
         )
         var defaultRenderer = ShipRenderer.BATCHED
 
@@ -181,7 +181,10 @@ object VSGameConfig {
         val SpilledWater = SPILLED_WATER()
 
         class SPILLED_WATER {
-            @ConfigEntry(description = "Lifetime of small settled water splashes in seconds of server tick time. Zero disables timed dissipation. Droplets below 1/8 block disappear on dry land regardless. Unloaded deposits are cleaned up after loading.", min = 0.0, max = 86400.0)
+            @ConfigEntry(description = "Time landed droplets can collect before evaporating, in seconds of loaded server tick time. Once enough water collects for a vanilla water layer, it becomes a finite puddle. Zero discards undersized droplets immediately.", min = 0.0, max = 60.0)
+            var parcelCollectionSeconds = 2
+
+            @ConfigEntry(description = "Lifetime of small settled water splashes in seconds of server tick time. Zero disables timed dissipation of placed puddles. Unloaded deposits are cleaned up after loading.", min = 0.0, max = 86400.0)
             var splashLifetimeSeconds = 60
 
             @ConfigEntry(description = "Water volume per block below which new spill deposits can dissipate, in full water blocks. Deposits reaching this volume remain finite puddles. Zero disables timed dissipation of landed puddles.", min = 0.0, max = 1.0)

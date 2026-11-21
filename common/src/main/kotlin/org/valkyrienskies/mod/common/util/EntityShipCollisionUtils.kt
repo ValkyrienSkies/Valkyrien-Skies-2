@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.common.util
 
 import net.minecraft.client.multiplayer.ClientLevel
+import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.util.Mth
@@ -21,6 +22,7 @@ import org.joml.primitives.AABBi
 import org.valkyrienskies.core.api.bodies.VsBody
 import org.valkyrienskies.core.api.bodies.shape.BodyShapeData
 import org.valkyrienskies.core.api.ships.Ship
+import org.valkyrienskies.core.api.ships.ShipPhysicalPiece
 import org.valkyrienskies.core.internal.collision.VsiConvexPolygonc
 import org.valkyrienskies.core.internal.collision.createPolygonsFromBodyShapeData
 import org.valkyrienskies.core.util.extend
@@ -123,8 +125,9 @@ object EntityShipCollisionUtils {
         // ship that was just loaded — so such a ship may be missed here until its bounds update,
         // briefly letting an entity fall through it. Accepted deliberately for the perf win; the
         // proper fix is a spatial index keyed on activeChunks-derived world bounds, not worldAABB.
-        return level.getShipsIntersecting(aabb).filter { ship ->
-            getShipyardChunkAABBAround(ship).toAABBd(AABBd()).transform(ship.shipToWorld).intersectsAABB(aabb)
+        return level.allShips.getIntersecting(aabb, level.dimensionId).filter { ship ->
+            level.allShips.getSplitPieces(ship.id).isNotEmpty() ||
+                getShipyardChunkAABBAround(ship).toAABBd(AABBd()).transform(ship.shipToWorld).intersectsAABB(aabb)
         }
     }
 
@@ -152,8 +155,9 @@ object EntityShipCollisionUtils {
                     if (isInSpawnGracePeriod(ship.id)) {
                         return@all true // pretend it's loaded → don't block movement
                     }
-                    val aabbInShip = AABBd(aabb).transform(ship.worldToShip)
-                    val chunksLoaded = areAllChunksLoaded(ship, aabbInShip, level)
+                    val pieces = level.allShips.getSplitPieces(ship.id)
+                    val chunksLoaded = if (pieces.isEmpty()) areAllChunksLoaded(ship, AABBd(aabb).transform(ship.worldToShip), level)
+                        else pieces.all { !it.worldBounds.intersectsAABB(aabb) || areAllChunksLoaded(ship, AABBd(aabb).transform(it.worldToShip), level) }
                     if (chunksLoaded) {
                         playerUnloadedShipBlockStartTicks.remove(playerShipBlockKey(entity, ship.id))
                         return@all true
@@ -186,6 +190,32 @@ object EntityShipCollisionUtils {
         }
 
         return true
+    }
+
+    @JvmStatic
+    fun isInsideShipWall(level: Level, bounds: AABB): Boolean {
+        val worldBox = bounds.toJOML()
+        for (ship in level.shipObjectWorld.loadedShips.getIntersecting(worldBox, level.dimensionId)) {
+            val pieces = level.allShips.getSplitPieces(ship.id)
+            fun overlaps(toShip: Matrix4dc, piece: ShipPhysicalPiece?): Boolean {
+                val local = worldBox.transform(toShip, AABBd()).toMinecraft()
+                for (pos in BlockPos.betweenClosed(Mth.floor(local.minX), Mth.floor(local.minY), Mth.floor(local.minZ),
+                    Mth.floor(local.maxX), Mth.floor(local.maxY), Mth.floor(local.maxZ))) {
+                    val state = level.getBlockState(pos)
+                    if (!state.isSuffocating(level, pos)) continue
+                    for (box in state.getCollisionShape(level, pos).toAabbs()) {
+                        val block = box.move(pos)
+                        if (block.intersects(local) && (piece == null ||
+                            ClippedShipBox.clip(block.toJOML(), piece)?.intersects(worldBox) == true)) return true
+                    }
+                }
+                return false
+            }
+            if (pieces.isEmpty()) {
+                if (overlaps(ship.worldToShip, null)) return true
+            } else if (pieces.any { it.worldBounds.intersectsAABB(worldBox) && overlaps(it.worldToShip, it) }) return true
+        }
+        return false
     }
 
     @JvmStatic
@@ -270,14 +300,35 @@ object EntityShipCollisionUtils {
     }
 
     @JvmStatic
-    fun findSupportingShip(entity: Entity): Ship? {
+    fun findSupportingShip(entity: Entity): Ship? = findSupport(entity, false, null)
+
+    @JvmStatic
+    @JvmOverloads
+    fun recordSupportingShip(entity: Entity, onlyShip: ShipId? = null): Ship? = findSupport(entity, true, onlyShip)
+
+    private fun findSupport(entity: Entity, record: Boolean, onlyShip: ShipId?): Ship? {
         val bounds = entity.boundingBox
         val feet = AABB(bounds.minX, bounds.minY - 0.01, bounds.minZ,
             bounds.maxX, bounds.minY + 0.01, bounds.maxZ).toJOML()
         val level = entity.level()
         val previous = (entity as IEntityDraggingInformationProvider).draggingInformation.lastShipStoodOn
         var support: Ship? = null
-        for (ship in level.getLoadedShipsIntersecting(feet)) {
+        var selectedPiece: ShipPhysicalPiece? = null
+        for (ship in level.shipObjectWorld.loadedShips.getIntersecting(feet, level.dimensionId)) {
+            if (onlyShip != null && ship.id != onlyShip) continue
+            val pieces = level.allShips.getSplitPieces(ship.id)
+            if (pieces.isNotEmpty()) {
+                for (piece in pieces) {
+                    val query = ShipCollisionQuery()
+                    addPieceToQuery(query, entity, level, feet, piece)
+                    if (query.hasStandingSupport(bounds.minX,bounds.minY,bounds.minZ,bounds.maxX,bounds.maxY,bounds.maxZ) &&
+                        (support == null || ship.id == previous || (support.id != previous && ship.id < support.id))) {
+                        support = ship
+                        selectedPiece = piece
+                    }
+                }
+                continue
+            }
             val local = feet.transform(ship.worldToShip, AABBd()).toMinecraft()
             if (BugFixUtil.isCollisionBoxTooBig(local)) continue
             val query = ShipCollisionQuery()
@@ -285,23 +336,32 @@ object EntityShipCollisionUtils {
             for (shape in level.getBlockCollisions(entity, local)) shape.forAllBoxes(shapes::addBox)
             if (query.hasStandingSupport(bounds.minX, bounds.minY, bounds.minZ,
                     bounds.maxX, bounds.maxY, bounds.maxZ)) {
-                if (ship.id == previous) return ship
-                if (support == null || ship.id < support.id) support = ship
+                if (ship.id == previous || support == null || (support.id != previous && ship.id < support.id)) {
+                    support = ship
+                    selectedPiece = null
+                }
             }
+        }
+        if (record && support != null) {
+            val info = entity.draggingInformation
+            info.lastShipStoodOn = support.id
+            info.supportPiece = selectedPiece
         }
         return support
     }
 
     data class DraggingCollisionResult(val movement: Vector3dc, val landedOnWorld: Boolean)
 
-    fun adjustShipDraggingMovement(entity: Entity, carryingShip: ShipId, movement: Vector3dc): DraggingCollisionResult {
+    @JvmOverloads
+    fun adjustShipDraggingMovement(entity: Entity, carryingShip: ShipId, movement: Vector3dc,
+        carrierPiece: ShipPhysicalPiece? = null): DraggingCollisionResult {
         val box = entity.boundingBox
         val level = entity.level()
         var landedOnWorld = false
         fun collideExternal(start: AABB, requested: Vector3dc): Vector3d {
             return MovementSubsteps.resolve(requested) { step, offset ->
                 val bounds = start.move(offset.toMinecraft())
-                val polygons = getShipPolygonsCollidingWithEntity(entity, step.toMinecraft(), bounds, level, carryingShip)
+                val polygons = shipPolygons(entity, step.toMinecraft(), bounds, level, carryingShip, carrierPiece)
                 val clipped = if (polygons.isEmpty()) step else collider.adjustEntityMovementForPolygonCollisions(
                     step, bounds.toJOML(), 0.0, polygons, false
                 ).first
@@ -494,6 +554,11 @@ object EntityShipCollisionUtils {
         val localBox = AABBd()
         for (ship in world.getLoadedShipsIntersecting(worldBox)) {
             if (onlyShip != null && ship.id != onlyShip) continue
+            val pieces = world.allShips.getSplitPieces(ship.id)
+            if (pieces.isNotEmpty()) {
+                for (piece in pieces) addPieceToQuery(query, entity, world, worldBox, piece)
+                continue
+            }
             val transform = ship.transform
             worldBox.transform(transform.worldToShip, localBox)
             val localBounds = localBox.toMinecraft()
@@ -515,6 +580,11 @@ object EntityShipCollisionUtils {
         entityBoundingBox: AABB,
         world: Level,
         excludedShip: ShipId? = null
+    ): List<VsiConvexPolygonc> = shipPolygons(entity, movement, entityBoundingBox, world, excludedShip, null)
+
+    private fun shipPolygons(
+        entity: Entity?, movement: Vec3, entityBoundingBox: AABB, world: Level,
+        excludedShip: ShipId?, excludedPiece: ShipPhysicalPiece?
     ): List<VsiConvexPolygonc> {
         if (world.loadedShips?.isEmpty() ?: true) {
             return emptyList()
@@ -525,8 +595,20 @@ object EntityShipCollisionUtils {
         val entityBoundingBoxExtended = entityBoundingBox.toJOML().extend(movement.toJOML())
         val entityBoxWithMovementJoml = entityBoxWithMovement.toJOML()
         val entityBoundingBoxInShipCoordinates = AABBd()
-        for (shipObject in world.getLoadedShipsIntersecting(entityBoundingBoxExtended)) {
-            if (shipObject.id == excludedShip) continue
+        for (shipObject in world.shipObjectWorld.loadedShips.getIntersecting(entityBoundingBoxExtended, world.dimensionId)) {
+            if (shipObject.id == excludedShip && excludedPiece == null) continue
+            val pieces = world.allShips.getSplitPieces(shipObject.id)
+            if (pieces.isNotEmpty()) {
+                for (piece in pieces) {
+                    if (piece === excludedPiece) continue
+                    forPieceBoxes(entity, world, entityBoxWithMovementJoml, piece, { box ->
+                        collidingPolygons.add(collider.createPolygonFromAABB(box, piece.shipToWorld, shipObject.id))
+                    }) {
+                        collidingPolygons.add(collider.createPolygonFromPointsAndNormals(it.vertices, it.axes, null, shipObject.id))
+                    }
+                }
+                continue
+            }
             val shipTransform = shipObject.transform
             entityBoxWithMovementJoml.transform(shipTransform.worldToShip, entityBoundingBoxInShipCoordinates)
             if (BugFixUtil.isCollisionBoxTooBig(entityBoundingBoxInShipCoordinates.toMinecraft())) {
@@ -554,6 +636,31 @@ object EntityShipCollisionUtils {
             }
         }
         return collidingPolygons
+    }
+
+    private fun addPieceToQuery(query: ShipCollisionQuery, entity: Entity?, level: Level, bounds: AABBd, piece: ShipPhysicalPiece) {
+        if (!piece.worldBounds.intersectsAABB(bounds)) return
+        val shapes = query.addShip(piece.shipToWorld)
+        forPieceBoxes(entity, level, bounds, piece, { b ->
+            shapes.addBox(b.minX, b.minY, b.minZ, b.maxX, b.maxY, b.maxZ)
+        }) { query.addClipped(it.vertices, it.axes) }
+    }
+
+    private fun forPieceBoxes(entity: Entity?, level: Level, bounds: AABBd, piece: ShipPhysicalPiece,
+        whole: (AABBd) -> Unit, accept: (ClippedShipBox) -> Unit) {
+        if (!piece.worldBounds.intersectsAABB(bounds)) return
+        val local = AABBd(bounds).intersection(piece.worldBounds).transform(piece.worldToShip).toMinecraft()
+        if (BugFixUtil.isCollisionBoxTooBig(local)) return
+        for (shape in level.getBlockCollisions(entity, local.inflate(1e-7))) {
+            shape.forAllBoxes { x0,y0,z0,x1,y1,z1 ->
+                val box = AABBd(x0,y0,z0,x1,y1,z1)
+                when (ClippedShipBox.classify(box, piece)) {
+                    ClippedShipBox.Location.RETAINED -> whole(box)
+                    ClippedShipBox.Location.CUT -> ClippedShipBox.clip(box, piece)?.takeIf { it.intersects(bounds) }?.let(accept)
+                    ClippedShipBox.Location.REMOVED -> Unit
+                }
+            }
+        }
     }
 
     fun getBodyPolygonsCollidingWithEntity(

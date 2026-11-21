@@ -3,7 +3,9 @@ package org.valkyrienskies.mod.compat.flywheel;
 import dev.engine_room.flywheel.api.visualization.VisualizationManager;
 import it.unimi.dsi.fastutil.longs.Long2IntMap;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
+import java.util.List;
 import java.util.Map.Entry;
+import org.valkyrienskies.core.api.ships.ShipPhysicalPiece;
 import java.util.Set;
 import java.util.function.Function;
 import net.minecraft.client.Minecraft;
@@ -23,6 +25,8 @@ import org.joml.Vector3d;
 import org.joml.Vector3f;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.api.ValkyrienSkies;
+import org.valkyrienskies.mod.mixinducks.mod_compat.flywheel.ShipVisualEmbedding;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.hooks.VSGameEvents;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
@@ -109,6 +113,7 @@ public class ShipEmbeddingManager {
         BlockPos anchor = BlockPos.containing(VectorConversionsMCKt.toMinecraft(ship.getRenderTransform().getPositionInShip()));
         Vec3i origin = ctx.renderOrigin();
         VisualEmbedding result = ctx.createEmbedding(anchor);
+        if (result instanceof ShipVisualEmbedding shipEmbedding) shipEmbedding.vs$setShip(ship);
         setEmbeddingTransform(result, ship, anchor, origin);
         vs$shipAnchor.put(ship, anchor);
         vs$EmbeddingOrigin.put(ship, origin);
@@ -123,6 +128,7 @@ public class ShipEmbeddingManager {
      * @author Bunting_chj
      */
     public synchronized void updateAllShips() {
+        requeueOrphans();
         for(final ClientShip ship : vs$shipEmbedding.keySet()){
             final Vec3i anchor = vs$shipAnchor.get(ship);
             final VisualEmbedding embedding = vs$shipEmbedding.get(ship);
@@ -163,6 +169,7 @@ public class ShipEmbeddingManager {
     public synchronized void unloadAllShip() {
         vs$shipBEs.clear();
         vs$sectionBEsCount.clear();
+        vs$orphanBEs.clear();
         vs$shipEmbedding.clear();
         vs$shipAnchor.clear();
         vs$EmbeddingOrigin.clear();
@@ -181,6 +188,9 @@ public class ShipEmbeddingManager {
      * @author Bunting_chj
      */
     protected static void setEmbeddingTransform(VisualEmbedding embedding, ClientShip ship, Vec3i anchor, Vec3i origin) {
+        if (embedding instanceof ShipVisualEmbedding attached && Minecraft.getInstance().level != null) {
+            attached.vs$setPieces(VSGameUtilsKt.getAllShips(Minecraft.getInstance().level).getSplitPieces(ship.getId()));
+        }
         final Matrix4f poseMatrix = new Matrix4f();
         final Matrix3f normalMatrix = new Matrix3f();
 
@@ -201,6 +211,40 @@ public class ShipEmbeddingManager {
         poseMatrix.scale(ship.getRenderTransform().getShipToWorldScaling().get(new Vector3f()));
         normalMatrix.set(poseMatrix);
         embedding.transforms(poseMatrix, normalMatrix);
+    }
+
+    /**
+     * Shipyard block entities whose visual was created while no ship managed their position.
+     * Visuals can be created off the render thread, so this set is concurrent.
+     */
+    protected static final Set<BlockEntity> vs$orphanBEs = ConcurrentHashMap.newKeySet();
+
+    public static List<ShipPhysicalPiece> piecesFor(BlockEntity blockEntity) {
+        var ship = vs$shipBEs.get(blockEntity);
+        var embedding = ship == null ? null : vs$shipEmbedding.get(ship);
+        return embedding instanceof ShipVisualEmbedding attached ? attached.vs$pieces() : List.of();
+    }
+
+    public void registerOrphan(BlockEntity blockEntity) {
+        vs$orphanBEs.add(blockEntity);
+    }
+
+    /** Recreate the visuals of orphaned block entities whose ship is now loaded, inside its embedding. */
+    private void requeueOrphans() {
+        if (vs$orphanBEs.isEmpty()) return;
+        vs$orphanBEs.removeIf(blockEntity -> {
+            if (blockEntity.isRemoved() || blockEntity.getLevel() == null) return true;
+            if (!(VSGameUtilsKt.getShipManagingPos(blockEntity.getLevel(), blockEntity.getBlockPos())
+                instanceof ClientShip)) {
+                return false;
+            }
+            final VisualizationManager manager = VisualizationManager.get(blockEntity.getLevel());
+            if (manager != null) {
+                manager.blockEntities().queueRemove(blockEntity);
+                manager.blockEntities().queueAdd(blockEntity);
+            }
+            return true;
+        });
     }
 
     public void register(BlockEntity blockEntity, ClientShip ship) {

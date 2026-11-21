@@ -7,7 +7,7 @@ import org.lwjgl.opengl.GL33;
 
 public final class FluidOcclusionTextureState implements AutoCloseable {
     public static final int MASK_UNIT = 3;
-    public static final int DESCRIPTOR_UNIT = 4;
+    public static final int DESCRIPTOR_UNIT = 5;
     private final int mask;
     private final int descriptor;
     private final int maskSampler;

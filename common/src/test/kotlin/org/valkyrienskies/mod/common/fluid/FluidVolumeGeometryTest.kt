@@ -64,6 +64,16 @@ class FluidVolumeGeometryTest {
     }
 
     @Test
+    fun `numerical seam rejection preserves real thin exterior water`() {
+        for (scale in listOf(1e-6, 1.0, 1e6)) for (gap in listOf(1e-3, 1e-6, 1e-9, 1e-12)) {
+            val liquid = AABB(0.0, 0.0, 0.0, scale, scale, scale)
+            val dry = box(AABB(0.0, 0.0, 0.0, 1.0 - gap, 1.0, 1.0), Matrix4d().scale(scale))
+            assertEquals(scale, FluidVolumeGeometry.uncoveredTop(liquid, listOf(dry)), scale * 1e-14,
+                "Real water gap disappeared at scale=$scale gap=$gap")
+        }
+    }
+
+    @Test
     fun `union subtraction matches a discrete oracle for many overlapping masks`() {
         val random = Random(1752)
         repeat(100) {

@@ -17,6 +17,10 @@ uniform mat4 ProjMat;
 uniform mat3 IViewRotMat;
 uniform vec3 ChunkOffset;
 uniform int FogShape;
+uniform int vs_DisableShipShade;
+uniform vec3 vs_MaterialOrigin;
+out vec3 vs_ShipPos;
+out vec3 vs_PiecePos;
 
 out float vertexDistance;
 out vec4 vertexColor;
@@ -28,7 +32,9 @@ out vec2 v_VsLightCoordRaw;
 out vec3 v_VsWorldNormal;
 
 void main() {
+    vs_ShipPos = Position + vs_MaterialOrigin;
     vec3 pos = Position + ChunkOffset;
+    vs_PiecePos = pos;
     vec4 viewPos = ModelViewMat * vec4(pos, 1.0);
     gl_Position = ProjMat * viewPos;
 
@@ -41,12 +47,9 @@ void main() {
     vec3 worldNormal = normalize(IViewRotMat * mat3(ModelViewMat) * Normal);
     v_VsWorldNormal = worldNormal;
 
-    if (Color.a == 0.0) {
-        vertexColor = Color * minecraft_sample_lightmap(Sampler2, UV2);
-        vertexColor.a = 1.0;
-    } else {
-        vertexColor = Color * minecraft_sample_lightmap(Sampler2, UV2);
-        float shade = vanillaShadeFromNormal(worldNormal);
-        vertexColor.rgb *= shade;
+    vertexColor = Color * minecraft_sample_lightmap(Sampler2, UV2);
+    if (vs_DisableShipShade == 0) {
+        if (Color.a == 0.0) vertexColor.a = 1.0;
+        else vertexColor.rgb *= vanillaShadeFromNormal(worldNormal);
     }
 }

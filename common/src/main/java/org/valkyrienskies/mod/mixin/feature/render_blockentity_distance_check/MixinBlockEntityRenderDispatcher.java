@@ -2,7 +2,10 @@ package org.valkyrienskies.mod.mixin.feature.render_blockentity_distance_check;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.client.Camera;
+import net.minecraft.client.renderer.MultiBufferSource;
+import org.valkyrienskies.mod.common.render.batched.ShipPieceBuffers;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.core.BlockPos;
@@ -14,6 +17,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.mod.client.render.ShipRenderViews;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
@@ -40,16 +44,22 @@ public class MixinBlockEntityRenderDispatcher {
         )
     )
     private <E extends BlockEntity> boolean isTileEntityInRenderRange(final BlockEntityRenderer<E> instance,
-        final E blockEntity, final Vec3 cameraPos, final Operation<Boolean> operation) {
+        final E blockEntity, final Vec3 cameraPos, final Operation<Boolean> operation,
+        @Local(argsOnly = true) final MultiBufferSource source) {
+        if (source instanceof ShipPieceBuffers piece) {
+            return operation.call(instance, blockEntity, piece.cameraInShip(cameraPos));
+        }
 
-        if (operation.call(instance, blockEntity, cameraPos)) {
+        final boolean inRange = operation.call(instance, blockEntity, cameraPos);
+        if (inRange && !ShipRenderViews.hasHiddenShips()) {
             return true;
         }
 
-        // If by default was false, then check if this BlockEntity belongs to a ship
         final BlockPos bePos = blockEntity.getBlockPos();
         final Ship nullableShip = VSGameUtilsKt.getLoadedShipManagingPos(level, bePos);
         if (nullableShip instanceof ClientShip ship) {
+            if (!ShipRenderViews.shouldRenderShip(ship)) return false;
+            if (inRange) return true;
             final Matrix4dc m = ship.getRenderTransform().getShipToWorld();
 
             return new Vec3(
@@ -59,6 +69,6 @@ public class MixinBlockEntityRenderDispatcher {
             ).closerThan(this.camera.getPosition(), instance.getViewDistance());
         }
 
-        return false;
+        return inRange;
     }
 }

@@ -1,18 +1,17 @@
 package org.valkyrienskies.mod.util
 
 import net.minecraft.core.BlockPos
-import net.minecraft.nbt.CompoundTag
 import net.minecraft.world.Clearable
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.Rotation
 import net.minecraft.world.level.block.Rotation.NONE
-import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
 import org.valkyrienskies.core.api.ships.ServerShip
+import org.valkyrienskies.mod.common.assembly.MovedBlockEntityTags
 import org.valkyrienskies.mod.common.fluid.FractionalFluidLifecycle
 
 val AIR = Blocks.AIR.defaultBlockState()
@@ -44,11 +43,7 @@ fun relocateBlock(
 
         // so that it won't drop its contents
         if (it is Clearable) {
-			val blockEntity = it as BlockEntity
-			val emptyTag = CompoundTag()
-            blockEntity.load(emptyTag)
-			
-            //it.clearContent()
+            MovedBlockEntityTags.clearBeforeRemoval(it)
         }
 
         // so loot containers dont drop its content
@@ -72,6 +67,8 @@ fun relocateBlock(
     tag?.let {
         val be = level.getBlockEntity(to)!!
 
+        val blockOffset = to.subtract(from)
+        MovedBlockEntityTags.relocate(state, it) { pos -> pos.offset(blockOffset) }
         be.load(it)
     }
     }

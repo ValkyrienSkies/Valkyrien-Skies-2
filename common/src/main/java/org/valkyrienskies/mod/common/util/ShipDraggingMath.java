@@ -36,6 +36,18 @@ public final class ShipDraggingMath {
         return Math.atan2(-right.z, right.x);
     }
 
+    public static double draggedYaw(final Quaterniondc previousRotation, final Quaterniondc currentRotation,
+        final double worldYawDegrees) {
+        final double yaw = Math.toRadians(worldYawDegrees);
+        final Vector3d forward = new Vector3d(-Math.sin(yaw), 0.0, Math.cos(yaw));
+        previousRotation.transformInverse(forward);
+        currentRotation.transform(forward);
+        if (!forward.isFinite() || forward.x * forward.x + forward.z * forward.z < 1.0E-12) {
+            return 0.0;
+        }
+        return wrapDegrees(Math.toDegrees(-Math.atan2(forward.x, forward.z)) - worldYawDegrees);
+    }
+
     public static double yawToShip(final Quaterniondc rotation, final double worldYawDegrees) {
         return Math.toRadians(worldYawDegrees) + shipYaw(rotation);
     }

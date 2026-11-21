@@ -2,12 +2,13 @@ package org.valkyrienskies.mod.mixin.mod_compat.optifine_vanilla;
 
 import static org.valkyrienskies.mod.common.VSClientGameUtils.transformRenderWithShip;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Camera;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
-import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.ViewArea;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
@@ -15,15 +16,16 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.Vec3;
-import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.mod.client.render.ShipRenderViews;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.render.NativeShipPieces;
+import org.valkyrienskies.mod.common.render.batched.ShipPieceBuffers;
 import org.valkyrienskies.mod.mixinducks.client.world.ClientChunkCacheDuck;
 
 /**
@@ -61,16 +63,12 @@ public abstract class MixinLevelRenderer {
     /**
      * This mixin makes {@link BlockEntity} in the ship render in the correct place.
      */
-    @Redirect(method = "renderLevel", at = @At(value = "INVOKE",
+    @WrapOperation(method = "renderLevel", at = @At(value = "INVOKE",
         target = "Lnet/minecraft/client/renderer/blockentity/BlockEntityRenderDispatcher;render(Lnet/minecraft/world/level/block/entity/BlockEntity;FLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;)V"))
     private void renderShipChunkBlockEntity(final BlockEntityRenderDispatcher blockEntityRenderDispatcher,
         final BlockEntity blockEntity, final float tickDelta, final PoseStack matrix,
-        final MultiBufferSource vertexConsumerProvider,
-        final PoseStack methodMatrices, final float methodTickDelta, final long methodLimitTime,
-        final boolean methodRenderBlockOutline,
-        final Camera methodCamera, final GameRenderer methodGameRenderer,
-        final LightTexture methodLightmapTextureManager,
-        final Matrix4f methodMatrix4f) {
+        final MultiBufferSource vertexConsumerProvider, final Operation<Void> original,
+        @Local(argsOnly = true) final Camera methodCamera) {
 
         final BlockPos blockEntityPos = blockEntity.getBlockPos();
         final ClientShip shipObject = VSGameUtilsKt.getLoadedShipManagingPos(level, blockEntityPos);
@@ -78,9 +76,17 @@ public abstract class MixinLevelRenderer {
             final Vec3 cam = methodCamera.getPosition();
             matrix.popPose();
             matrix.pushPose();
+            final var pieces = NativeShipPieces.pieces(level, shipObject.getId());
+            if (!pieces.isEmpty()) {
+                if (ShipRenderViews.shouldRenderShip(shipObject)) {
+                    ShipPieceBuffers.draw(pieces, blockEntityPos, matrix, cam, vertexConsumerProvider,
+                        (pose, buffers) -> original.call(blockEntityRenderDispatcher, blockEntity, tickDelta, pose, buffers));
+                }
+                return;
+            }
             transformRenderWithShip(shipObject.getRenderTransform(), matrix, blockEntityPos,
                 cam.x(), cam.y(), cam.z());
         }
-        blockEntityRenderDispatcher.render(blockEntity, tickDelta, matrix, vertexConsumerProvider);
+        original.call(blockEntityRenderDispatcher, blockEntity, tickDelta, matrix, vertexConsumerProvider);
     }
 }

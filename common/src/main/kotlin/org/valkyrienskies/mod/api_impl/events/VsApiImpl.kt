@@ -4,6 +4,7 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.BlockPos
+import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.entity.Entity
@@ -25,9 +26,12 @@ import org.valkyrienskies.core.api.world.properties.DimensionId
 import org.valkyrienskies.core.util.events.EventEmitterImpl
 import org.valkyrienskies.mod.api.BlockEntityPhysicsListener
 import org.valkyrienskies.mod.api.VsApi
-import org.valkyrienskies.mod.api.events.PostRenderShipEvent
 import org.valkyrienskies.mod.api.events.PreRenderShipEvent
 import org.valkyrienskies.mod.api.events.RegisterBlockStateEvent
+import org.valkyrienskies.mod.api.render.ShipRenderPredicate
+import org.valkyrienskies.mod.api.render.ShipMaterialSelector
+import org.valkyrienskies.mod.client.render.ShipMaterials
+import org.valkyrienskies.mod.client.render.ShipRenderViews
 import org.valkyrienskies.mod.api.getShipManagingBlock
 import org.valkyrienskies.mod.api.shipWorld
 import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider
@@ -49,7 +53,12 @@ class VsApiImpl(
 
     override val registerBlockStateEvent = EventEmitterImpl<RegisterBlockStateEvent>()
     override val preRenderShipEvent = EventEmitterImpl<PreRenderShipEvent>()
-    override val postRenderShipEvent = EventEmitterImpl<PostRenderShipEvent>()
+    override val postRenderShipEvent get() = ShipRenderViews.overlays
+
+    override fun registerShipRenderPredicate(predicate: ShipRenderPredicate) = ShipRenderViews.register(predicate)
+    override fun registerShipMaterial(id: ResourceLocation) = ShipMaterials.register(id)
+    override fun registerShipMaterialSelector(selector: ShipMaterialSelector) = ShipRenderViews.registerSelector(selector)
+    override val currentShipRenderView get() = ShipRenderViews.current
 
     override fun isShipMountingEntity(entity: Entity): Boolean {
         return entity is ShipMountingEntity
