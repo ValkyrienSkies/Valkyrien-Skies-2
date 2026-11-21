@@ -19,8 +19,7 @@ class WeldBlockDataTest {
         }
     }
 
-    @Test
-    fun `container contents and original backup survive relocation`() {
+    @Test fun containerContentsAndOriginalBackupSurviveRelocation() {
         val from = BlockPos(28672010, 130, -28672030)
         val to = BlockPos(28676010, 70, -28676030)
         val source = ChestBlockEntity(from, Blocks.CHEST.defaultBlockState())

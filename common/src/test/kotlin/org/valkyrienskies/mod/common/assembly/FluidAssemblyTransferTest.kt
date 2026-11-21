@@ -9,8 +9,8 @@ import org.junit.jupiter.api.Assertions.*
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.util.GameTickOnly
 import org.valkyrienskies.core.internal.world.VsiServerShipWorld
-import org.valkyrienskies.mod.api.dimensionId
-import org.valkyrienskies.mod.api.shipWorld
+import org.valkyrienskies.mod.common.dimensionId
+import org.valkyrienskies.mod.common.shipObjectWorld
 
 @OptIn(GameTickOnly::class)
 class FluidAssemblyTransferTest {
@@ -25,13 +25,13 @@ class FluidAssemblyTransferTest {
 
     @Test
     fun `component ownership follows exact shipyard translation and world destination`() {
-        mockkStatic("org.valkyrienskies.mod.api.ValkyrienSkies")
+        mockkStatic("org.valkyrienskies.mod.common.VSGameUtilsKt")
         try {
             val level = mockk<ServerLevel>()
             val world = mockk<VsiServerShipWorld>(relaxed = true)
             val source = mockk<ServerShip> { every { id } returns 12L }
             val target = mockk<ServerShip> { every { id } returns 13L }
-            every { level.shipWorld } returns world
+            every { level.shipObjectWorld } returns world
             every { level.dimensionId } returns "alpha"
             every { world.dimensionToGroundBodyIdImmutable } returns mapOf("alpha" to 90L)
             val cells = slot<IntArray>()

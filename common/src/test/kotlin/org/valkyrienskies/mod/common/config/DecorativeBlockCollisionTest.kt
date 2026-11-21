@@ -20,8 +20,7 @@ class DecorativeBlockCollisionTest {
         }
     }
 
-    @Test
-    fun `every torch state has empty physics collision geometry`() {
+    @Test fun everyTorchStateHasEmptyPhysicsCollisionGeometry() {
         val world = object : BlockGetter {
             override fun getHeight() = 384
             override fun getMinBuildHeight() = -64

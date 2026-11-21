@@ -7,12 +7,10 @@ import net.minecraft.core.Direction
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.Tag
 import net.minecraft.server.Bootstrap
-import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
-import net.minecraft.world.level.material.Fluid
 import net.minecraft.world.level.material.Fluids
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
@@ -22,7 +20,7 @@ import org.valkyrienskies.core.internal.physics.VsiFluidOutflowResult
 import org.valkyrienskies.core.internal.world.VsiPipeline
 import org.valkyrienskies.mod.common.ShipSavedData
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
-import org.valkyrienskies.mod.api.vsCore
+import org.valkyrienskies.mod.common.vsCore
 
 class WorldFluidParcelOwnershipTest {
     companion object {
@@ -41,7 +39,7 @@ class WorldFluidParcelOwnershipTest {
     private val levels get() = mapOf(DIMENSION to level)
 
     @BeforeEach fun setup() {
-        every { level.server } returns mockk<MinecraftServer>()
+        every { level.server } returns mockk<net.minecraft.server.MinecraftServer>()
         mockkObject(MassDatapackResolver)
         every { MassDatapackResolver.getFlowingFluid(17) } returns Fluids.WATER
         every { MassDatapackResolver.getFlowingFluid(18) } returns Fluids.LAVA
@@ -55,7 +53,7 @@ class WorldFluidParcelOwnershipTest {
             if (acceptWrites) blocks[firstArg<BlockPos>().immutable()] = secondArg()
             acceptWrites && returnWriteSuccess
         }
-        every { level.scheduleTick(any<BlockPos>(), any<Fluid>(), any<Int>()) } answers { fluidTicks++ }
+        every { level.scheduleTick(any<BlockPos>(), any<net.minecraft.world.level.material.Fluid>(), any<Int>()) } answers { fluidTicks++ }
     }
 
     @AfterEach fun cleanup() { unmockkAll() }
@@ -771,7 +769,7 @@ class WorldFluidParcelOwnershipTest {
 
     @Test fun `settlement remainder survives a full cavity and checkpoint before continuing`() {
         val pos = BlockPos(0, 1, 0)
-        Direction.entries.forEach { blocks[pos.relative(it)] = Blocks.STONE.defaultBlockState() }
+        Direction.values().forEach { blocks[pos.relative(it)] = Blocks.STONE.defaultBlockState() }
         val manager = WorldFluidOutflowManager(1, 1)
         manager.enqueue(level, outflow(510))
         repeat(4) { manager.tick(levels) }

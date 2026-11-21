@@ -72,8 +72,7 @@ class WeldPullDriveTest {
         }
     }
 
-    @Test
-    fun `physical forces pull and rotate without a distance pose change`() {
+    @Test fun physicalForcesPullAndRotateWithoutADistantPoseChange() {
         for (mass in listOf(1.0, 100000.0)) {
             val f = Fixture(mass)
             f.source.position.set(-8.0, -4.0, 3.0)
@@ -89,8 +88,7 @@ class WeldPullDriveTest {
         }
     }
 
-    @Test
-    fun `moving target is followed and relative motion settles`() {
+    @Test fun movingTargetIsFollowedAndRelativeMotionSettles() {
         val f = Fixture()
         f.source.position.set(-5.0, 1.0, 0.0)
         f.target.velocity.set(0.8, 0.2, -0.3)
@@ -104,8 +102,7 @@ class WeldPullDriveTest {
         assertTrue(f.drive.settledSeconds >= 0.25)
     }
 
-    @Test
-    fun `a rotating target is followed at an offset docking point`() {
+    @Test fun aRotatingTargetIsFollowedAtAnOffsetDockingPoint() {
         val f = Fixture(radius = 4.0)
         f.drive.modelCenter.set(3.0, 0.0, 0.0)
         f.source.position.set(-5.0, 2.0, 0.0)
@@ -125,8 +122,7 @@ class WeldPullDriveTest {
             WeldPullController.Pose(f.source.position, f.source.rotation, f.source.velocity, f.source.omega), goal, 4.0).aligned(0.02))
     }
 
-    @Test
-    fun `blocked ship never reports ready and cancel stops all forces`() {
+    @Test fun blockedShipNeverReportsReadyAndCancelStopsAllForces() {
         val f = Fixture()
         f.source.position.set(-2.0, 0.0, 0.0)
         repeat(300) {
@@ -142,8 +138,7 @@ class WeldPullDriveTest {
         verify(exactly = 300) { f.source.ship.applyWorldTorque(any()) }
     }
 
-    @Test
-    fun `missing or static ship cannot complete a stale pull`() {
+    @Test fun missingOrStaticSourceCannotCompleteAStalePull() {
         val f = Fixture()
         repeat(30) { f.step() }
         assertTrue(f.drive.settledSeconds >= 0.25)
@@ -155,8 +150,7 @@ class WeldPullDriveTest {
         assertEquals(0.0, f.drive.settledSeconds)
     }
 
-    @Test
-    fun `changing gravity and invalid mass cannot emit invalid forces`() {
+    @Test fun changingGravityAndInvalidMassCannotEmitInvalidForces() {
         val f = Fixture()
         f.drive.gravityOverride = -3.0
         f.drive.tick(f.level, 1.0 / 60.0)

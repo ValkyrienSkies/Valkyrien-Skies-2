@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test
 
 class WeldRotationTest {
     @Test
-    fun `all rotations preserve handedness and exact block offsets`() {
+    fun allRotationsPreserveHandednessAndExactBlockOffsets() {
         assertEquals(24, WeldRotation.ALL.toSet().size)
         val p = BlockPos(4, -7, 12)
         for (rotation in WeldRotation.ALL) {
@@ -22,10 +22,10 @@ class WeldRotationTest {
     }
 
     @Test
-    fun `all face pairs meet without rounding or overlapping selected blocks`() {
+    fun allFacePairsMeetWithoutRoundingOrOverlappingSelectedBlocks() {
         val source = BlockPos(28672010, 130, -28672030)
         val target = BlockPos(28676010, 70, -28676030)
-        for (from in Direction.entries) for (to in Direction.entries) {
+        for (from in Direction.values()) for (to in Direction.values()) {
             val rotations = WeldRotation.candidates(from, to, Quaterniond())
             assertEquals(4, rotations.size)
             for (rotation in rotations) {
@@ -40,7 +40,7 @@ class WeldRotationTest {
     }
 
     @Test
-    fun `closest existing twist is preferred`() {
+    fun closestExistingTwistIsPreferred() {
         for (rotation in WeldRotation.ALL) {
             val targetFace = rotation.transform(Direction.NORTH).opposite
             assertEquals(rotation, WeldRotation.candidates(Direction.NORTH, targetFace, rotation.quaternion()).first())

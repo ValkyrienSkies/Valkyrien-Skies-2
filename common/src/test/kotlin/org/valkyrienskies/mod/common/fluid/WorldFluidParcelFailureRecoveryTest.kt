@@ -1,36 +1,26 @@
 package org.valkyrienskies.mod.common.fluid
 
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.mockkObject
-import io.mockk.unmockkAll
+import io.mockk.*
 import net.minecraft.SharedConstants
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.Tag
 import net.minecraft.server.Bootstrap
-import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
-import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
-import net.minecraft.world.level.block.state.properties.Property
-import net.minecraft.world.level.material.Fluid
+import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.material.Fluids
-import net.minecraft.world.ticks.LevelTicks
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.assertArrayEquals
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertSame
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.*
+import org.junit.jupiter.api.Assertions.*
+import org.valkyrienskies.core.internal.VsiCore
 import org.valkyrienskies.core.internal.physics.VsiFluidOutflow
 import org.valkyrienskies.core.internal.physics.VsiFluidOutflowResult
+import org.valkyrienskies.core.internal.world.VsiPipeline
+import org.valkyrienskies.mod.common.ShipSavedData
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
+import org.valkyrienskies.mod.common.vsCore
 
 class WorldFluidParcelFailureRecoveryTest {
     companion object {
@@ -46,12 +36,12 @@ class WorldFluidParcelFailureRecoveryTest {
     private var returnWriteSuccess = true
     private var writes = 0
     private var fluidTicks = 0
-    private val scheduled = mutableSetOf<Pair<BlockPos, Fluid>>()
-    private val tickQueue = mockk<LevelTicks<Fluid>>(relaxed = true)
+    private val scheduled = mutableSetOf<Pair<BlockPos, net.minecraft.world.level.material.Fluid>>()
+    private val tickQueue = mockk<net.minecraft.world.ticks.LevelTicks<net.minecraft.world.level.material.Fluid>>(relaxed = true)
     private val levels get() = mapOf(DIMENSION to level)
 
     @BeforeEach fun setup() {
-        every { level.server } returns mockk<MinecraftServer>()
+        every { level.server } returns mockk<net.minecraft.server.MinecraftServer>()
         mockkObject(MassDatapackResolver)
         every { MassDatapackResolver.getFlowingFluid(17) } returns Fluids.WATER
         every { MassDatapackResolver.getFlowingFluid(18) } returns Fluids.LAVA
@@ -60,15 +50,15 @@ class WorldFluidParcelFailureRecoveryTest {
         every { level.hasChunkAt(any()) } answers { loaded(firstArg()) }
         every { level.getBlockState(any()) } answers { blocks[firstArg<BlockPos>()] ?: terrain(firstArg()) }
         every { level.players() } returns emptyList()
-        every { (level as Level).fluidTicks } returns tickQueue
-        assertSame(tickQueue, level.fluidTicks, "Concrete getter must expose the queue used by the manager")
-        every { tickQueue.hasScheduledTick(any(), any()) } answers { scheduled.contains(firstArg<BlockPos>() to secondArg<Fluid>()) }
+        every { (level as net.minecraft.world.level.Level).getFluidTicks() } returns tickQueue
+        assertSame(tickQueue, level.getFluidTicks(), "Concrete getter must expose the queue used by the manager")
+        every { tickQueue.hasScheduledTick(any(), any()) } answers { scheduled.contains(firstArg<BlockPos>() to secondArg<net.minecraft.world.level.material.Fluid>()) }
         every { level.setBlock(any(), any(), any()) } answers {
             writes++
             if (acceptWrites) blocks[firstArg<BlockPos>().immutable()] = secondArg()
             acceptWrites && returnWriteSuccess
         }
-        every { level.scheduleTick(any<BlockPos>(), any<Fluid>(), any<Int>()) } answers { fluidTicks++ }
+        every { level.scheduleTick(any<BlockPos>(), any<net.minecraft.world.level.material.Fluid>(), any<Int>()) } answers { fluidTicks++ }
     }
 
     @AfterEach fun cleanup() { unmockkAll() }
@@ -151,8 +141,8 @@ class WorldFluidParcelFailureRecoveryTest {
     }
 
     @Test fun `custom placement encoding is admitted before world writes and frozen for retry`() {
-        val property = mockk<Property<String>>()
-        val secondProperty = mockk<Property<String>>()
+        val property = mockk<net.minecraft.world.level.block.state.properties.Property<String>>()
+        val secondProperty = mockk<net.minecraft.world.level.block.state.properties.Property<String>>()
         val state = mockk<BlockState>()
         every { state.block } returns Blocks.GRASS
         every { state.fluidState } returns Fluids.EMPTY.defaultFluidState()
@@ -207,7 +197,7 @@ class WorldFluidParcelFailureRecoveryTest {
         val retained = manager.parcelStorageBytes()
         var sent = 0
         var fail = false
-        val clients = listOf(mutableMapOf<BlockPos, BlockState>(), mutableMapOf())
+        val clients = listOf(mutableMapOf<BlockPos, BlockState>(), mutableMapOf<BlockPos, BlockState>())
         visualClients { index, packet ->
             sent++
             clients[index][packet.pos] = packet.blockState
@@ -300,7 +290,7 @@ class WorldFluidParcelFailureRecoveryTest {
             initial.getList("parcels", Tag.TAG_COMPOUND.toInt()).getCompound(0).putString("volume", "0.5")
             manager.load(initial)
             if (pressure) { manager.servicePressure(levels); now += 50_000_000L }
-            every { level.scheduleTick(any<BlockPos>(), any<Fluid>(), any<Int>()) } answers {
+            every { level.scheduleTick(any<BlockPos>(), any<net.minecraft.world.level.material.Fluid>(), any<Int>()) } answers {
                 if (applied) { scheduled.add(firstArg<BlockPos>().immutable() to secondArg()); fluidTicks++ }
                 throw IllegalStateException("scheduling")
             }
@@ -310,7 +300,7 @@ class WorldFluidParcelFailureRecoveryTest {
             assertEquals(1, manager.activeParcelCount()); assertEquals(0.0, pending(manager))
             assertTrue(entries(manager).getCompound(0).getCompound("placement").getBoolean("scheduled_only"))
             assertEquals(4, blocks[BlockPos(0, 1, 0)]!!.fluidState.amount)
-            every { level.scheduleTick(any<BlockPos>(), any<Fluid>(), any<Int>()) } answers {
+            every { level.scheduleTick(any<BlockPos>(), any<net.minecraft.world.level.material.Fluid>(), any<Int>()) } answers {
                 scheduled.add(firstArg<BlockPos>().immutable() to secondArg()); fluidTicks++
             }
             val restored = restore(manager.save())
@@ -382,7 +372,7 @@ class WorldFluidParcelFailureRecoveryTest {
                     snapshot = manager.save()
                     assertEquals(2.0, pending(manager)); assertEquals(1, manager.activeParcelCount())
                     assertEquals(VsiFluidOutflowResult.RETRY_LATER, manager.enqueue(level, outflow(x = 8.5)))
-                    assertThrows(IllegalStateException::class.java) { manager.load(snapshot) }
+                    assertThrows(IllegalStateException::class.java) { manager.load(snapshot!!) }
                     manager.tick(levels); assertFalse(manager.servicePressure(levels))
                 }
                 true
@@ -412,7 +402,7 @@ class WorldFluidParcelFailureRecoveryTest {
             if (pressure) manager.servicePressure(levels) else manager.tick(levels)
             val completed = manager.save()
             assertTrue(snapshot!!.getList("parcels", Tag.TAG_COMPOUND.toInt()).getCompound(0).contains("placement"))
-            val restored = restore(snapshot); restored.servicePressure(levels)
+            val restored = restore(snapshot!!); restored.servicePressure(levels)
             assertEquals(completed, restored.save()); assertEquals(1, writes)
         }
     }
@@ -535,7 +525,7 @@ class WorldFluidParcelFailureRecoveryTest {
 
     @Test fun `partial visual delivery remains recoverable before and after the second client applies it`() {
         for (pressure in listOf(false,true)) for (applied in listOf(false,true)) {
-            val clients = listOf(mutableMapOf<BlockPos, BlockState>(), mutableMapOf())
+            val clients = listOf(mutableMapOf<BlockPos,BlockState>(), mutableMapOf<BlockPos,BlockState>())
             var fail = true
             visualClients { i, packet ->
                 if (i == 1 && fail) {
@@ -561,7 +551,7 @@ class WorldFluidParcelFailureRecoveryTest {
 
     @Test fun `partial visual restoration retries all intended recipients`() {
         for (applied in listOf(false,true)) {
-            val clients = listOf(mutableMapOf<BlockPos, BlockState>(), mutableMapOf())
+            val clients = listOf(mutableMapOf<BlockPos,BlockState>(), mutableMapOf<BlockPos,BlockState>())
             var fail = false
             visualClients { i, packet ->
                 if (i == 1 && fail) {
@@ -582,7 +572,7 @@ class WorldFluidParcelFailureRecoveryTest {
 
     @Test fun `clear requested inside packet delivery takes effect after the in flight send completes`() {
         for (pressure in listOf(false,true)) {
-            val clients = listOf(mutableMapOf<BlockPos, BlockState>(), mutableMapOf())
+            val clients = listOf(mutableMapOf<BlockPos,BlockState>(), mutableMapOf<BlockPos,BlockState>())
             var now = 0L
             val manager = WorldFluidOutflowManager(1,1) { now }
             visualClients { i, packet ->
@@ -615,7 +605,7 @@ class WorldFluidParcelFailureRecoveryTest {
     @Test fun `legacy scheduling receipts without an attempt marker still avoid duplicate enqueue`() {
         val manager = WorldFluidOutflowManager(1,1)
         manager.enqueue(level, outflow(fill=128))
-        every { level.scheduleTick(any<BlockPos>(),any<Fluid>(),any<Int>()) } answers {
+        every { level.scheduleTick(any<BlockPos>(),any<net.minecraft.world.level.material.Fluid>(),any<Int>()) } answers {
             scheduled.add(firstArg<BlockPos>().immutable() to secondArg()); fluidTicks++
             throw IllegalStateException("applied scheduling")
         }
@@ -623,14 +613,14 @@ class WorldFluidParcelFailureRecoveryTest {
         val saved = manager.save()
         val intent = saved.getList("parcels",Tag.TAG_COMPOUND.toInt()).getCompound(0).getCompound("placement")
         assertTrue(intent.getBoolean("schedule_attempted")); intent.remove("schedule_attempted")
-        every { level.scheduleTick(any<BlockPos>(),any<Fluid>(),any<Int>()) } answers { fluidTicks++ }
+        every { level.scheduleTick(any<BlockPos>(),any<net.minecraft.world.level.material.Fluid>(),any<Int>()) } answers { fluidTicks++ }
         val restored = restore(saved)
         restored.servicePressure(levels)
         assertEquals(1,fluidTicks); assertEquals(0,restored.activeParcelCount())
     }
 
     @Test fun `deferred cleanup preserves the primary exception and can retry its own failure`() {
-        val clients = listOf(mutableMapOf<BlockPos, BlockState>(),mutableMapOf())
+        val clients = listOf(mutableMapOf<BlockPos,BlockState>(),mutableMapOf<BlockPos,BlockState>())
         val manager = WorldFluidOutflowManager(1,1)
         val primary = IllegalStateException("delivery primary")
         val cleanup = IllegalStateException("cleanup secondary")

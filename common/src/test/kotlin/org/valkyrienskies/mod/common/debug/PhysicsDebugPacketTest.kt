@@ -21,23 +21,9 @@ class PhysicsDebugPacketTest {
     private val force = VsiDebugVector(1.0, 2.0, 3.0)
 
     private fun packet(): PacketPhysicsDebug {
-        val ship = VsiDebugShip(
-            id = 42,
-            dimensionId = "test",
-            sleeping = true,
-            isStatic = false,
-            mass = 100.0,
-            position = position,
-            velocity = force,
-            angularVelocity = force,
-            appliedForce = force,
-            appliedTorque = force,
-            gravityForce = force,
-            dragForce = force,
-            liftForce = force,
-            wingForce = force,
-            forces = listOf(VsiDebugForce(position, force)), forceCount = 1, netForceEstimate = force
-        )
+        val ship = VsiDebugShip(42, "test", true, false, 100.0, position,
+            force, force, force, force, force, force, force, force,
+            listOf(VsiDebugForce(position, force)), 1, force)
         return PacketPhysicsDebug(DebugRendererMode.FULL, "test", listOf(DebugShipInfo(ship, 200, true, 20)),
             listOf(VsiDebugContact("test", 42, 0, position, force, -0.01f)),
             listOf(VsiDebugJoint(4, "test", null, 42, "FIXED", position, position, null, position)),
@@ -46,7 +32,7 @@ class PhysicsDebugPacketTest {
 
     @Test
     fun `packet preserves physics data and fragment metadata`() {
-        for (mode in DebugRendererMode.entries) {
+        for (mode in DebugRendererMode.values()) {
             val expected = packet().copy(mode = mode)
             val bytes = mapper.writeValueAsBytes(expected)
             val decoded = mapper.readValue(bytes, PacketPhysicsDebug::class.java)

@@ -21,9 +21,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.internal.VsiCore
 import org.valkyrienskies.core.internal.world.VsiServerShipWorld
-import org.valkyrienskies.mod.api.getShipMountedToData
-import org.valkyrienskies.mod.api.shipWorld
-import org.valkyrienskies.mod.api.vsCore
+import org.valkyrienskies.mod.common.getShipMountedToData
+import org.valkyrienskies.mod.common.shipObjectWorld
+import org.valkyrienskies.mod.common.vsCore
 import org.valkyrienskies.mod.common.util.EntityDragger
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider
@@ -46,13 +46,13 @@ class ServerShipTrackingTest {
     }
 
     @Test fun `stationary attachments keep contact age current and detach with an absolute baseline`() {
-        mockkStatic("org.valkyrienskies.mod.api.ValkyrienSkies")
+        mockkStatic("org.valkyrienskies.mod.common.VSGameUtilsKt")
         mockkStatic(EntityDragger::class)
         val core = mockk<VsiCore>(relaxed = true)
         every { vsCore } returns core
         val level = emptyLevel()
         val world = mockk<VsiServerShipWorld>(relaxed = true)
-        every { level.shipWorld } returns world
+        every { level.shipObjectWorld } returns world
         val info = EntityDraggingInformation()
         info.applyNetworkShip(2L, 12)
         val entity = mockk<Entity>(relaxed = true, moreInterfaces = arrayOf(IEntityDraggingInformationProvider::class))
@@ -60,7 +60,7 @@ class ServerShipTrackingTest {
         every { entity.x } returns 100.0
         every { entity.trackingPosition() } returns Vec3(100.0, 0.0, 0.0)
         every { entity.deltaMovement } returns Vec3.ZERO
-        every { entity.getShipMountedToData(any()) } returns null
+        every { getShipMountedToData(entity, any()) } returns null
         every { EntityDragger.isDraggable(entity) } returns true
         every { (entity as IEntityDraggingInformationProvider).draggingInformation } returns info
         val ship = mockk<ServerShip>(relaxed = true)
@@ -108,7 +108,7 @@ class ServerShipTrackingTest {
     }
 
     @Test fun `custom movement reaches distant tracked players and excludes untracked players`() {
-        mockkStatic("org.valkyrienskies.mod.api.ValkyrienSkies")
+        mockkStatic("org.valkyrienskies.mod.common.VSGameUtilsKt")
         val core = mockk<VsiCore>(relaxed = true)
         every { vsCore } returns core
         val level = emptyLevel()
