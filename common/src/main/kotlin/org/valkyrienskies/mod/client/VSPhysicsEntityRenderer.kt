@@ -6,6 +6,8 @@ import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.entity.EntityRendererProvider.Context
 import net.minecraft.client.renderer.entity.MobRenderer
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.util.Mth
+import net.minecraft.world.phys.Vec3
 import org.joml.Quaternionf
 import org.valkyrienskies.core.internal.world.VsiClientShipWorld
 import org.valkyrienskies.mod.client.VSPhysicsEntityModel.Companion.LAYER_LOCATION
@@ -21,6 +23,18 @@ class VSPhysicsEntityRenderer<T : VSPhysicsEntity>(context: Context) :
         // Shadow size
         0.0F
     ) {
+
+    override fun getRenderOffset(entity: T, partialTicks: Float): Vec3 {
+        val offset = super.getRenderOffset(entity, partialTicks)
+        val world = (Minecraft.getInstance() as IShipObjectWorldClientProvider).shipObjectWorld as? VsiClientShipWorld
+        val position = world?.let { entity.getRenderTransform(it) }?.positionInWorld ?: return offset
+        val alpha = partialTicks.toDouble()
+        return offset.add(
+            position.x() - Mth.lerp(alpha, entity.xOld, entity.x),
+            position.y() - Mth.lerp(alpha, entity.yOld, entity.y),
+            position.z() - Mth.lerp(alpha, entity.zOld, entity.z)
+        )
+    }
 
     override fun render(
         mob: T, f: Float, g: Float, poseStack: PoseStack, multiBufferSource: MultiBufferSource, i: Int
