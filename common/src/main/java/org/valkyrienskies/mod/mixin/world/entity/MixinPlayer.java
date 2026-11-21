@@ -17,7 +17,6 @@ public class MixinPlayer implements PlayerDuck {
 
     @Inject(method = "<init>", at = @At("RETURN"))
     private void initializePlayerWrapper(final CallbackInfo ci) {
-        // Mixin field initializers run before Player assigns its profile UUID.
         vsPlayer = new MinecraftPlayer(Player.class.cast(this));
     }
 

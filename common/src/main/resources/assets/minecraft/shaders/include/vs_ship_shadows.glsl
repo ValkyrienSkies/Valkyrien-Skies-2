@@ -29,12 +29,15 @@ float vs_shadowCompare(vec2 uv, int layer, vec2 receiverXZ, float depth, vec2 sl
 
 float vs_shadowCascade(vec3 pos, vec3 normal, int layer) {
     vec4 map = u_VsShipShadowCascades[layer];
-    vec2 uv = (pos.xz - map.xy) / (2.0 * map.z) + 0.5;
+    float texelSize = 2.0 * map.z / float(textureSize(u_VsShipShadowMap, 0).x);
+    vec2 receiverXZ = pos.xz + normal.xz * (2.0 * texelSize);
+    vec2 uv = (receiverXZ - map.xy) / (2.0 * map.z) + 0.5;
     float depth = (u_VsShipShadowHeight.x - pos.y) / u_VsShipShadowHeight.y;
     if (depth <= 0.0) return 1.0;
     // Compare on the receiving plane to keep a tilted deck from shadowing itself.
     float normalY = normal.y < 0.0 ? min(normal.y, -0.0001) : max(normal.y, 0.0001);
     vec2 slope = clamp(normal.xz / normalY, -64.0, 64.0);
+    slope *= smoothstep(0.05, 0.2, abs(normal.y));
     slope /= u_VsShipShadowHeight.y;
     float bias = 0.025 / u_VsShipShadowHeight.y;
     float softness = max(u_VsShipShadowSoftness, 0.0);
@@ -42,7 +45,7 @@ float vs_shadowCascade(vec3 pos, vec3 normal, int layer) {
     bool horizontal = all(equal(slope, vec2(0.0))) && depth - bias <= 1.0;
     if (softness <= 0.0) {
         if (horizontal) return texture(u_VsShipShadowCompare, vec4(uv, float(layer), depth - bias));
-        return vs_shadowCompare(uv, layer, pos.xz, depth, slope, bias);
+        return vs_shadowCompare(uv, layer, receiverXZ, depth, slope, bias);
     }
     float separation = 0.0;
     if (u_VsShipShadowBlurGrowth > 0.0) {
@@ -68,15 +71,19 @@ float vs_shadowCascade(vec3 pos, vec3 normal, int layer) {
         vec2(0.89713398, -0.19723239),
         vec2(-0.54750690, 0.77877223),
         vec2(-0.12648677, -0.97608970));
+    vec2 outward = vec2(0.0);
+    float outwardLen = length(normal.xz);
+    if (abs(normal.y) < 0.5 && outwardLen > 0.0) outward = normal.xz / outwardLen;
     float sum = 0.0;
-    if (horizontal) {
-        for (int i = 0; i < 16; i++) {
-            vec2 sampleUV = uv + offsets[i] * radius / (2.0 * map.z);
+    for (int i = 0; i < 16; i++) {
+        vec2 offset = offsets[i];
+        float behind = dot(offset, outward);
+        if (behind < 0.0) offset -= 2.0 * behind * outward;
+        vec2 sampleUV = uv + offset * radius / (2.0 * map.z);
+        if (horizontal) {
             sum += texture(u_VsShipShadowCompare, vec4(sampleUV, float(layer), depth - bias));
-        }
-    } else {
-        for (int i = 0; i < 16; i++) {
-            sum += vs_shadowCompare(uv + offsets[i] * radius / (2.0 * map.z), layer, pos.xz, depth, slope, bias);
+        } else {
+            sum += vs_shadowCompare(sampleUV, layer, receiverXZ, depth, slope, bias);
         }
     }
     return sum / 16.0;

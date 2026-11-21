@@ -12,6 +12,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.client.audio.VelocityTickableSoundInstance;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.ShipEffectLocations;
 
 @Mixin(AbstractTickableSoundInstance.class)
 public abstract class MixinAbstractTickableSoundInstance extends AbstractSoundInstance implements VelocityTickableSoundInstance {
@@ -50,7 +51,12 @@ public abstract class MixinAbstractTickableSoundInstance extends AbstractSoundIn
         final Vector3d newPosition = new Vector3d(this.x, this.y, this.z);
         final ClientShip ship = VSGameUtilsKt.getLoadedShipManagingPos(Minecraft.getInstance().level, this.x, this.y, this.z);
         if (ship != null) {
-            ship.getRenderTransform().getShipToWorld().transformPosition(newPosition);
+            final var mc = Minecraft.getInstance();
+            final var pieces = VSGameUtilsKt.getAllShips(mc.level).getSplitPieces(ship.getId());
+            final var physical = pieces.isEmpty() ? null : ShipEffectLocations.nearestBlock(
+                pieces, x, y, z, mc.gameRenderer.getMainCamera().getPosition());
+            if (physical != null) newPosition.set(physical);
+            else ship.getRenderTransform().getShipToWorld().transformPosition(newPosition);
         }
         if (this.position != null) {
             this.velocity = newPosition.sub(this.position, new Vector3d());

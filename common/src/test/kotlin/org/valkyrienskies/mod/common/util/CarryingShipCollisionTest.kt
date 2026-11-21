@@ -7,10 +7,14 @@ import net.minecraft.world.entity.Entity
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.border.WorldBorder
 import net.minecraft.world.phys.AABB
+import net.minecraft.world.phys.Vec3
 import net.minecraft.world.phys.shapes.Shapes
 import org.joml.Matrix4d
 import org.joml.Quaterniond
 import org.joml.Vector3d
+import org.joml.Vector4d
+import org.joml.primitives.AABBd
+import org.valkyrienskies.core.api.ships.ShipPhysicalPiece
 import org.joml.Vector3dc
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
@@ -188,8 +192,61 @@ class CarryingShipCollisionTest {
         verify { entity.setPos(0.5, match { kotlin.math.abs(it - 0.7) < 1e-7 }, 0.5) }
     }
 
-    private fun dragTick(): EntityDraggingInformation {
-        val info = EntityDraggingInformation().apply { lastShipStoodOn = 1L }
+    @Test fun `split hull collides at the exit and leaves the crossed half empty at the entrance`() {
+        blocks += AABB(0.0, 0.0, 0.0, 1.0, 1.0, 1.0)
+        val pieces = listOf(
+            ShipPhysicalPiece(1L, "test", AABBd(0.0, 0.0, 0.0, 1.0, 1.0, 1.0),
+                Matrix4d().translation(-1000.0, 0.0, 0.0), listOf(Vector4d(1.0, 0.0, 1.0, -1.0))),
+            ShipPhysicalPiece(1L, "test", AABBd(100.0, 0.0, 0.0, 101.0, 1.0, 1.0),
+                Matrix4d().translation(-900.0, 0.0, 0.0), listOf(Vector4d(-1.0, 0.0, -1.0, 101.0))))
+        every { world.allShips.getSplitPieces(1L) } returns pieces
+        val step = Vec3(0.0, -0.4, 0.0)
+        fun fallAt(x: Double) = EntityShipCollisionUtils.adjustEntityMovementForShipCollisions(entity, step,
+            AABB(x+0.1, 1.1, 0.1, x+0.2, 2.9, 0.2), level).y
+        assertEquals(-0.4, fallAt(0.0), 1e-7)
+        assertEquals(-0.1, fallAt(100.0), 1e-5)
+        val info = EntityDraggingInformation()
+        every { (entity as IEntityDraggingInformationProvider).draggingInformation } returns info
+        every { entity.boundingBox } returns AABB(100.1, 1.0, 0.1, 100.2, 2.8, 0.2)
+        assertSame(ship, EntityShipCollisionUtils.recordSupportingShip(entity))
+        assertSame(pieces[1], info.supportPiece)
+        every { entity.boundingBox } returns AABB(0.1, 1.0, 0.1, 0.2, 2.8, 0.2)
+        assertNull(EntityShipCollisionUtils.findSupportingShip(entity))
+    }
+
+    @Test fun `first drag after contact uses the exit snapshot even when the ship index has already advanced`() {
+        val old = ShipPhysicalPiece(1, "test", AABBd(-1.0, 0.0, -1.0, 2.0, 1.0, 2.0),
+            Matrix4d().translation(-1000.0, 0.0, 0.0), emptyList())
+        val updated = ShipPhysicalPiece(1, "test", AABBd(-0.75, 0.0, -1.0, 2.25, 1.0, 2.0),
+            Matrix4d().translation(-999.75, 0.0, 0.0), emptyList())
+        val entrance = ShipPhysicalPiece(1, "test", AABBd(99.0, 0.0, -1.0, 102.0, 1.0, 2.0),
+            Matrix4d().translation(-900.0, 0.0, 0.0), emptyList())
+        every { world.allShips.getSplitPieces(1L) } returns listOf(entrance, updated)
+        val info = dragTick(old)
+        assertSame(updated, info.supportPiece)
+        verify { entity.setPos(0.75, 1.0, 0.5) }
+    }
+
+    @Test fun `standing on the cleared deck renews drag until the deck is gone`() {
+        every { world.allShips.getSplitPieces(1L) } returns emptyList()
+        every { ship.worldToShip } answers { ship.transform.worldToShip }
+        every { ship.shipToWorld } answers { ship.transform.shipToWorld }
+        every { entity.onGround() } returns true
+        blocks += AABB(-2.0, 0.0, -2.0, 2.0, 1.0, 2.0)
+        val info = dragTick()
+        repeat(3 * EntityDraggingInformation.TICKS_TO_DRAG_ENTITIES) {
+            EntityDragger.dragEntitiesWithShips(listOf(entity))
+            assertEquals(1L, info.lastShipStoodOn)
+        }
+        blocks.clear()
+        repeat(EntityDraggingInformation.TICKS_TO_DRAG_ENTITIES + 1) {
+            EntityDragger.dragEntitiesWithShips(listOf(entity))
+        }
+        assertNull(info.lastShipStoodOn)
+    }
+
+    private fun dragTick(start: ShipPhysicalPiece? = null): EntityDraggingInformation {
+        val info = EntityDraggingInformation().apply { lastShipStoodOn = 1L; supportPiece = start }
         every { (entity as IEntityDraggingInformationProvider).draggingInformation } returns info
         every { entity.x } returns 0.5
         every { entity.y } returns 1.0

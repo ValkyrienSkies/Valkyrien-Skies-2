@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.mixin.feature.ai.node_evaluator;
 
+import org.valkyrienskies.mod.common.fluid.ShipFluidStateQueries;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
@@ -97,7 +98,7 @@ public class MixinPathNavigation {
         PathPerFrameRegistry.setNearbyShips(nearbyShips);
 
         final Path result;
-        try (final var fluidQuery = org.valkyrienskies.mod.common.fluid.ShipFluidStateQueries.beginPath(
+        try (final var fluidQuery = ShipFluidStateQueries.beginPath(
             level, frame, nearbyShips)) {
             result = original.call(pathFinder, effectiveRegion, mob, frameTargets, searchRange, accuracy, maxVisitedNodesMultiplier);
         } catch (final Throwable t) {

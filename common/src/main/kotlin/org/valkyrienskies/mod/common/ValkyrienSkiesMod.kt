@@ -38,12 +38,14 @@ import org.valkyrienskies.mod.common.blockentity.TestThrusterBlockEntity
 import org.valkyrienskies.mod.common.config.DimensionParametersResolver
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.entity.VSPhysicsEntity
+import org.valkyrienskies.mod.common.hooks.VSGameEvents
 import org.valkyrienskies.mod.common.assembly.ShipWelder
 import org.valkyrienskies.mod.common.jackson.BlockPosDeserializer
 import org.valkyrienskies.mod.common.jackson.BlockPosKeyDeserializer
 import org.valkyrienskies.mod.common.jackson.BlockPosKeySerializer
 import org.valkyrienskies.mod.common.jackson.BlockPosSerializer
 import org.valkyrienskies.mod.common.networking.VSGamePackets
+import org.valkyrienskies.mod.common.portals.ShipPortalRegistry
 import org.valkyrienskies.mod.common.util.BuoyancyHandlerAttachment
 import org.valkyrienskies.mod.common.util.GameToPhysicsAdapter
 import org.valkyrienskies.mod.common.util.FractureEventHandler
@@ -54,6 +56,9 @@ import org.valkyrienskies.mod.common.util.SplitHandler
 import org.valkyrienskies.mod.common.util.SplittingDisablerAttachment
 import org.valkyrienskies.mod.common.util.VoidAttachment
 import org.valkyrienskies.mod.common.util.WorldBorderAttachment
+import org.valkyrienskies.mod.common.util.refreshPhysicsListenerOwners
+import org.valkyrienskies.mod.compat.LoadedMods
+import org.valkyrienskies.mod.compat.immersiveportals.ImmersiveShipPortals
 import org.valkyrienskies.mod.mixinducks.client.world.ClientChunkCacheDuck
 import org.valkyrienskies.mod.mixinducks.feature.tickets.PlayerKnownShipsDuck
 import org.valkyrienskies.mod.util.PlatformUtils
@@ -75,6 +80,7 @@ object ValkyrienSkiesMod {
     lateinit var SHIP_REMOVER_ITEM: Item
     lateinit var SHIP_ASSEMBLER_ITEM: Item
     lateinit var SHIP_WELDER_ITEM: Item
+    lateinit var DEBUG_GRAVITRON_ITEM: Item
     lateinit var SHIP_CREATOR_ITEM_SMALLER: Item
     lateinit var AREA_ASSEMBLER_ITEM: Item
     lateinit var CLASSIC_AREA_ASSEMBLER_ITEM: Item
@@ -144,6 +150,8 @@ object ValkyrienSkiesMod {
     fun init() {
         val core = this.vsCore
 
+        ShipPortalRegistry.init()
+        if (LoadedMods.immersivePortals) ImmersiveShipPortals.init()
         BlockStateInfo.init()
         VSGamePackets.register()
         VSGamePackets.registerHandlers()
@@ -202,8 +210,19 @@ object ValkyrienSkiesMod {
         }
         ImpactFractureHandler.logRegistered()
 
+        VSGameEvents.shipPositionsUpdated.on { level ->
+            // Registration can precede ship ownership becoming available during assembly/loading.
+            // Resolve ownership on the game thread; physics callbacks only read the published ID.
+            blockEntityPhysListeners[level.dimensionId]?.let { listeners ->
+                refreshPhysicsListenerOwners(listeners) { pos -> level.getShipManagingBlock(pos)?.id }
+            }
+        }
+        VSGameEvents.serverStopped.on {
+            blockEntityPhysListeners.clear()
+        }
+
         core.physTickEvent.on { event ->
-            ShipWelder.physTick(event.world, event.delta)
+            ShipWelder.physTick(event.world)
             dimensionalGTPAs.forEach { dimensionId, gameTickForceApplier ->
                 if (event.world.dimension == dimensionId) {
                     gameTickForceApplier.physTick(event.world, event.delta)

@@ -125,7 +125,7 @@ object VSGameConfig {
         }
 
         @ConfigEntry(
-            description = "The default ship renderer. Changes rebuild client render state. FLYWHEEL requires an active Flywheel 1.x backend; otherwise ships use VANILLA."
+            description = "The default ship renderer. Changes rebuild client render state. FLYWHEEL draws hulls with the terrain renderer if its 1.x backend is unavailable or shader packs are off and an addon registers a material selector or requests a geometry mask."
         )
         var defaultRenderer = ShipRenderer.BATCHED
 

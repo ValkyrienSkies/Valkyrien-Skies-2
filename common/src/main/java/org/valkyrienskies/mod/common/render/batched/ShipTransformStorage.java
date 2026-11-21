@@ -1,7 +1,9 @@
 package org.valkyrienskies.mod.common.render.batched;
 
 import com.mojang.blaze3d.platform.GlStateManager;
+import java.util.List;
 import org.joml.Matrix4f;
+import org.joml.Vector4dc;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL13;
 import org.lwjgl.opengl.GL15;
@@ -70,6 +72,24 @@ public final class ShipTransformStorage {
         }
         count++;
         return index;
+    }
+
+    public int appendPlanes(final List<? extends Vector4dc> planes,
+        final double camX, final double camY, final double camZ) {
+        final int start = count * 8;
+        final int entries = (planes.size() + 7) / 8;
+        while (count + entries > capacityEntries) grow();
+        long address = arenaPtr + (long) count * BYTES_PER_ENTRY;
+        for (final var plane : planes) {
+            MemoryUtil.memPutFloat(address, (float) plane.x());
+            MemoryUtil.memPutFloat(address + 4, (float) plane.y());
+            MemoryUtil.memPutFloat(address + 8, (float) plane.z());
+            MemoryUtil.memPutFloat(address + 12, (float) (plane.w() + plane.x() * Math.floor(camX)
+                + plane.y() * Math.floor(camY) + plane.z() * Math.floor(camZ)));
+            address += 16;
+        }
+        count += entries;
+        return start;
     }
 
     private void grow() {

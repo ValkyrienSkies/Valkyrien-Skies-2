@@ -266,6 +266,108 @@ class ShipFluidVolumeTest {
         }
     }
 
+    @Test fun `standing and wall torch outlines do not reintroduce exterior water`() {
+        flooding = floodingSnapshot()
+        val level = mockk<Level>()
+        every { level.getBlockCollisions(null, any()) } returns emptyList()
+        for (block in listOf(Blocks.TORCH, Blocks.WALL_TORCH, Blocks.SOUL_TORCH,
+            Blocks.SOUL_WALL_TORCH, Blocks.REDSTONE_TORCH, Blocks.REDSTONE_WALL_TORCH)) {
+            val state = block.defaultBlockState()
+            assertTrue(state.getCollisionShape(EmptyBlockGetter.INSTANCE, BlockPos.ZERO).isEmpty)
+            every { level.getBlockState(any()) } answers {
+                if (firstArg<BlockPos>() == BlockPos.ZERO) state else Blocks.AIR.defaultBlockState()
+            }
+            val outline = state.getShape(EmptyBlockGetter.INSTANCE, BlockPos.ZERO)
+            val voids = Shapes.join(Shapes.block(), outline, BooleanOp.ONLY_FIRST).toAabbs().map { box ->
+                ((box.minX * 16).toLong() or ((box.minY * 16).toLong() shl 5) or
+                    ((box.minZ * 16).toLong() shl 10) or ((box.maxX * 16).toLong() shl 15) or
+                    ((box.maxY * 16).toLong() shl 20) or ((box.maxZ * 16).toLong() shl 25) or (1L shl 30))
+            }
+            topology = topology.copy(streamSequence = topology.streamSequence + 1,
+                totalDomainVoxelCount = 1, voxels = listOf(VsiFluidTopologyVoxel(0, 0, 0, 1, voids)))
+            transform.identity()
+            val bounds = AABB(.02, .02, .02, .98, .98, .98)
+            val q = ShipFluidInteraction.prepareVolume(level, world, listOf(ship), bounds)
+            assertTrue(q.worldHeight(BlockPos.ZERO, 1.0f).isNaN(), "Exterior water at $state")
+            assertEquals(0.0, q.retainedDepth(FluidTags.WATER))
+            val center = outline.bounds().center
+            // Exercise the lazy hull path when the query intersects no empty-domain boxes at all.
+            val inside = AABB(center.x - .01, center.y - .01, center.z - .01,
+                center.x + .01, center.y + .01, center.z + .01)
+            assertTrue(ShipFluidInteraction.prepareVolume(level, world, listOf(ship), inside)
+                .worldHeight(BlockPos.ZERO, 1.0f).isNaN())
+            val random = Random(2017)
+            repeat(30) { orientation ->
+                transform.identity().translation(100.5, 64.5, -300.5)
+                    .rotateXYZ(random.nextDouble(), random.nextDouble() * 6, random.nextDouble())
+                    .scale(.4 + random.nextDouble() * 2)
+                val moved = transform.transformPosition(Vector3d(center.x, center.y, center.z))
+                val rotated = AABB(moved.x - .001, moved.y - .001, moved.z - .001,
+                    moved.x + .001, moved.y + .001, moved.z + .001)
+                val rotatedQuery = ShipFluidInteraction.prepareVolume(level, world, listOf(ship), rotated)
+                for (pos in BlockPos.betweenClosed(BlockPos.containing(rotated.minX, rotated.minY, rotated.minZ),
+                    BlockPos.containing(rotated.maxX, rotated.maxY, rotated.maxZ))) {
+                    assertTrue(rotatedQuery.worldHeight(pos, 1.0f).isNaN(), "$state orientation $orientation")
+                }
+            }
+            transform.identity()
+            val straddling = ShipFluidInteraction.prepareVolume(level, world, listOf(ship),
+                AABB(.8, .2, .2, 1.2, .8, .8))
+            assertEquals(1.0f, straddling.worldHeight(BlockPos(1, 0, 0), 1.0f))
+            topology = topology.copy(streamSequence = topology.streamSequence + 1,
+                totalDomainVoxelCount = 0, voxels = emptyList())
+            assertEquals(1.0f, ShipFluidInteraction.prepareVolume(level, world, listOf(ship), bounds)
+                .worldHeight(BlockPos.ZERO, 1.0f), "An exterior torch must not create an air pocket")
+        }
+    }
+
+    @Test fun `partial outline masks preserve unowned voids and retained fluid`() {
+        val level = mockk<Level>()
+        every { level.getBlockCollisions(null, any()) } returns emptyList()
+        every { level.getBlockState(any()) } returns Blocks.TORCH.defaultBlockState()
+        // Only the left part of the cell is a published dry domain. Do not fill its other empty space.
+        val left = (7L shl 15) or (16L shl 20) or (16L shl 25) or (1L shl 30)
+        topology = topology.copy(voxels = listOf(VsiFluidTopologyVoxel(0, 0, 0, 1, listOf(left))))
+        flooding = floodingSnapshot()
+        val outside = ShipFluidInteraction.prepareVolume(level, world, listOf(ship),
+            AABB(.7, .2, .7, .9, .8, .9))
+        assertEquals(1.0f, outside.worldHeight(BlockPos.ZERO, 1.0f))
+        flooding = floodingSnapshot(VsiFluidFloodedVoxel(0, 0, 0, 17, 128, 0))
+            .copy(streamSequence = flooding.streamSequence + 1)
+        val wet = ShipFluidInteraction.prepareVolume(level, world, listOf(ship),
+            AABB(.1, .1, .1, .9, .9, .9))
+        wet.worldHeight(BlockPos.ZERO, 1.0f) // Force lazy hull masks before checking retained contact.
+        assertEquals(128.0 / 255 - .1, wet.retainedDepth(FluidTags.WATER), 1e-12)
+    }
+
+    @Test fun `small ship outline masks use sparse topology beyond the collision scan cap`() {
+        flooding = floodingSnapshot()
+        val level = mockk<Level>()
+        val torch = Blocks.TORCH.defaultBlockState()
+        every { level.getBlockState(any()) } answers {
+            if (firstArg<BlockPos>() == BlockPos.ZERO) torch else Blocks.AIR.defaultBlockState()
+        }
+        // The collision query is intentionally not mocked: this case must not scan the large local volume.
+        val voids = Shapes.join(Shapes.block(), torch.getShape(EmptyBlockGetter.INSTANCE, BlockPos.ZERO),
+            BooleanOp.ONLY_FIRST).toAabbs().map { box ->
+            ((box.minX * 16).toLong() or ((box.minY * 16).toLong() shl 5) or
+                ((box.minZ * 16).toLong() shl 10) or ((box.maxX * 16).toLong() shl 15) or
+                ((box.maxY * 16).toLong() shl 20) or ((box.maxZ * 16).toLong() shl 25) or (1L shl 30))
+        }
+        val cells = (0 until 12).flatMap { x -> (0 until 36).flatMap { y -> (0 until 12).map { z ->
+            VsiFluidTopologyVoxel(x, y, z, 1, if (x == 0 && y == 0 && z == 0) voids else emptyList())
+        } } }
+        topology = topology.copy(voxels = cells, totalDomainVoxelCount = cells.size)
+        transform.scaling(.05)
+        assertTimeoutPreemptively(Duration.ofSeconds(5)) {
+            val q = ShipFluidInteraction.prepareVolume(level, world, listOf(ship),
+                AABB(.001, .001, .001, .599, 1.799, .599))
+            assertTrue(q.worldHeight(BlockPos.ZERO, 1.0f).isNaN())
+            assertTrue(q.worldHeight(BlockPos(0, 1, 0), 1.0f).isNaN())
+        }
+        verify(exactly = 0) { level.getBlockCollisions(any(), any()) }
+    }
+
     @Test fun `player colliding with a tilted sealed floor and wall stays dry`() {
         flooding = floodingSnapshot()
         val localX = -28_661_760

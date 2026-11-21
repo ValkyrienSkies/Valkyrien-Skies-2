@@ -15,8 +15,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import java.util.Optional;
-import net.minecraft.world.phys.shapes.BooleanOp;
-import net.minecraft.world.phys.shapes.Shapes;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.spongepowered.asm.mixin.Final;
@@ -96,34 +94,9 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider,
         cancellable = true
     )
     private void isInShipWall(CallbackInfoReturnable<Boolean> cir, @Local AABB aabb){
-        if(cir.getReturnValue()) return;
-        VSGameUtilsKt.transformFromWorldToNearbyShipsAndWorld(level, aabb, arg -> {
-            BlockPos.betweenClosedStream(arg).forEach(
-                blockPos -> {
-                    BlockState blockState = level.getBlockState(blockPos);
-                    if(!blockState.isAir()
-                        && blockState.isSuffocating(level, blockPos)
-                        && Shapes.joinIsNotEmpty(blockState.getCollisionShape(level, blockPos).move(blockPos.getX(), blockPos.getY(), blockPos.getZ()), Shapes.create(arg), BooleanOp.AND)
-                    ) {
-                        cir.setReturnValue(true);
-                    }
-                }
-            );
-        });
+        if (!cir.getReturnValue() && EntityShipCollisionUtils.isInsideShipWall(level, aabb)) cir.setReturnValue(true);
     }
 
-    /**
-     * Allows Entities to use collision with ship to get into pose, e.g. crawling of players.
-     */
-    @WrapOperation(
-        method = "canEnterPose",
-        at = @At(value = "INVOKE",
-            target = "Lnet/minecraft/world/level/Level;noCollision(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/phys/AABB;)Z")
-    )
-    private boolean noCollisionWithShip(Level level, Entity entity, AABB aabb, Operation<Boolean> original){
-        if(!original.call(level, entity, aabb)) return false;
-        return EntityShipCollisionUtils.INSTANCE.getShipPolygonsCollidingWithEntity(null, Vec3.ZERO, aabb.deflate(0.2), level).isEmpty();
-    }
 
     /**
      * Allows entities to collide with ships by modifying the movement vector.
@@ -304,7 +277,8 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider,
     private void addShipSupportToOnGroundState(final Entity entity, final boolean onGround, final Vec3 movement,
         final Operation<Void> original) {
         final Ship support =
-            movement.y <= 0.0 ? EntityShipCollisionUtils.findSupportingShip(entity) : null;
+            movement.y <= 0.0 ? (getDraggingInformation().getUsesShipInterpolation()
+                ? EntityShipCollisionUtils.findSupportingShip(entity) : EntityShipCollisionUtils.recordSupportingShip(entity)) : null;
         final boolean shouldBeGrounded = onGround || support != null;
         original.call(entity, shouldBeGrounded, movement);
         if (support != null) {

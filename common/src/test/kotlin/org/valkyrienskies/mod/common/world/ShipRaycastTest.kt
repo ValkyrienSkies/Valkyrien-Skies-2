@@ -15,6 +15,16 @@ import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.phys.HitResult
 import net.minecraft.world.phys.Vec3
 import net.minecraft.world.phys.shapes.VoxelShape
+import net.minecraft.client.multiplayer.ClientLevel
+import net.minecraft.core.Direction
+import net.minecraft.world.phys.BlockHitResult
+import org.valkyrienskies.core.api.ships.ShipPhysicalPiece
+import org.valkyrienskies.mod.common.allShips
+import org.valkyrienskies.mod.common.getShipManagingPos
+import org.valkyrienskies.mod.common.toWorldCoordinates
+import org.valkyrienskies.mod.common.squaredDistanceToUseHit
+import org.valkyrienskies.core.internal.ships.VsiQueryableShipData
+import org.joml.Vector4d
 import org.joml.Matrix4d
 import org.joml.primitives.AABBd
 import org.joml.primitives.AABBdc
@@ -122,6 +132,52 @@ class ShipRaycastTest {
         assertEquals(HitResult.Type.BLOCK, hit.type)
         assertEquals(BlockPos(15, 0, 0), hit.blockPos)
         assertEquals(0.0, hit.location.z, 1e-8)
+    }
+
+    @Test fun `split use preserves local face and packet point and rejects lost material after clearance`() {
+        val cell = BlockPos(15, 0, 0)
+        val entrance = ShipPhysicalPiece(1, "test", AABBd(0.0,0.0,0.5,1.0,1.0,1.0),
+            Matrix4d().translation(-15.0, 0.0, 0.0), listOf(Vector4d(0.0,0.0,1.0,-0.5)))
+        val exit = ShipPhysicalPiece(1, "test", AABBd(100.0,0.0,0.0,100.5,1.0,1.0),
+            Matrix4d().translation(100.0,0.0,16.0).rotateY(Math.PI / 2), listOf(Vector4d(-1.0,0.0,0.0,100.5)))
+        val ships = mockk<VsiQueryableShipData<Ship>>()
+        every { level.allShips } returns ships
+        every { ships.getSplitPieces(1L) } returns listOf(entrance, exit)
+        every { level.getShipManagingPos(cell) } returns ship
+        every { level.toWorldCoordinates(any<Vec3>()) } answers { secondArg() }
+        fun pick(x: Double, z: Double, dx: Double, dz: Double): BlockHitResult {
+            val from = Vec3(x, .5, z)
+            return level.clipIncludeShips(ClipContext(from, from.add(dx,0.0,dz),
+                ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, mockk<Entity>(relaxed = true)), skipWorld = true)
+        }
+        val sourceEye = Vec3(3.0,.5,.75)
+        val exitEye = Vec3(100.25,.5,3.0)
+        val source = pick(sourceEye.x,sourceEye.z,-4.0,0.0)
+        val dest = pick(exitEye.x,exitEye.z,0.0,-4.0)
+        val client = mockk<ClientLevel>()
+        val rawSource = client.blockHitForUse(source)
+        val rawExit = client.blockHitForUse(dest)
+        assertEquals(cell, rawSource.blockPos)
+        assertEquals(cell, rawExit.blockPos)
+        assertEquals(Direction.EAST, rawSource.direction)
+        assertEquals(Direction.WEST, rawExit.direction)
+        assertEquals(Vec3(16.0,.5,.75), rawSource.location)
+        assertEquals(.25, rawExit.location.z, 1e-7)
+        assertEquals(15.0, rawExit.location.x, 1e-7)
+        assertTrue(level.squaredDistanceToUseHit(rawSource,sourceEye) < 9)
+        assertTrue(level.squaredDistanceToUseHit(rawExit,exitEye) < 9)
+        assertTrue(level.squaredDistanceToUseHit(rawExit,sourceEye) > 9000)
+        assertTrue(level.squaredDistanceToUseHit(rawSource,exitEye) > 9000)
+        assertEquals(HitResult.Type.MISS,pick(3.0,.25,-4.0,0.0).type)
+        assertEquals(HitResult.Type.MISS,pick(100.75,3.0,0.0,-4.0).type)
+        every { ships.getSplitPieces(1L) } returns emptyList()
+        every { ship.shipToWorld } returns exit.shipToWorld
+        every { ship.worldToShip } returns exit.worldToShip
+        every { ship.worldAABB } returns AABBd(100.0,0.0,0.0,101.0,1.0,1.0)
+        assertEquals(HitResult.Type.MISS,pick(3.0,.75,-4.0,0.0).type)
+        assertEquals(cell,pick(100.75,3.0,0.0,-4.0).blockPos)
+        assertTrue(level.squaredDistanceToUseHit(rawSource,sourceEye) > 9000)
+        assertTrue(level.squaredDistanceToUseHit(rawSource,exitEye) < 9)
     }
 
     @Test fun `water surface before a submerged slab wins the same cell hit comparison`() {

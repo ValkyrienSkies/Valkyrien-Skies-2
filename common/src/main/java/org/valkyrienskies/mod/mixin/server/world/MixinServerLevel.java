@@ -28,6 +28,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
@@ -53,7 +54,9 @@ import org.valkyrienskies.core.internal.world.VsiServerShipWorld;
 import org.valkyrienskies.core.internal.world.chunks.VsiTerrainUpdate;
 import org.valkyrienskies.mod.common.VS2ChunkAllocator;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
+import org.valkyrienskies.mod.common.BlockStateInfo;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.ShipEffectLocations;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.assembly.ShipWelder;
 import org.valkyrienskies.mod.common.block.WingBlock;
@@ -198,13 +201,21 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
 
         final ServerLevel self = ServerLevel.class.cast(this);
         final LoadedServerShip ship = VSGameUtilsKt.getLoadedShipManagingPos(
-            self, (int) particle.x() >> 4, (int) particle.z() >> 4);
+            self, BlockPos.containing(particle));
 
         if (ship == null) {
             // vanilla behaviour
             return closerToCenterThan.call(player, particle, distance);
         }
 
+        final var pieces = VSGameUtilsKt.getAllShips(self).getSplitPieces(ship.getId());
+        if (!pieces.isEmpty()) {
+            final var observer = Vec3.atCenterOf(player);
+            final var piece = ShipEffectLocations.point(pieces, particle.x(), particle.y(), particle.z(), observer);
+            if (piece == null) return false;
+            final var pos = piece.getShipToWorld().transformPosition(VectorConversionsMCKt.toJOML(particle));
+            return observer.distanceToSqr(pos.x, pos.y, pos.z) < distance * distance;
+        }
         // in-world position
         final Vector3d posInWorld = ship.getShipToWorld().transformPosition(VectorConversionsMCKt.toJOML(particle));
 
@@ -242,6 +253,11 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
             final ServerLevel thisAsLevel = ServerLevel.class.cast(this);
 
             final LoadedServerShip ship = VSGameUtilsKt.getLoadedShipManagingPos(thisAsLevel, chunkX, chunkZ);
+
+            if (VS2ChunkAllocator.INSTANCE.isChunkInShipyardCompanion(chunkX, chunkZ)) {
+                final var owner = ship != null ? ship : VSGameUtilsKt.getShipManagingPos(thisAsLevel, chunkX, chunkZ);
+                if (owner != null) BlockStateInfo.backfillShipMasses(thisAsLevel, owner, worldChunk);
+            }
 
             int emptySectionEmitMinY = Integer.MIN_VALUE;
             int emptySectionEmitMaxY = Integer.MAX_VALUE;
@@ -448,6 +464,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
             ValkyrienSkiesMod.splitHandler.tick(ServerLevel.class.cast(this));
         }
         ShipWelder.tick(ServerLevel.class.cast(this));
+        org.valkyrienskies.mod.common.item.DebugGravitron.tick(ServerLevel.class.cast(this));
         org.valkyrienskies.mod.common.hooks.VSGameEvents.INSTANCE.getLevelShipTickEnd().emit((ServerLevel) (Object) this);
         final ConfigPhysicsBackendType backend = VSCoreConfig.SERVER.getPhysics().getPhysicsBackend();
         final boolean isFracturingBackend = backend == ConfigPhysicsBackendType.KRUNCH_KONSTANT

@@ -4,9 +4,11 @@ import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
+import org.valkyrienskies.mod.common.render.batched.ShipPieceRenderFrames;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.world.entity.Entity;
@@ -39,6 +41,7 @@ import org.valkyrienskies.mod.common.util.EntityRenderPosition;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
 import org.valkyrienskies.mod.mixinducks.client.MinecraftDuck;
+import org.valkyrienskies.mod.mixinducks.client.player.LocalPlayerDuck;
 
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -96,15 +99,8 @@ public abstract class MixinGameRenderer {
         final boolean includeFluids, final Operation<HitResult> pick) {
 
         HitResult result = pick.call(receiver, maxDistance, tickDelta, includeFluids);
-        HitResult noTransform;
-        if(result instanceof BlockHitResult blockHitResult) {
-            noTransform = new BlockHitResult(
-                VSGameUtilsKt.toShipRenderCoordinates(Minecraft.getInstance().level, blockHitResult.getBlockPos().getCenter(), blockHitResult.location),
-                blockHitResult.getDirection(),
-                blockHitResult.getBlockPos(),
-                blockHitResult.isInside()
-            );
-        } else noTransform = result;
+        HitResult noTransform = result instanceof BlockHitResult hit
+            ? RaycastUtilsKt.blockHitForUse(minecraft.level, hit) : result;
         ((MinecraftDuck) this.minecraft).vs$setOriginalCrosshairTarget(noTransform);
         return result;
     }
@@ -132,6 +128,20 @@ public abstract class MixinGameRenderer {
             }
 
             shipWorld.updateRenderTransforms(tickDelta);
+            ShipPieceRenderFrames.beginFrame(tickDelta);
+        }
+    }
+
+    @Inject(method = "render", at = @At(value = "INVOKE", target =
+        "Lnet/minecraft/client/renderer/GameRenderer;renderLevel(FJLcom/mojang/blaze3d/vertex/PoseStack;)V"))
+    private void vs$prepareRiderRenderPositions(final float tickDelta, final long startTime, final boolean tick, final CallbackInfo ci) {
+        final ClientLevel clientWorld = minecraft.level;
+        final VsiClientShipWorld shipWorld = IShipObjectWorldClientProvider.class.cast(minecraft).getShipObjectWorld();
+        if (clientWorld != null && shipWorld != null) {
+
+            if (this.minecraft.player != null) {
+                ((LocalPlayerDuck) this.minecraft.player).vs$updateMountedCameraRotation(true);
+            }
 
             // Also update entity last tick positions, so that they interpolate correctly
             for (final Entity entity : clientWorld.entitiesForRendering()) {
@@ -165,7 +175,11 @@ public abstract class MixinGameRenderer {
                 if (lastShipStoodOn != null && entityDraggingInformation.isEntityBeingDraggedByAShip()) {
                     final ClientShip shipObject =
                         VSGameUtilsKt.getShipObjectWorld(clientWorld).getLoadedShips().getById(lastShipStoodOn);
-                    if (shipObject != null) {
+                    if (entityDraggingInformation.getSupportPiece() != null) {
+                        entityShouldBeHere = ShipPieceRenderFrames.rider(entityDraggingInformation.getSupportPiece(),
+                            new Vector3d(entity.xo, entity.yo, entity.zo), new Vector3d(entity.getX(), entity.getY(), entity.getZ()), tickDelta);
+                    }
+                    if (entityShouldBeHere == null && shipObject != null && shipWorld.getAllShips().getSplitPieces(lastShipStoodOn).isEmpty()) {
                         entityShouldBeHere = ShipDraggingMath.renderPosition(
                             new Vector3d(entity.xo, entity.yo, entity.zo),
                             new Vector3d(entity.getX(), entity.getY(), entity.getZ()),
@@ -223,6 +237,19 @@ public abstract class MixinGameRenderer {
                 }
             }
         }
+    }
+
+    @Inject(
+        method = "renderLevel",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/client/Camera;setup(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/world/entity/Entity;ZZF)V",
+            shift = At.Shift.AFTER
+        )
+    )
+    private void vs$applyMountedCameraRoll(final float partialTicks, final long finishTimeNano,
+        final PoseStack matrixStack, final CallbackInfo ci) {
+        matrixStack.mulPose(Axis.ZP.rotationDegrees(((IVSCamera) this.mainCamera).getZrot()));
     }
 
     /**

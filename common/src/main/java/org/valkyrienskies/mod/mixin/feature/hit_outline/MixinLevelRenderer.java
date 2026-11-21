@@ -19,6 +19,8 @@ import org.spongepowered.asm.mixin.injection.At.Shift;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.mod.client.render.ShipRenderViews;
+import org.valkyrienskies.mod.common.render.batched.SplitShipRenderer;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(LevelRenderer.class)
@@ -54,13 +56,20 @@ public class MixinLevelRenderer {
     ) {
         final ClientShip ship = VSGameUtilsKt.getLoadedShipManagingPos(this.level, pos);
         if (ship != null) {
+            ci.cancel();
+            if (!ShipRenderViews.shouldRenderShip(ship)) return;
+            var pieces = VSGameUtilsKt.getAllShips(level).getSplitPieces(ship.getId());
+            if (!pieces.isEmpty()) {
+                SplitShipRenderer.drawOutline(pieces, state.getShape(level, pos, CollisionContext.of(entity)),
+                    pos, matrixStack, vertexConsumer, camX, camY, camZ);
+                return;
+            }
             matrixStack.pushPose();
             transformRenderWithShip(ship.getRenderTransform(), matrixStack, pos, camX, camY, camZ);
             renderShape(matrixStack, vertexConsumer,
                 state.getShape(this.level, pos, CollisionContext.of(entity)),
                 0d, 0d, 0d, 0.0F, 0.0F, 0.0F, 0.4F);
             matrixStack.popPose();
-            ci.cancel();
         }
     }
 

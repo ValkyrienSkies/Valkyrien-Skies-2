@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.common.fluid;
 
+import java.util.Collections;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -255,7 +256,7 @@ final class FluidSteepSurface {
             if (points.size() < 3) return;
             final var direction = new Vector3d(POINTS[dry.get(0)]).sub(POINTS[wet.get(0)]);
             final var n = areaNormal(points);
-            if (n.dot(direction) < 0) java.util.Collections.reverse(points);
+            if (n.dot(direction) < 0) Collections.reverse(points);
             addSurface(points, true, normals);
         }
         private Vector3d areaNormal(final List<Vector3d> points) {

@@ -1,6 +1,9 @@
 package org.valkyrienskies.mod.mixin.mod_compat.sodium;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.blaze3d.vertex.PoseStack;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import java.util.SortedSet;
@@ -20,6 +23,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.BlockDestructionProgress;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.phys.Vec3;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -30,8 +34,11 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.mod.client.render.ShipRenderViews;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.render.NativeShipPieces;
+import org.valkyrienskies.mod.common.render.batched.ShipPieceBuffers;
 import org.valkyrienskies.mod.common.assembly.SeamlessChunksManager;
 import org.valkyrienskies.mod.common.render.batched.ShipBatchRenderer;
 import org.valkyrienskies.mod.compat.LoadedMods;
@@ -52,6 +59,18 @@ public abstract class MixinSodiumWorldRenderer implements SodiumWorldRendererDuc
     private SortedRenderLists currentRenderLists;
     @Unique
     private boolean vs$prevFrameHadShips;
+
+    @Override
+    public void vs$renderNestedShipView(final Runnable draw) {
+        final SortedRenderLists outer = currentRenderLists;
+        currentRenderLists = null;
+        try {
+            if (renderSectionManager instanceof RenderSectionManagerDuck duck) duck.vs$renderNestedShipView(draw);
+            else draw.run();
+        } finally {
+            currentRenderLists = outer;
+        }
+    }
 
     @Override
     public void vs$markShipRenderListsDirty() {
@@ -92,6 +111,31 @@ public abstract class MixinSodiumWorldRenderer implements SodiumWorldRendererDuc
         }
     }
 
+    @WrapOperation(method = "renderBlockEntity", at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/client/renderer/blockentity/BlockEntityRenderDispatcher;render(Lnet/minecraft/world/level/block/entity/BlockEntity;FLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;)V"))
+    private static void vs$renderPieceBlockEntity(BlockEntityRenderDispatcher dispatcher, BlockEntity entity,
+        float tick, PoseStack pose, MultiBufferSource source, Operation<Void> original,
+        @Local(argsOnly = true, ordinal = 0) double x, @Local(argsOnly = true, ordinal = 1) double y,
+        @Local(argsOnly = true, ordinal = 2) double z) {
+        final var level = Minecraft.getInstance().level;
+        if (level != null && !VSGameUtilsKt.getAllShips(level).getSplitShipIds().isEmpty()) {
+            final var ship = VSGameUtilsKt.getLoadedShipManagingPos(level, entity.getBlockPos());
+            if (ship != null) {
+                final var pieces = NativeShipPieces.pieces(level, ship.getId());
+                if (!pieces.isEmpty()) {
+                    pose.popPose();
+                    pose.pushPose();
+                    if (ShipRenderViews.shouldRenderShip(ship)) {
+                        ShipPieceBuffers.draw(pieces, entity.getBlockPos(), pose, new Vec3(x, y, z), source,
+                            (piecePose, clipped) -> original.call(dispatcher, entity, tick, piecePose, clipped));
+                    }
+                    return;
+                }
+            }
+        }
+        original.call(dispatcher, entity, tick, pose, source);
+    }
+
     @Shadow
     protected abstract void renderBlockEntities(PoseStack matrices, RenderBuffers bufferBuilders,
         Long2ObjectMap<SortedSet<BlockDestructionProgress>> blockBreakingProgressions, float tickDelta,
@@ -109,12 +153,15 @@ public abstract class MixinSodiumWorldRenderer implements SodiumWorldRendererDuc
 
         renderBlockEntities(matrices, bufferBuilders, blockBreakingProgressions, tickDelta, immediate, x, y, z, blockEntityRenderer);
 
-        for (final SortedRenderLists renderLists : ((RenderSectionManagerDuck) this.renderSectionManager).vs_getShipRenderLists().values()) {
-            this.currentRenderLists = renderLists;
-            renderBlockEntities(matrices, bufferBuilders, blockBreakingProgressions, tickDelta, immediate, x, y, z, blockEntityRenderer);
+        try {
+            for (final var entry : ((RenderSectionManagerDuck) this.renderSectionManager).vs_getShipRenderLists().entrySet()) {
+                if (!ShipRenderViews.shouldRenderShip(entry.getKey())) continue;
+                this.currentRenderLists = entry.getValue();
+                renderBlockEntities(matrices, bufferBuilders, blockBreakingProgressions, tickDelta, immediate, x, y, z, blockEntityRenderer);
+            }
+        } finally {
+            this.currentRenderLists = null;
         }
-
-        this.currentRenderLists = null;
     }
     
     @ModifyExpressionValue(

@@ -4,14 +4,10 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.unmockkAll
 import net.minecraft.SharedConstants
-import net.minecraft.network.protocol.Packet
-import net.minecraft.resources.ResourceKey
 import net.minecraft.server.Bootstrap
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.server.network.ServerGamePacketListenerImpl
-import net.minecraft.world.entity.player.Player
-import net.minecraft.world.level.Level
 import org.joml.Vector3d
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeAll
@@ -53,10 +49,7 @@ class MinecraftPlayerTest {
     private fun wrapper(player: ServerPlayer) = (player as PlayerDuck).vs_getPlayer()
 
     private fun finishRespawn(oldPlayer: ServerPlayer, newPlayer: ServerPlayer) {
-        val mixin = object : MixinPlayerList() {
-            override fun broadcast(player: Player?, x: Double, y: Double, z: Double, distance: Double,
-                worldKey: ResourceKey<Level>, packet: Packet<*>) {}
-        }
+        val mixin = object : MixinPlayerList() {}
         val method = MixinPlayerList::class.java.getDeclaredMethod(
             "afterPlayerRespawn", ServerPlayer::class.java, Boolean::class.javaPrimitiveType,
             CallbackInfoReturnable::class.java,
@@ -66,8 +59,6 @@ class MinecraftPlayerTest {
 
     @Test
     fun `wrapper initialization waits for the completed Player constructor`() {
-        // Unit tests do not apply Mixins. Constructing the untransformed mixin must not eagerly
-        // capture Player's temporary Entity UUID; the real initializer belongs at constructor RETURN.
         assertNull(MixinPlayer().vs_getPlayer())
         val initializer = MixinPlayer::class.java.declaredMethods.mapNotNull { it.getAnnotation(Inject::class.java) }
             .single { "<init>" in it.method }
@@ -105,7 +96,6 @@ class MinecraftPlayerTest {
             assertEquals(Vector3d(10.0 + it, 64.0, 20.0), wrapped.getPosition(Vector3d()))
             assertEquals(setOf(42L), wrapped.forceWatchingShips)
             assertEquals(42L, identityTracked[wrapper(replacement)])
-            // Core's newPlayers calculation must not request another full body-create snapshot.
             assertTrue((setOf(wrapper(replacement)) - previousPlayers).isEmpty())
             current = replacement
         }

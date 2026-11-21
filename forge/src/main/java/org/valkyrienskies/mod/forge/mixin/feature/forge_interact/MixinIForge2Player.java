@@ -30,12 +30,7 @@ public interface MixinIForge2Player {
         if (VSGameConfig.SERVER.getEnableInteractDistanceChecks()) {
             final double reach = this.getBlockReach() + padding;
             final Vec3 eyes = this.self().getEyePosition();
-            return VSGameUtilsKt.squaredDistanceBetweenInclShips(this.self().level(),
-                pos.getX() + 0.5,
-                pos.getY() + 0.5,
-                pos.getZ() + 0.5,
-                eyes.x, eyes.y, eyes.z
-            ) <= reach * reach;
+            return VSGameUtilsKt.squaredDistanceToPhysicalBlock(this.self().level(), pos, eyes) <= reach * reach;
         } else {
             return true;
         }
@@ -49,12 +44,7 @@ public interface MixinIForge2Player {
         if (VSGameConfig.SERVER.getEnableInteractDistanceChecks()) {
             double reach = self().getAttributeValue(ForgeMod.BLOCK_REACH.get()) + padding;
             final Vec3 eyes = this.self().getEyePosition();
-            return VSGameUtilsKt.squaredDistanceBetweenInclShips(this.self().level(),
-                pos.getX() + 0.5,
-                pos.getY() + 0.5,
-                pos.getZ() + 0.5,
-                eyes.x, eyes.y, eyes.z
-            ) <= reach * reach;
+            return VSGameUtilsKt.squaredDistanceToPhysicalBlock(this.self().level(), pos, eyes) <= reach * reach;
         } else {
             return true;
         }

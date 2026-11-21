@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.compat.sodium;
 
 import org.joml.Matrix4fc;
+import org.valkyrienskies.mod.common.render.batched.ShipMaterialUniforms;
 
 import me.jellysquid.mods.sodium.client.gl.shader.uniform.GlUniformInt;
 import me.jellysquid.mods.sodium.client.gl.shader.uniform.GlUniformMatrix4f;
@@ -43,6 +44,8 @@ public class ShipThing extends ChunkShaderInterface {
     // another ship's surface (and the same ship's own concave geometry).
     private final GlUniformInt uniformShipOccluders;
     private final GlUniformInt uniformShipOccluderCount;
+
+    ShipMaterialUniforms materials;
 
     public ShipThing(ShaderBindingContext context, ChunkShaderOptions options, int features) {
         super(context, options);

@@ -42,5 +42,5 @@ versionRange = "[1.115.1,)"
 ordering = "NONE"
 side = "BOTH"
 
-["lithium:options"]
-mixin.ai.poi = false
+[mods."lithium:options"]
+"mixin.ai.poi" = false

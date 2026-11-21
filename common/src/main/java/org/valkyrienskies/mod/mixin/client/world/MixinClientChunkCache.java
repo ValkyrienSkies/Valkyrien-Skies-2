@@ -44,6 +44,7 @@ import org.valkyrienskies.mod.common.assembly.SeamlessChunksManager;
 import org.valkyrienskies.mod.common.VS2ChunkAllocator;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
+import org.valkyrienskies.mod.common.render.batched.ShipBatchRenderer;
 import org.valkyrienskies.mod.common.render.light.VsDynamicLight;
 import org.valkyrienskies.mod.compat.VSRenderer;
 import org.valkyrienskies.mod.compat.sodium.SodiumCompat;
@@ -105,6 +106,17 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
     @Inject(method = "onLightUpdate", at = @At("HEAD"))
     private void vs_sodium$onLightUpdate(LightLayer layer, SectionPos pos, CallbackInfo ci) {
         VsDynamicLight.invalidateLightSection(pos.asLong());
+        if (VSGameUtilsKt.getShipManagingPos(this.level, pos.getX(), pos.getZ()) instanceof final ClientShip ship
+            && ShipBatchRenderer.usesMesh(this.level, ship)) {
+            for (int x = pos.getX() - 1; x <= pos.getX() + 1; x++) {
+                for (int y = pos.getY() - 1; y <= pos.getY() + 1; y++) {
+                    for (int z = pos.getZ() - 1; z <= pos.getZ() + 1; z++) {
+                        org.valkyrienskies.mod.common.render.batched.ShipBatchRenderer.INSTANCE
+                            .markSectionLightDirty(ship.getId(), x, y, z);
+                    }
+                }
+            }
+        }
     }
 
     @Inject(method = "replaceWithPacketData", at = @At("HEAD"), cancellable = true)
@@ -223,6 +235,10 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
             // is not safe anyway as the class references Sodium classes so the game
             // crashes with NoClassDefFoundError.
             SodiumCompat.onChunkAdded(this.level, x, z);
+        } else if (loadedShip != null && ShipBatchRenderer.usesMesh(this.level, loadedShip)) {
+            for (int sy = level.getMinSection(); sy < level.getMaxSection(); sy++) {
+                ShipBatchRenderer.INSTANCE.markSectionDirty(loadedShip.getId(), x, sy, z);
+            }
         }
         cir.setReturnValue(worldChunk);
     }

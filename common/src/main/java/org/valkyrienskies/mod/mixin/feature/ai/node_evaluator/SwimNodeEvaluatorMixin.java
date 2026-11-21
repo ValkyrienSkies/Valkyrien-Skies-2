@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.mixin.feature.ai.node_evaluator;
 
+import net.minecraft.tags.FluidTags;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import java.util.ArrayList;
@@ -66,7 +67,7 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
         if (level == null) return vanilla;
         final var controlled = ShipFluidStateQueries.forPath(level, blockPos);
         if (controlled != null && pathComputationType == PathComputationType.WATER) {
-            return controlled.fluid().is(net.minecraft.tags.FluidTags.WATER)
+            return controlled.fluid().is(FluidTags.WATER)
                 && !controlled.blockState(instance).blocksMotion();
         }
         if (vanilla) return true;

@@ -23,6 +23,8 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.mod.client.render.ShipRenderViews;
+import org.valkyrienskies.mod.common.render.batched.SplitShipRenderer;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.mixin.accessors.client.render.OverlayVertexConsumerAccessor;
@@ -46,6 +48,7 @@ public abstract class MixinLevelRenderer {
 
         final ClientShip ship = VSGameUtilsKt.getLoadedShipManagingPos(level, blockPos);
         if (ship != null) {
+            if (!ShipRenderViews.shouldRenderShip(ship)) return;
             // Remove the vanilla render transform
             matrixStack.popPose();
 
@@ -55,6 +58,13 @@ public abstract class MixinLevelRenderer {
             final ShipTransform renderTransform = ship.getRenderTransform();
             final Vec3 cameraPos = methodCamera.getPosition();
 
+            var pieces = VSGameUtilsKt.getAllShips(level).getSplitPieces(ship.getId());
+            if (!pieces.isEmpty()) {
+                SplitShipRenderer.drawDamage(pieces, blockPos, matrixStack, cameraPos,
+                    ((OverlayVertexConsumerAccessor) vertexConsumer).getDelegate(),
+                    (local, buffer) -> renderBreakingTexture.call(blockRenderManager, state, blockPos, blockRenderWorld, local, buffer));
+                return;
+            }
             transformRenderWithShip(renderTransform, matrixStack, blockPos, cameraPos.x, cameraPos.y, cameraPos.z);
 
             final Matrix3f newNormalMatrix = new Matrix3f(matrixStack.last().normal());

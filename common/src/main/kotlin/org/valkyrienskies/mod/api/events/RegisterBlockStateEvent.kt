@@ -4,6 +4,7 @@ import net.minecraft.world.level.block.state.BlockState
 import org.jetbrains.annotations.ApiStatus.Experimental
 import org.valkyrienskies.core.api.physics.blockstates.LiquidState
 import org.valkyrienskies.core.api.physics.blockstates.SolidState
+import org.valkyrienskies.core.api.physics.blockstates.TireSurfaceProperties
 
 @Experimental
 interface RegisterBlockStateEvent {
@@ -15,6 +16,8 @@ interface RegisterBlockStateEvent {
 
     fun register(state: BlockState, solidState: SolidState)
     fun register(state: BlockState, liquidState: LiquidState)
+
+    fun tireSurface(state: BlockState, surface: TireSurfaceProperties)
 
     /**
      * Registers the Minecraft [state] to be represented by [LiquidState] and [SolidState] in the same block.

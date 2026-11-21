@@ -131,9 +131,15 @@ dependencies {
     // Hexal
     modCompileOnly("ram.talia.hexal:hexal-fabric-$minecraft_version:$hexal_version") { transitive = false }
 
-    modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:imm_ptl_core:${immptl_version}") { transitive = false }
-    modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:q_misc_util:${immptl_version}") { transitive = false }
-    modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:build:${immptl_version}") { transitive = false }
+    if (project.hasProperty("withImmersivePortals")) {
+        def distribution = configurations.detachedConfiguration(
+            dependencies.create("com.github.iPortalTeam.ImmersivePortalsMod:build:${immptl_version}") { transitive = false })
+        modLocalRuntime(files(zipTree(distribution.singleFile).matching { include "META-INF/jars/cloth-config-fabric-*.jar" }.singleFile))
+    }
+    def immersivePortalScope = project.hasProperty("withImmersivePortals") ? "modImplementation" : "modCompileOnly"
+    add(immersivePortalScope, "com.github.iPortalTeam.ImmersivePortalsMod:imm_ptl_core:${immptl_version}") { transitive = false }
+    add(immersivePortalScope, "com.github.iPortalTeam.ImmersivePortalsMod:q_misc_util:${immptl_version}") { transitive = false }
+    add(immersivePortalScope, "com.github.iPortalTeam.ImmersivePortalsMod:build:${immptl_version}") { transitive = false }
 
     // Connectible Chains [Fabric]
     modCompileOnly("curse.maven:connectiblechains-415681:7148381")

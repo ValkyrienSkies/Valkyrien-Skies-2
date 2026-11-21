@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.common.networking
 
+import org.valkyrienskies.mod.common.fluid.FluidParcelRenderer
 import net.minecraft.client.Minecraft
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.ResourceLocation
@@ -33,17 +34,24 @@ object VSGamePackets {
         PacketPhysicsDebug::class.register()
         PacketFluidParcel::class.register()
         PacketFluidParcelBatch::class.register()
+        PacketGravitronFreeze::class.register()
     }
 
     fun registerHandlers() = with(vsCore.simplePacketNetworking) {
         PacketFluidParcel::class.registerClientHandler { packet ->
             Minecraft.getInstance().connection?.let {
-                org.valkyrienskies.mod.common.fluid.FluidParcelRenderer.enqueue(packet, it)
+                FluidParcelRenderer.enqueue(packet, it)
             }
         }
         PacketFluidParcelBatch::class.registerClientHandler { batch ->
             Minecraft.getInstance().connection?.let {
-                org.valkyrienskies.mod.common.fluid.FluidParcelRenderer.enqueue(batch.packets(), it)
+                FluidParcelRenderer.enqueue(batch.packets(), it)
+            }
+        }
+        PacketGravitronFreeze::class.registerServerHandler { packet, iPlayer ->
+            val player = (iPlayer as MinecraftPlayer).player as ServerPlayer
+            if (packet.hand == net.minecraft.world.InteractionHand.MAIN_HAND) {
+                player.server.execute { org.valkyrienskies.mod.common.item.DebugGravitron.freeze(player) }
             }
         }
         PacketPhysicsDebug::class.registerClientHandler { packet ->

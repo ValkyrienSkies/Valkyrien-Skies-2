@@ -3,12 +3,18 @@ package org.valkyrienskies.mod.api_impl.events
 import net.minecraft.world.level.block.state.BlockState
 import org.valkyrienskies.core.api.physics.blockstates.LiquidState
 import org.valkyrienskies.core.api.physics.blockstates.SolidState
+import org.valkyrienskies.core.api.physics.blockstates.TireSurfaceProperties
 import org.valkyrienskies.core.internal.physics.blockstates.VsiBlockState
 import org.valkyrienskies.mod.api.events.RegisterBlockStateEvent
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod.vsCore
 
 class RegisterBlockStateEventImpl : RegisterBlockStateEvent {
     val toRegister = mutableListOf<Pair<BlockState, VsiBlockState>>()
+    val tireSurfaces = mutableMapOf<BlockState, TireSurfaceProperties>()
+
+    override fun tireSurface(state: BlockState, surface: TireSurfaceProperties) {
+        tireSurfaces[state] = surface
+    }
 
     override fun newLiquidStateBuilder(): LiquidState.Builder =
         vsCore.newLiquidStateBuilder()

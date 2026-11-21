@@ -380,6 +380,27 @@ class WorldFluidParcelMergingTest {
         }
     }
 
+    @Test fun `same outlet publishes one volume weighted airborne parcel`() {
+        every { (server as IShipObjectWorldServerProvider).shipObjectWorld } returns null
+        val packets = mutableListOf<PacketFluidParcel>()
+        visuals { packets.add(it) }
+        val manager = WorldFluidOutflowManager()
+        val stream = java.util.UUID(0, 12)
+        val outlet = org.valkyrienskies.core.internal.physics.VsiFluidOutlet(0, 1, 0, 0, -1, 0, 1.0)
+        fun emit(id: Long, x: Double, vx: Double, volume: Double) {
+            manager.enqueue(level, VsiFluidOutflow(id, id, 1, DIM, 7, x, 100.0, .5, 0.0, -1.0, 0.0,
+                vx, 0.0, 0.0, 17, kotlin.math.ceil(255 * volume).toInt(), stream, volume).also { it.outlet = outlet })
+        }
+        emit(1, .40, .2, .0625)
+        emit(2, .55, .5, .125)
+        manager.tick(levels)
+        val visible = requireNotNull(packets.single().state)
+        assertEquals(.1875, visible.volume)
+        assertEquals((.41 + 2 * .575) / 3, visible.x, 1e-12)
+        assertEquals(.4, visible.velocityX, 1e-12)
+        assertEquals(-.4905, visible.velocityY, 1e-12)
+    }
+
     @Test fun `survivor update and donor retirement remain retryable after either packet fails`() {
         for (failRetirement in listOf(false, true)) {
             val packets = mutableListOf<PacketFluidParcel>()

@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.common.fluid;
 
+import java.util.Collections;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -216,10 +217,10 @@ final class FluidSurfaceReconstruction {
                 final int j = (i + 1) % 4;
                 bottom.add(point(U[i], V[i], 0));
                 final var side = new ArrayList<>(List.of(point(U[i], V[i], 0), point(U[j], V[j], 0), points[j], points[i]));
-                if (sign < 0) java.util.Collections.reverse(side);
+                if (sign < 0) Collections.reverse(side);
                 faces.add(new Face(List.copyOf(side), List.of(), false, (joined & (1 << i)) != 0));
             }
-            if (sign > 0) java.util.Collections.reverse(bottom);
+            if (sign > 0) Collections.reverse(bottom);
             faces.add(new Face(List.copyOf(bottom), List.of(), false, false));
             return List.copyOf(faces);
         }

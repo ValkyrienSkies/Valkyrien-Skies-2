@@ -14,7 +14,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.config.ShipRenderer;
 import org.valkyrienskies.mod.common.config.ShipRendererKt;
 import org.valkyrienskies.mod.compat.LoadedMods;
 import org.valkyrienskies.mod.compat.LoadedMods.FlywheelVersion;
@@ -45,7 +44,7 @@ public class MixinViewArea {
 
         var ship = (ClientShip) VSGameUtilsKt.getShipManagingPos(level, x, z);
         if (ship == null) return;
-        if (ShipRendererKt.getShipRenderer(ship) != ShipRenderer.FLYWHEEL) return;
+        if (!ShipRendererKt.getUsesFlywheelHull(ship)) return;
         if (LoadedMods.getFlywheel() != FlywheelVersion.V1)
             throw new IllegalStateException("Trying to render with flywheel, but no flywheel installed");
 
@@ -64,7 +63,7 @@ public class MixinViewArea {
         }
 
         var ship = (ClientShip) VSGameUtilsKt.getShipManagingPos(level, chunkX, chunkZ);
-        if (ship != null && ShipRendererKt.getShipRenderer(ship) == ShipRenderer.FLYWHEEL) {
+        if (ship != null && ShipRendererKt.getUsesFlywheelHull(ship)) {
             callbackInfoReturnable.setReturnValue(null);
         }
     }

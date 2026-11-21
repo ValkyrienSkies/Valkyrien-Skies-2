@@ -1,5 +1,9 @@
 package org.valkyrienskies.mod.compat.flooding.shaders;
 
+import java.util.HashMap;
+import java.util.Map;
+import net.irisshaders.iris.vertices.IrisExtendedBufferBuilder;
+import org.lwjgl.opengl.GL20;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import net.irisshaders.iris.Iris;
 import net.irisshaders.iris.pipeline.IrisRenderingPipeline;
@@ -13,7 +17,7 @@ import org.valkyrienskies.mod.compat.iris.IrisCompat;
 
 public final class NativeFluidCompat {
     public static boolean drawing;
-    private static final java.util.Map<Integer, Integer> SIM_UNIFORMS = new java.util.HashMap<>();
+    private static final Map<Integer, Integer> SIM_UNIFORMS = new HashMap<>();
     private NativeFluidCompat() { }
 
     public static boolean active() {
@@ -65,7 +69,7 @@ public final class NativeFluidCompat {
     }
 
     public static void interfaceFace(final BufferBuilder builder, final boolean value) {
-        final var extended = (net.irisshaders.iris.vertices.IrisExtendedBufferBuilder) builder;
+        final var extended = (IrisExtendedBufferBuilder) builder;
         ((BlockSensitiveBufferBuilder) builder).beginBlock(extended.iris$currentBlock(), (short) (value ? 2 : 1),
             extended.iris$currentLocalPosX(), extended.iris$currentLocalPosY(), extended.iris$currentLocalPosZ());
     }
@@ -73,8 +77,8 @@ public final class NativeFluidCompat {
     public static void apply(final ShaderInstance shader) {
         if (!active()) return;
         final int location = SIM_UNIFORMS.computeIfAbsent(shader.getId(),
-            program -> org.lwjgl.opengl.GL20.glGetUniformLocation(program, "vs_SimFluid"));
-        if (location >= 0) org.lwjgl.opengl.GL20.glUniform1i(location, drawing ? 1 : 0);
+            program -> GL20.glGetUniformLocation(program, "vs_SimFluid"));
+        if (location >= 0) GL20.glUniform1i(location, drawing ? 1 : 0);
     }
 
     public static void clear() {

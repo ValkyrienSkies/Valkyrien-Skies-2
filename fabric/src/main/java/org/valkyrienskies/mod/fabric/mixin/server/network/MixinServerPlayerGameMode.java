@@ -5,7 +5,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.ServerPlayerGameMode;
 import net.minecraft.world.phys.Vec3;
-import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -13,7 +12,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(ServerPlayerGameMode.class)
 public class MixinServerPlayerGameMode {
@@ -36,9 +34,8 @@ public class MixinServerPlayerGameMode {
     public double handleBlockBreakAction(final Vec3 instance, final Vec3 vec3) {
         final BlockPos pos = BlockPos.containing(vec3.subtract(0.5, 0.5, 0.5));
         if (VSGameConfig.SERVER.getEnableInteractDistanceChecks()) {
-            final Vector3d blockCenter = VectorConversionsMCKt.toJOMLD(pos).add(0.5, 0.5, 0.5);
-            return VSGameUtilsKt.getWorldCoordinates(level, pos, blockCenter)
-                .distanceSquared(player.getX(), player.getY() + 1.5, player.getZ());
+            return VSGameUtilsKt.squaredDistanceToPhysicalBlock(level, pos,
+                new Vec3(player.getX(), player.getY() + 1.5, player.getZ()));
         } else {
             return instance.distanceToSqr(vec3);
         }

@@ -8,6 +8,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
+import java.util.function.Predicate;
 import me.jellysquid.mods.sodium.client.render.chunk.ChunkUpdateType;
 import me.jellysquid.mods.sodium.client.render.chunk.RenderSection;
 import me.jellysquid.mods.sodium.client.render.chunk.RenderSectionManager;
@@ -22,6 +23,8 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import org.joml.Matrix4dc;
+import org.valkyrienskies.core.api.ships.ShipPhysicalPiece;
+import org.valkyrienskies.mod.common.render.NativeShipPieces;
 import org.joml.primitives.AABBd;
 import org.joml.primitives.AABBdc;
 import org.spongepowered.asm.mixin.Final;
@@ -38,6 +41,7 @@ import org.valkyrienskies.mod.compat.LoadedMods;
 import org.valkyrienskies.mod.compat.iris.IrisCompat;
 import org.valkyrienskies.mod.compat.sodium.ShipSectionCache;
 import org.valkyrienskies.mod.compat.sodium.ShipSectionCandidate;
+import org.valkyrienskies.mod.mixinducks.mod_compat.sodium.VisibleChunkCollectorDuck;
 import org.valkyrienskies.mod.mixinducks.mod_compat.sodium.RenderSectionManagerDuck;
 
 /**
@@ -55,7 +59,10 @@ import org.valkyrienskies.mod.mixinducks.mod_compat.sodium.RenderSectionManagerD
 public abstract class MixinRenderSectionManager implements RenderSectionManagerDuck {
 
     @Unique
-    private final WeakHashMap<ClientShip, SortedRenderLists> shipRenderLists = new WeakHashMap<>();
+    private WeakHashMap<ClientShip, SortedRenderLists> shipRenderLists = new WeakHashMap<>();
+
+    @Unique
+    private boolean vs$nestedView;
 
     @Unique
     private final WeakHashMap<ClientShip, ShipSectionCache> vs$shipSectionCaches = new WeakHashMap<>();
@@ -68,6 +75,23 @@ public abstract class MixinRenderSectionManager implements RenderSectionManagerD
 
     @Unique
     private int vs$lastShipRenderListFrame = Integer.MIN_VALUE;
+
+    @Override
+    public void vs$renderNestedShipView(final Runnable draw) {
+        final var outer = shipRenderLists;
+        final int outerFrame = vs$lastShipRenderListFrame;
+        final boolean wasNested = vs$nestedView;
+        shipRenderLists = new WeakHashMap<>();
+        vs$lastShipRenderListFrame = Integer.MIN_VALUE;
+        vs$nestedView = true;
+        try {
+            draw.run();
+        } finally {
+            shipRenderLists = outer;
+            vs$lastShipRenderListFrame = outerFrame;
+            vs$nestedView = wasNested;
+        }
+    }
 
     @Override
     public WeakHashMap<ClientShip, SortedRenderLists> vs_getShipRenderLists() {
@@ -124,6 +148,8 @@ public abstract class MixinRenderSectionManager implements RenderSectionManagerD
             boolean mergedRebuilds = false;
 
             final boolean shadersActive = LoadedMods.getIris() && IrisCompat.isIrisShaderActive();
+            final AABBd imageBounds = new AABBd();
+            final Predicate<AABBd> visible = box -> vs$isAabbVisible(viewport, box);
             for (final ClientShip ship : loadedShips) {
                 final boolean useTerrainPath = ShipRendererKt.getUsesTerrainChunkRenderer(ship)
                     || (shadersActive && ShipRendererKt.getUsesBatchedRenderer(ship));
@@ -131,17 +157,19 @@ public abstract class MixinRenderSectionManager implements RenderSectionManagerD
                     continue;
                 }
                 final AABBdc shipAabb = ship.getRenderAABB();
-                if (shipAabb == null || !vs$isAabbVisible(viewport, shipAabb)) {
+                final var pieces = NativeShipPieces.pieces(minecraft.level, ship.getId());
+                if (pieces.isEmpty() && (shipAabb == null || !vs$isAabbVisible(viewport, shipAabb))) {
                     continue;
                 }
 
                 final VisibleChunkCollector collector = new VisibleChunkCollector(frame);
+                if (vs$nestedView) ((VisibleChunkCollectorDuck) collector).vs$useViewLocalLists();
                 final Matrix4dc shipToWorld = ship.getRenderTransform().getShipToWorld();
                 final AABBd tempAabb = new AABBd();
                 int visibleSectionCount = 0;
 
                 for (final ShipSectionCandidate candidate : this.vs$getShipSectionCache(ship, frame).sections) {
-                    if (!vs$isShipSectionVisible(viewport, shipToWorld, tempAabb, candidate.x, candidate.y, candidate.z)) {
+                    if (!vs$isShipSectionVisible(visible, shipToWorld, pieces, tempAabb, imageBounds, candidate.x, candidate.y, candidate.z)) {
                         continue;
                     }
 
@@ -221,12 +249,13 @@ public abstract class MixinRenderSectionManager implements RenderSectionManagerD
     }
 
     @Unique
-    private static boolean vs$isShipSectionVisible(final Viewport viewport, final Matrix4dc shipToWorld,
-        final AABBd tempAabb, final int x, final int y, final int z) {
+    private static boolean vs$isShipSectionVisible(Predicate<AABBd> visible, final Matrix4dc shipToWorld,
+        List<ShipPhysicalPiece> pieces, final AABBd tempAabb, final AABBd imageBounds, final int x, final int y, final int z) {
         tempAabb.setMin((x << 4) - 0.6, (y << 4) - 0.6, (z << 4) - 0.6);
         tempAabb.setMax((x << 4) + 15.6, (y << 4) + 15.6, (z << 4) + 15.6);
+        if (!pieces.isEmpty()) return NativeShipPieces.sectionVisible(pieces, tempAabb, imageBounds, visible);
         tempAabb.transform(shipToWorld);
-        return vs$isAabbVisible(viewport, tempAabb);
+        return visible.test(tempAabb);
     }
 
     @Unique

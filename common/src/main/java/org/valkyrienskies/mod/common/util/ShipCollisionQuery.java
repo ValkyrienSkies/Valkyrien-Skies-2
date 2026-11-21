@@ -28,6 +28,33 @@ public final class ShipCollisionQuery {
         return shapes;
     }
 
+    public void addClipped(final List<Vector3d> vertices, final List<Vector3d> axes) {
+        final ShipShapes shape = new ShipShapes(axes);
+        final Vector3d low = new Vector3d(Double.POSITIVE_INFINITY);
+        final Vector3d high = new Vector3d(Double.NEGATIVE_INFINITY);
+        for (final Vector3d vertex : vertices) {
+            low.min(vertex);
+            high.max(vertex);
+        }
+        final Vector3d center = low.add(high, new Vector3d()).mul(0.5);
+        final double[] radii = new double[axes.size()];
+        final double[] offsets = new double[axes.size()];
+        for (int i = 0; i < axes.size(); i++) {
+            final Vector3d axis = axes.get(i);
+            double min = Double.POSITIVE_INFINITY;
+            double max = Double.NEGATIVE_INFINITY;
+            for (final Vector3d vertex : vertices) {
+                final double p = axis.dot(vertex);
+                min = Math.min(p, min);
+                max = Math.max(p, max);
+            }
+            radii[i] = (max - min) * 0.5;
+            offsets[i] = (max + min) * 0.5 - axis.dot(center);
+        }
+        shape.boxes.add(new Box(center, high.sub(center), radii, offsets));
+        ships.add(shape);
+    }
+
     public boolean hasSupport(final double minX, final double minY, final double minZ,
         final double maxX, final double maxY, final double maxZ) {
         return !Double.isNaN(supportHeight(minX, minY, minZ, maxX, maxY, maxZ, false));
@@ -51,7 +78,7 @@ public final class ShipCollisionQuery {
                     final Vector3d normal = ship.separatingAxes.get(i);
                     final double radius = box.radii[i] + Math.abs(normal.x) * halfX
                         + Math.abs(normal.y) * halfY + Math.abs(normal.z) * halfZ;
-                    final double offset = normal.x * dx + normal.y * dy + normal.z * dz;
+                    final double offset = normal.x * dx + normal.y * dy + normal.z * dz - box.offset(i);
                     final double overlap = radius - Math.abs(offset);
                     if (overlap <= EPSILON) {
                         shortestResponse = 0.0;
@@ -102,7 +129,7 @@ public final class ShipCollisionQuery {
                     final Vector3d normal = ship.separatingAxes.get(i);
                     final double radius = box.radii[i] + Math.abs(normal.x) * halfX
                         + Math.abs(normal.y) * halfDepth + Math.abs(normal.z) * halfZ;
-                    final double offset = normal.x * dx + normal.y * dy + normal.z * dz;
+                    final double offset = normal.x * dx + normal.y * dy + normal.z * dz - box.offset(i);
                     final double overlap = radius - Math.abs(offset);
                     if (overlap <= 0.0) {
                         upward = false;
@@ -176,6 +203,13 @@ public final class ShipCollisionQuery {
         private final List<Vector3d> separatingAxes = new ArrayList<>(15);
         private final List<Box> boxes = new ArrayList<>();
 
+        private ShipShapes(final List<Vector3d> axes) {
+            transform = null;
+            axisX = axisY = axisZ = null;
+            scaleX = scaleY = scaleZ = 0.0;
+            separatingAxes.addAll(axes);
+        }
+
         private ShipShapes(final Matrix4dc shipToWorld) {
             transform = new Matrix4d(shipToWorld);
             axisX = transform.transformDirection(new Vector3d(1.0, 0.0, 0.0));
@@ -222,7 +256,7 @@ public final class ShipCollisionQuery {
                 radii[i] = Math.abs(normal.dot(axisX)) * halfX + Math.abs(normal.dot(axisY)) * halfY
                     + Math.abs(normal.dot(axisZ)) * halfZ;
             }
-            boxes.add(new Box(center, worldHalfExtents, radii));
+            boxes.add(new Box(center, worldHalfExtents, radii, null));
         }
 
         private double supportHeight(final Box box, final double dx, final double dz,
@@ -237,7 +271,7 @@ public final class ShipCollisionQuery {
             for (int i = 0; i < separatingAxes.size(); i++) {
                 final Vector3d normal = separatingAxes.get(i);
                 final double radius = box.radii[i] + Math.abs(normal.x) * halfX + Math.abs(normal.z) * halfZ;
-                final double horizontalOffset = normal.x * dx + normal.z * dz;
+                final double horizontalOffset = normal.x * dx + normal.z * dz - box.offset(i);
                 final double absY = Math.abs(normal.y);
                 if (absY < EPSILON) {
                     if (Math.abs(horizontalOffset) >= radius) {
@@ -262,6 +296,7 @@ public final class ShipCollisionQuery {
         }
     }
 
-    private record Box(Vector3d center, Vector3d worldHalfExtents, double[] radii) {
+    private record Box(Vector3d center, Vector3d worldHalfExtents, double[] radii, double[] offsets) {
+        double offset(int axis) { return offsets == null ? 0.0 : offsets[axis]; }
     }
 }

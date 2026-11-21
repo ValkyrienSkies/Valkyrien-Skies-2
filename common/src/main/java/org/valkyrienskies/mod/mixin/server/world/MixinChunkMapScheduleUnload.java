@@ -4,11 +4,13 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
+import java.util.concurrent.CompletableFuture;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.server.level.ChunkMap;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.chunk.ChunkAccess;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -20,14 +22,14 @@ import org.valkyrienskies.mod.common.VS2ChunkAllocator;
 /**
  * Fast-paths shipyard chunk unloads. Two interventions; they work together.
  *
- * <p><b>1. Fast scheduleUnload:</b> for shipyard chunks, skip the async save +
+ * <p><b>1. Fast scheduleUnload:</b> for clean shipyard chunks, skip the async save +
  * whenComplete cleanup chain entirely. Just remove the holder from pendingUnloads
  * and return. The per-chunk cost goes from "wait on save sync future, call
  * saveChunkIfNeeded, fire ChunkEvent.Unload, tear down block entity tickers,
  * clean up light/POI state" to "one hashmap remove."
  *
  * <p><b>2. Bulk evict at processUnloads HEAD:</b> when processUnloads runs, walk
- * the toDrop set once and pull out every shipyard entry: remove it from toDrop
+ * the toDrop set once and pull out clean shipyard entries: remove them from toDrop
  * (so MC's per-entry loop doesn't see it), remove it from updatingChunkMap
  * (freeing it for GC and shrinking the map MC iterates every tick). MC's natural
  * drain is rate-limited by the distance manager committing ticket changes in
@@ -65,13 +67,22 @@ public abstract class MixinChunkMapScheduleUnload {
                                                   final CallbackInfo ci) {
         final int cx = ChunkPos.getX(chunkPos);
         final int cz = ChunkPos.getZ(chunkPos);
-        if (!VS2ChunkAllocator.INSTANCE.isChunkInShipyardCompanion(cx, cz)) return;
+        if (!VS2ChunkAllocator.INSTANCE.isChunkInShipyardCompanion(cx, cz) || !vs$canUnloadWithoutSaving(holder)) return;
 
         // Shipyard chunks on their way out: skip the whole async save + cleanup
         // chain. The only bookkeeping we have to do before returning is the
         // pendingUnloads entry that processUnloads just added — otherwise it leaks.
         pendingUnloads.remove(chunkPos);
         ci.cancel();
+    }
+
+    @org.spongepowered.asm.mixin.Unique
+    private static boolean vs$canUnloadWithoutSaving(ChunkHolder holder) {
+        if (holder == null) return true;
+        final CompletableFuture<ChunkAccess> future = holder.getChunkToSave();
+        if (!future.isDone() || future.isCompletedExceptionally()) return false;
+        final ChunkAccess chunk = future.getNow(null);
+        return chunk == null || !chunk.isUnsaved();
     }
 
     /**
@@ -126,6 +137,8 @@ public abstract class MixinChunkMapScheduleUnload {
             final int cx = ChunkPos.getX(chunkPos);
             final int cz = ChunkPos.getZ(chunkPos);
             if (!VS2ChunkAllocator.INSTANCE.isChunkInShipyardCompanion(cx, cz)) continue;
+            if (!vs$canUnloadWithoutSaving(updatingChunkMap.get(chunkPos)) ||
+                !vs$canUnloadWithoutSaving(pendingUnloads.get(chunkPos))) continue;
             updatingChunkMap.remove(chunkPos);
             pendingUnloads.remove(chunkPos);
             it.remove();

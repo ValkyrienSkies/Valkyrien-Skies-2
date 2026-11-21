@@ -1,5 +1,14 @@
 package org.valkyrienskies.mod.common.fluid;
 
+import java.util.Set;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.tags.FluidTags;
+import org.joml.primitives.AABBd;
+import org.valkyrienskies.core.internal.physics.VsiFluidSurfaceRegion;
+import org.valkyrienskies.mod.common.render.batched.ShipRenderFrustum;
+import org.valkyrienskies.mod.compat.VSRenderer;
+import org.valkyrienskies.mod.compat.sodium.SodiumFluidSprites;
+import org.valkyrienskies.mod.mixin.ValkyrienCommonMixinConfigPlugin;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
@@ -26,6 +35,7 @@ import org.joml.Matrix4d;
 import org.joml.Matrix4f;
 import org.joml.Vector3d;
 import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.mod.client.render.ShipRenderViews;
 import org.valkyrienskies.core.internal.physics.VsiFluidFloodedVoxel;
 import org.valkyrienskies.core.internal.world.VsiClientShipWorld;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
@@ -79,20 +89,21 @@ public final class RetainedFluidRenderer {
         }
         final var present = new HashSet<Long>();
         final var draws = new ArrayList<Draw>();
-        final var frustum = org.valkyrienskies.mod.common.render.batched.ShipRenderFrustum.create(
+        final var frustum = ShipRenderFrustum.create(
             poseStack.last().pose(), RenderSystem.getProjectionMatrix(), cameraX, cameraY, cameraZ);
         for (final ClientShip ship : world.getLoadedShips()) {
             final var pair = world.getFluidGameplaySnapshot(ship.getId());
             final var flooding = FloodedFluidClientCache.get(world, ship.getId(), pair);
             if (flooding == null || flooding.getSnapshot().getVoxels().isEmpty()) continue;
             present.add(ship.getId());
+            if (!ShipRenderViews.shouldRenderShip(ship)) continue;
             final var topology = FluidTopologyClientCache.get(world, ship.getId(), pair);
             final var meshes = SHIPS.computeIfAbsent(ship.getId(), ignored -> new ShipMeshes());
             meshes.update(level, ship, flooding, topology);
             final var cameraLocal = ship.getRenderTransform().getWorldToShip().transformPosition(cameraX, cameraY, cameraZ, new Vector3d());
             for (final var mesh : meshes.sections.values()) {
                 if (mesh.opaque != opaquePass) continue;
-                final var bounds = new org.joml.primitives.AABBd(mesh.origin.x, mesh.origin.y, mesh.origin.z,
+                final var bounds = new AABBd(mesh.origin.x, mesh.origin.y, mesh.origin.z,
                     mesh.origin.x + 16, mesh.origin.y + 16, mesh.origin.z + 16)
                     .transform(ship.getRenderTransform().getShipToWorld());
                 if (!frustum.isVisible(new AABB(bounds.minX, bounds.minY, bounds.minZ, bounds.maxX, bounds.maxY, bounds.maxZ))) continue;
@@ -116,9 +127,9 @@ public final class RetainedFluidRenderer {
             for (final var draw : draws) {
                 final var mesh = draw.mesh;
                 if (mesh.buffer == null) continue;
-                if (org.valkyrienskies.mod.mixin.ValkyrienCommonMixinConfigPlugin.getVSRenderer()
-                    == org.valkyrienskies.mod.compat.VSRenderer.SODIUM) {
-                    org.valkyrienskies.mod.compat.sodium.SodiumFluidSprites.markActive(mesh.sprites);
+                if (ValkyrienCommonMixinConfigPlugin.getVSRenderer()
+                    == VSRenderer.SODIUM) {
+                    SodiumFluidSprites.markActive(mesh.sprites);
                 }
                 mesh.sort(draw.cameraLocal);
                 poseStack.pushPose();
@@ -161,15 +172,15 @@ public final class RetainedFluidRenderer {
     private record Draw(ClientShip ship, Mesh mesh, Vector3d cameraLocal, double distance) { }
     record Cell(VsiFluidFloodedVoxel voxel, AABB box, FluidAppearance appearance, int light,
                 List<VsiFluidFloodedVoxel> neighbors,
-                org.valkyrienskies.core.internal.physics.VsiFluidSurfaceRegion surface,
+                VsiFluidSurfaceRegion surface,
                 List<FluidSurfaceReconstruction.Face> reconstructed, int solidFaces) {
         Cell(VsiFluidFloodedVoxel voxel, AABB box, FluidAppearance appearance, int light,
-            List<VsiFluidFloodedVoxel> neighbors, org.valkyrienskies.core.internal.physics.VsiFluidSurfaceRegion surface,
+            List<VsiFluidFloodedVoxel> neighbors, VsiFluidSurfaceRegion surface,
             List<FluidSurfaceReconstruction.Face> reconstructed) {
             this(voxel, box, appearance, light, neighbors, surface, reconstructed, 0);
         }
         Cell(VsiFluidFloodedVoxel voxel, AABB box, FluidAppearance appearance, int light,
-            List<VsiFluidFloodedVoxel> neighbors, org.valkyrienskies.core.internal.physics.VsiFluidSurfaceRegion surface) {
+            List<VsiFluidFloodedVoxel> neighbors, VsiFluidSurfaceRegion surface) {
             this(voxel, box, appearance, light, neighbors, surface, null);
         }
         Cell(VsiFluidFloodedVoxel voxel, AABB box, FluidAppearance appearance, int light, List<VsiFluidFloodedVoxel> neighbors) {
@@ -257,7 +268,7 @@ public final class RetainedFluidRenderer {
                             && coverage.covers(currentTransform, voxel, fluid)) continue;
                         final var appearance = FluidAppearance.resolve(level, position, fluid.defaultFluidState());
                         if (appearance == null) continue;
-                        next.computeIfAbsent(new SectionKey(key, nativeMaterial && fluid.defaultFluidState().is(net.minecraft.tags.FluidTags.LAVA)), ignored -> new ArrayList<>()).add(new Cell(shape, null, appearance,
+                        next.computeIfAbsent(new SectionKey(key, nativeMaterial && fluid.defaultFluidState().is(FluidTags.LAVA)), ignored -> new ArrayList<>()).add(new Cell(shape, null, appearance,
                             appearance.light(level.hasChunkAt(position) ? LevelRenderer.getLightColor(level, position) : LightTexture.FULL_BRIGHT),
                             surfaceNeighbors, FluidVoxelGeometry.withoutCurrent(region), rebuilt, solidFaces));
                     }
@@ -274,7 +285,7 @@ public final class RetainedFluidRenderer {
                     final var neighbors = new ArrayList<VsiFluidFloodedVoxel>(6);
                     for (final var offset : NEIGHBORS) neighbors.add(geometry(flooding.get(
                         voxel.getPositionX() + offset[0], voxel.getPositionY() + offset[1], voxel.getPositionZ() + offset[2])));
-                    next.computeIfAbsent(new SectionKey(key, nativeMaterial && fluid.defaultFluidState().is(net.minecraft.tags.FluidTags.LAVA)), ignored -> new ArrayList<>()).add(new Cell(shape, null, appearance,
+                    next.computeIfAbsent(new SectionKey(key, nativeMaterial && fluid.defaultFluidState().is(FluidTags.LAVA)), ignored -> new ArrayList<>()).add(new Cell(shape, null, appearance,
                         appearance.light(level.hasChunkAt(position) ? LevelRenderer.getLightColor(level, position) : LightTexture.FULL_BRIGHT), neighbors));
                 } else {
                     FluidVoxelGeometry.forEachFlooded(voxel, (id, box) -> {
@@ -285,7 +296,7 @@ public final class RetainedFluidRenderer {
                         final BlockPos position = BlockPos.containing(surface.x, surface.y, surface.z);
                         final var appearance = FluidAppearance.resolve(level, position, fluid.defaultFluidState());
                         if (appearance == null) return;
-                        next.computeIfAbsent(new SectionKey(key, nativeMaterial && fluid.defaultFluidState().is(net.minecraft.tags.FluidTags.LAVA)), ignored -> new ArrayList<>()).add(new Cell(shape, box, appearance,
+                        next.computeIfAbsent(new SectionKey(key, nativeMaterial && fluid.defaultFluidState().is(FluidTags.LAVA)), ignored -> new ArrayList<>()).add(new Cell(shape, box, appearance,
                             appearance.light(level.hasChunkAt(position) ? LevelRenderer.getLightColor(level, position) : LightTexture.FULL_BRIGHT), List.of()));
                     });
                 }
@@ -312,7 +323,7 @@ public final class RetainedFluidRenderer {
     static final class Mesh implements AutoCloseable {
         final Vector3d origin;
         private List<Cell> cells = List.of();
-        private final java.util.Set<net.minecraft.client.renderer.texture.TextureAtlasSprite> sprites = new HashSet<>();
+        private final Set<TextureAtlasSprite> sprites = new HashSet<>();
         private boolean built;
         private boolean packFormat;
         private VertexBuffer buffer;

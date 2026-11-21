@@ -2,7 +2,9 @@ package org.valkyrienskies.mod.mixin.feature.transform_particles;
 
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.Particle;
+import net.minecraft.util.Mth;
 import org.joml.Matrix4dc;
+import org.valkyrienskies.mod.client.ShipParticlePlacement;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -17,6 +19,9 @@ public abstract class MixinParticle {
 
     @Shadow
     public abstract void setPos(double x, double y, double z);
+
+    @Shadow
+    public abstract void remove();
 
     @Shadow
     protected double xd;
@@ -45,8 +50,22 @@ public abstract class MixinParticle {
     )
     public void checkShipCoords(final ClientLevel world, final double x, final double y, final double z,
         final CallbackInfo ci) {
-        final ClientShip ship = VSGameUtilsKt.getLoadedShipManagingPos(world, (int) x >> 4, (int) z >> 4);
+        final ClientShip ship = VSGameUtilsKt.getLoadedShipManagingPos(world, Mth.floor(x) >> 4, Mth.floor(z) >> 4);
         if (ship == null) {
+            return;
+        }
+        final var pieces = VSGameUtilsKt.getAllShips(world).getSplitPieces(ship.getId());
+        if (!pieces.isEmpty()) {
+            final var piece = ShipParticlePlacement.piece(pieces, x, y, z);
+            if (piece == null) {
+                remove();
+                return;
+            }
+            final var p = piece.getShipToWorld().transformPosition(new Vector3d(x, y, z));
+            this.setPos(p.x, p.y, p.z);
+            this.xo = p.x;
+            this.yo = p.y;
+            this.zo = p.z;
             return;
         }
         // in-world position
@@ -75,11 +94,21 @@ public abstract class MixinParticle {
         final double velocityX,
         final double velocityY, final double velocityZ, final CallbackInfo ci) {
 
-        final ClientShip ship = VSGameUtilsKt.getLoadedShipManagingPos(world, (int) x >> 4, (int) z >> 4);
+        final ClientShip ship = VSGameUtilsKt.getLoadedShipManagingPos(world, Mth.floor(x) >> 4, Mth.floor(z) >> 4);
         if (ship == null) {
             return;
         }
 
+        final var pieces = VSGameUtilsKt.getAllShips(world).getSplitPieces(ship.getId());
+        if (!pieces.isEmpty()) {
+            final var piece = ShipParticlePlacement.piece(pieces, x, y, z);
+            if (piece == null) return;
+            final var v = ShipParticlePlacement.velocity(piece, ship, xd, yd, zd);
+            this.xd = v.x;
+            this.yd = v.y;
+            this.zd = v.z;
+            return;
+        }
         final Matrix4dc transform = ship.getTransform().getShipToWorld();
         // in-world position
         final Vector3d p = transform.transformPosition(new Vector3d(x, y, z));

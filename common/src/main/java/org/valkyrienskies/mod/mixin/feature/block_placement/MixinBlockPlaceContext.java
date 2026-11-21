@@ -37,7 +37,7 @@ public abstract class MixinBlockPlaceContext extends UseOnContext {
     private Direction[] transformPlayerBeforeGettingNearest(final Entity entity,
         final Operation<Direction[]> orderedByNearest) {
         if (entity instanceof Player) {
-            return PlayerUtil.transformPlayerTemporarily((Player) entity, this.getLevel(), this.getClickedPos(),
+            return PlayerUtil.withPlacementPose((Player) entity, this.getLevel(), this.getClickedPos(), this.getClickLocation(),
                 () -> orderedByNearest.call(entity));
         } else {
             return orderedByNearest.call(entity);

@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.common
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider
 import net.minecraft.client.Minecraft
+import org.valkyrienskies.core.api.ships.ShipPhysicalPiece
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.core.BlockPos
@@ -27,6 +28,7 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunkSection
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.phys.AABB
+import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.Vec3
 import org.joml.Vector3d
 import org.joml.Vector3dc
@@ -56,6 +58,7 @@ import org.valkyrienskies.mod.common.entity.ShipMountedToDataProvider
 import org.valkyrienskies.mod.common.fluid.FractionalFluidSources
 import org.valkyrienskies.mod.common.util.DimensionIdProvider
 import org.valkyrienskies.mod.common.util.EntityDragger.serversidePosition
+import org.valkyrienskies.mod.common.util.ClippedShipBox
 import org.valkyrienskies.mod.common.util.EntityShipCollisionUtils
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.common.util.set
@@ -230,6 +233,68 @@ fun Level?.squaredDistanceBetweenInclShips(
     val dz = inWorldZ2 - inWorldZ1
 
     return dx * dx + dy * dy + dz * dz
+}
+
+internal fun retainedUsePiece(pieces: List<ShipPhysicalPiece>, hit: Vec3, eye: Vec3, cell: BlockPos? = null): ShipPhysicalPiece? {
+    var nearest: ShipPhysicalPiece? = null
+    var best = Double.POSITIVE_INFINITY
+    val world = Vector3d()
+    for (piece in pieces) {
+        piece.shipToWorld.transformPosition(hit.x, hit.y, hit.z, world)
+        var onSeam = false
+        var retained = true
+        for (plane in piece.clippingPlanes) {
+            val side = plane.x() * world.x + plane.y() * world.y + plane.z() * world.z + plane.w()
+            if (side < -1e-6) {
+                retained = false
+                break
+            }
+            if (side <= 1e-6) onSeam = true
+        }
+        if (!retained) continue
+        if (onSeam && cell != null) {
+            val bounds = AABBd(cell.x.toDouble(), cell.y.toDouble(), cell.z.toDouble(), cell.x + 1.0, cell.y + 1.0, cell.z + 1.0)
+            if (ClippedShipBox.classify(bounds, piece) == ClippedShipBox.Location.REMOVED) continue
+        }
+        val distance = world.distanceSquared(eye.x, eye.y, eye.z)
+        if (distance < best) {
+            best = distance
+            nearest = piece
+        }
+    }
+    return nearest
+}
+
+fun Level.squaredDistanceToUseHit(hit: BlockHitResult, observer: Vec3): Double {
+    val center = hit.blockPos.center
+    val ship = getShipManagingPos(hit.blockPos) ?: return observer.distanceToSqr(center)
+    val eye = toWorldCoordinates(observer)
+    val pieces = allShips.getSplitPieces(ship.id)
+    if (pieces.isEmpty()) return eye.distanceToSqr(ship.toWorldCoordinates(center))
+    val piece = retainedUsePiece(pieces, hit.location, eye, hit.blockPos) ?: return Double.POSITIVE_INFINITY
+    return piece.shipToWorld.transformPosition(center.toJOML()).distanceSquared(eye.x, eye.y, eye.z)
+}
+
+fun Level.squaredDistanceToPhysicalBlock(pos: BlockPos, observer: Vec3): Double {
+    val eye = toWorldCoordinates(observer)
+    val center = Vec3.atCenterOf(pos)
+    val ship = getShipManagingPos(pos) ?: return eye.distanceToSqr(center)
+    val pieces = allShips.getSplitPieces(ship.id)
+    if (pieces.isEmpty()) return eye.distanceToSqr(ship.toWorldCoordinates(center))
+    val cell = AABBd(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble(),
+        pos.x + 1.0, pos.y + 1.0, pos.z + 1.0)
+    val point = Vector3d()
+    var closest = Double.POSITIVE_INFINITY
+    for (piece in pieces) {
+        when (ClippedShipBox.classify(cell, piece)) {
+            ClippedShipBox.Location.REMOVED -> continue
+            ClippedShipBox.Location.CUT -> if (ClippedShipBox.clip(cell, piece) == null) continue
+            ClippedShipBox.Location.RETAINED -> Unit
+        }
+        piece.shipToWorld.transformPosition(center.x, center.y, center.z, point)
+        closest = minOf(closest, point.distanceSquared(eye.x, eye.y, eye.z))
+    }
+    return closest
 }
 
 private fun getShipObjectManagingPosImpl(world: Level?, chunkX: Int, chunkZ: Int): LoadedShip? {

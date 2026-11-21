@@ -12,17 +12,11 @@ import org.valkyrienskies.mod.common.vsCore
 import java.lang.ref.WeakReference
 import java.util.UUID
 
-/**
- * A connection's stable [VsiPlayer], rebound when respawn replaces its [Player] entity.
- * Identity is deliberately per wrapper, not per account UUID: a reconnect needs fresh tracking,
- * whereas respawn must retain this exact wrapper and all of its existing tracking state.
- */
+/** Stable per connection, not per account UUID: reconnects need fresh tracking. */
 class MinecraftPlayer(playerObject: Player) : VsiPlayer {
 
     override val uuid: UUID = playerObject.uuid
 
-    // Network readers may retain this wrapper across a game-thread respawn. Replace the weak
-    // reference rather than clearing it, so they see either complete entity reference.
     @Volatile
     var playerEntityReference: WeakReference<Player> = WeakReference(playerObject)
         private set

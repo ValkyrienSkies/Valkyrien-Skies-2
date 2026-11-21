@@ -16,8 +16,6 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.HitResult.Type;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
-import org.joml.Quaterniond;
-import org.joml.Quaterniondc;
 import org.joml.Quaternionf;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
@@ -28,11 +26,13 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
-import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.mod.client.IVSCamera;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
+import org.valkyrienskies.mod.mixinducks.client.player.LocalPlayerDuck;
 
 @Mixin(Camera.class)
 public abstract class MixinCamera implements IVSCamera {
@@ -128,21 +128,23 @@ public abstract class MixinCamera implements IVSCamera {
         }
     }
 
-    @Unique
-    private void setRotationWithShipTransform(final float yaw, final float pitch, final ShipTransform renderTransform) {
-        final Quaterniondc originalRotation =
-            new Quaterniond().rotateY(Math.toRadians(-yaw)).rotateX(Math.toRadians(pitch)).normalize();
-        final Quaterniondc newRotation =
-            renderTransform.getShipCoordinatesToWorldCoordinatesRotation().mul(originalRotation, new Quaterniond());
-        this.xRot = pitch;
-        this.yRot = yaw;
-        this.rotation.set(newRotation);
-        this.forwards.set(0.0F, 0.0F, 1.0F);
-        this.rotation.transform(this.forwards);
-        this.up.set(0.0F, 1.0F, 0.0F);
-        this.rotation.transform(this.up);
-        this.left.set(1.0F, 0.0F, 0.0F);
-        this.rotation.transform(this.left);
+    @Inject(method = "setRotation", at = @At("TAIL"))
+    private void vs$applyMountedRoll(final float yaw, final float pitch, final CallbackInfo ci) {
+        if (this.entity == null || !(VSGameUtilsKt.getShipMountedTo(this.entity) instanceof ClientShip ship)) {
+            this.vs$zRot = 0.0F;
+            return;
+        }
+
+        final Vector3d shipUp = ship.getRenderTransform().getRotation().transform(new Vector3d(0.0, 1.0, 0.0));
+        if (this.entity instanceof LocalPlayerDuck player && player.vs$getMountedCameraRotation().isMounted()) {
+            player.vs$getMountedCameraRotation().getRotation().transform(shipUp.set(0.0, 1.0, 0.0));
+        }
+        final double up = shipUp.dot(this.up.x(), this.up.y(), this.up.z());
+        final double left = shipUp.dot(this.left.x(), this.left.y(), this.left.z());
+        if (up * up + left * left > 1.0E-12) {
+            this.vs$zRot = (float) Math.toDegrees(Math.atan2(-left, up));
+        }
+        this.setRotationVS(yaw, pitch, this.vs$zRot);
     }
 
     /**

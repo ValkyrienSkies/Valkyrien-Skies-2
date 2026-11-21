@@ -153,7 +153,7 @@ class RetainedFluidBlockInteractions {
                                     else Blocks.WET_SPONGE.defaultBlockState()
                                 check(level.setBlock(pos, wet, 2)) { "Could not complete retained-water absorption" }
                                 if (!target.farmland)
-                                    level.levelEvent(2001, pos, net.minecraft.world.level.block.Block.getId(Blocks.WATER.defaultBlockState()))
+                                    level.levelEvent(2001, pos, Block.getId(Blocks.WATER.defaultBlockState()))
                             }
                         }
                     }
