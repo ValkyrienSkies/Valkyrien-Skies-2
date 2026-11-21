@@ -14,10 +14,7 @@ import org.junit.jupiter.api.Test
 
 class DecorativeBlockCollisionTest {
     companion object {
-        @BeforeAll @JvmStatic fun bootstrap() {
-            SharedConstants.tryDetectVersion()
-            Bootstrap.bootStrap()
-        }
+        @BeforeAll @JvmStatic fun bootstrap() { SharedConstants.tryDetectVersion(); Bootstrap.bootStrap() }
     }
 
     @Test

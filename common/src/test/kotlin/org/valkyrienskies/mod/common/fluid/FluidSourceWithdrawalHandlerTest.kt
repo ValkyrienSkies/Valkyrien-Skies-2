@@ -7,6 +7,28 @@ import org.valkyrienskies.core.internal.physics.VsiFluidSourceWithdrawal
 import org.valkyrienskies.core.internal.physics.VsiFluidSourceWithdrawalResult
 
 class FluidSourceWithdrawalHandlerTest {
+    private companion object {
+        const val SOURCE_BODY_ID = 7L
+        const val FLUID_ID = 3
+    }
+
+    private fun withdrawal(
+        sourceIsWorldBody: Boolean = false,
+        fillAmount: Int = 255
+    ) = VsiFluidSourceWithdrawal(
+        sequence = 1,
+        sourceRevision = 2,
+        dimensionId = "minecraft:overworld",
+        sourceBodyId = SOURCE_BODY_ID,
+        sourceIsWorldBody = sourceIsWorldBody,
+        destinationBodyId = 11,
+        sourcePositionX = 1,
+        sourcePositionY = 2,
+        sourcePositionZ = 3,
+        fluidId = FLUID_ID,
+        fillAmount = fillAmount
+    )
+
     @Test
     fun `accepts matching full ship source`() {
         assertNull(
@@ -95,27 +117,5 @@ class FluidSourceWithdrawalHandlerTest {
         assertEquals(VsiFluidSourceWithdrawalResult.STALE_SOURCE,
             FluidSourceWithdrawalHandler.validateSource(withdrawal(), SOURCE_BODY_ID + 1, null, knownEmpty = true))
         assertNull(FluidSourceWithdrawalHandler.validateSource(withdrawal(), SOURCE_BODY_ID, FLUID_ID, knownEmpty = true))
-    }
-
-    private fun withdrawal(
-        sourceIsWorldBody: Boolean = false,
-        fillAmount: Int = 255
-    ) = VsiFluidSourceWithdrawal(
-        sequence = 1,
-        sourceRevision = 2,
-        dimensionId = "minecraft:overworld",
-        sourceBodyId = SOURCE_BODY_ID,
-        sourceIsWorldBody = sourceIsWorldBody,
-        destinationBodyId = 11,
-        sourcePositionX = 1,
-        sourcePositionY = 2,
-        sourcePositionZ = 3,
-        fluidId = FLUID_ID,
-        fillAmount = fillAmount
-    )
-
-    private companion object {
-        const val SOURCE_BODY_ID = 7L
-        const val FLUID_ID = 3
     }
 }

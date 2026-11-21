@@ -17,12 +17,7 @@ import org.valkyrienskies.core.internal.physics.VsiFluidFloodedVoxel
 
 class WorldFluidCoverageTest {
     companion object {
-        @JvmStatic
-        @BeforeAll
-        fun bootstrapMinecraft() {
-            SharedConstants.tryDetectVersion()
-            Bootstrap.bootStrap()
-        }
+        @JvmStatic @BeforeAll fun bootstrap() { SharedConstants.tryDetectVersion(); Bootstrap.bootStrap() }
     }
 
     @Test

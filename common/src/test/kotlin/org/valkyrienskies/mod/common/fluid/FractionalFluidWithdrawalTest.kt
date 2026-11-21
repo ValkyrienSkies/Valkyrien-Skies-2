@@ -16,8 +16,8 @@ import org.valkyrienskies.core.internal.physics.VsiFluidSourceWithdrawal
 import org.valkyrienskies.core.internal.physics.VsiFluidSourceWithdrawalResult.*
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
-import org.valkyrienskies.mod.common.dimensionId
-import org.valkyrienskies.mod.common.getShipManagingPos
+import org.valkyrienskies.mod.api.dimensionId
+import org.valkyrienskies.mod.api.getShipManagingPos
 import org.valkyrienskies.mod.mixin.feature.fluid_escaping_ship_config.MixinSimpleWaterloggedBlock
 import java.math.BigDecimal
 
@@ -25,6 +25,7 @@ class FractionalFluidWithdrawalTest {
     companion object {
         @JvmStatic @BeforeAll fun bootstrap() { SharedConstants.tryDetectVersion(); Bootstrap.bootStrap() }
     }
+
     private val level = mockk<ServerLevel>()
     private val server = mockk<MinecraftServer>(moreInterfaces = arrayOf(IShipObjectWorldServerProvider::class))
     private val pos = BlockPos(-17, 4, 3)
@@ -32,13 +33,16 @@ class FractionalFluidWithdrawalTest {
     private var sources = FractionalFluidSources()
     private var state = Blocks.WATER.defaultBlockState()
     private var allowRemoval = true
+
     private fun event(amount: Int) = VsiFluidSourceWithdrawal(1, 1, dimension, 7, true, 8,
         pos.x, pos.y, pos.z, 11, amount)
+
     private fun amount() = sources.amount(dimension, pos.x, pos.y, pos.z, "minecraft:water")
 
-    @BeforeEach fun setup() {
+    @BeforeEach
+    fun setup() {
         mockkObject(MassDatapackResolver)
-        mockkStatic("org.valkyrienskies.mod.common.VSGameUtilsKt")
+        mockkStatic("org.valkyrienskies.mod.api.ValkyrienSkies")
         every { level.hasChunkAt(pos) } returns true
         every { level.getBlockState(pos) } answers { state }
         every { level.getShipManagingPos(pos) } returns null
@@ -51,9 +55,12 @@ class FractionalFluidWithdrawalTest {
             allowRemoval
         }
     }
-    @AfterEach fun cleanup() { unmockkAll() }
 
-    @Test fun `partial debit saves the remainder and only final debit removes the visual source`() {
+    @AfterEach
+    fun cleanup() = unmockkAll()
+
+    @Test
+    fun `partial debit saves the remainder and only final debit removes the visual source`() {
         assertEquals(APPLIED, FluidSourceWithdrawalHandler.apply(level, event(128)))
         assertEquals(BigDecimal(127), amount())
         assertEquals(Blocks.WATER.defaultBlockState(), state)
@@ -69,7 +76,8 @@ class FractionalFluidWithdrawalTest {
         assertEquals(0L, sources.retainedBytes)
     }
 
-    @Test fun `sub-unit remainder survives debit and reload and cannot fund an extra native unit`() {
+    @Test
+    fun `sub-unit remainder survives debit and reload and cannot fund an extra native unit`() {
         sources.setAmount(dimension, pos.x, pos.y, pos.z, "minecraft:water", BigDecimal("127.25"))
         assertEquals(APPLIED, FluidSourceWithdrawalHandler.apply(level, event(127)))
         sources = FractionalFluidSources().also { it.load(sources.save()) }
@@ -80,7 +88,8 @@ class FractionalFluidWithdrawalTest {
         verify(exactly = 0) { level.setBlock(any(), any(), any()) }
     }
 
-    @Test fun `capacity refusal leaves the full source untouched`() {
+    @Test
+    fun `capacity refusal leaves the full source untouched`() {
         sources = FractionalFluidSources(0)
         assertEquals(RETRY_LATER, FluidSourceWithdrawalHandler.apply(level, event(1)))
         assertNull(amount())
@@ -88,7 +97,8 @@ class FractionalFluidWithdrawalTest {
         verify(exactly = 0) { level.setBlock(any(), any(), any()) }
     }
 
-    @Test fun `partial waterlogging preserves the solid and clears only the final liquid`() {
+    @Test
+    fun `partial waterlogging preserves the solid and clears only the final liquid`() {
         state = Blocks.OAK_SLAB.defaultBlockState().setValue(BlockStateProperties.WATERLOGGED, true)
         val solid = state
         assertEquals(APPLIED, FluidSourceWithdrawalHandler.apply(level, event(128)))
@@ -99,7 +109,8 @@ class FractionalFluidWithdrawalTest {
         assertNull(amount())
     }
 
-    @Test fun `vanilla flow queries exclude fractional donors without erasing waterlogged solid boundaries`() {
+    @Test
+    fun `vanilla flow queries exclude fractional donors without erasing waterlogged solid boundaries`() {
         val water = Blocks.WATER.defaultBlockState()
         assertFalse(FractionalFluidSources.owns(level, pos))
         assertSame(water, FractionalFluidSources.vanillaFlowState(level, pos, water))
@@ -115,7 +126,8 @@ class FractionalFluidWithdrawalTest {
         assertTrue(FractionalFluidSources.vanillaFlowState(level, pos, water).isAir)
     }
 
-    @Test fun `waterlogged pickup refuses a remainder and preserves ordinary full and dry behavior`() {
+    @Test
+    fun `waterlogged pickup refuses a remainder and preserves ordinary full and dry behavior`() {
         val pickup = object : MixinSimpleWaterloggedBlock {}
         val wet = Blocks.OAK_SLAB.defaultBlockState().setValue(BlockStateProperties.WATERLOGGED, true)
         sources.setAmount(dimension, pos.x, pos.y, pos.z, "minecraft:water", BigDecimal("127.25"))

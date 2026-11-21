@@ -58,11 +58,6 @@ class FluidNavigationHooksTest {
     private val nearby get() = arrayOf(NearbyShip(ship, AABBd(-2.0, -2.0, -2.0, 2.0, 2.0, 2.0),
         Matrix4d().translation(1000.0, 0.0, 0.0)))
 
-    private fun tagged(real: FluidState): FluidState = spyk(real).also {
-        every { it.`is`(FluidTags.WATER) } returns real.type.isSame(Fluids.WATER)
-        every { it.`is`(FluidTags.LAVA) } returns real.type.isSame(Fluids.LAVA)
-    }
-
     @BeforeEach
     fun setup() {
         oldAi = VSGameConfig.SERVER.aiOnShips
@@ -104,6 +99,11 @@ class FluidNavigationHooksTest {
         unmockkAll()
     }
 
+    private fun tagged(real: FluidState): FluidState = spyk(real).also {
+        every { it.`is`(FluidTags.WATER) } returns real.type.isSame(Fluids.WATER)
+        every { it.`is`(FluidTags.LAVA) } returns real.type.isSame(Fluids.LAVA)
+    }
+
     private fun invoke(type: Class<*>, target: Any?, name: String, vararg args: Any?): Any? =
         type.declaredMethods.single { it.name == name }.apply { isAccessible = true }.invoke(target, *args)
 
@@ -131,6 +131,7 @@ class FluidNavigationHooksTest {
                 invoke(MixinPathNavigationRegion::class.java, region, "vs\$frameAwareGetFluidState", BlockPos.ZERO, fluid)
                 val block = CallbackInfoReturnable("block", true, Blocks.WATER.defaultBlockState())
                 invoke(MixinPathNavigationRegion::class.java, region, "vs\$frameAwareGetBlockState", BlockPos.ZERO, block)
+
                 assertEquals(amount == 0, fluid.returnValue.isEmpty)
                 assertEquals(amount == 0, block.returnValue.isAir)
                 assertEquals(fluid.returnValue.amount, block.returnValue.fluidState.amount)
@@ -147,9 +148,11 @@ class FluidNavigationHooksTest {
                 val state = invoke(SwimNodeEvaluatorMixin::class.java, null, "vs\$peekFluid", level, BlockPos.ZERO,
                     Operation { Fluids.WATER.defaultFluidState() }) as FluidState
                 assertEquals(amount == 0, state.isEmpty)
+
                 val block = invoke(SwimNodeEvaluatorMixin::class.java, null, "vs\$peekBlock", level, BlockPos.ZERO,
                     Operation { Blocks.AIR.defaultBlockState() }) as BlockState
                 assertEquals(amount == 0, block.isAir)
+
                 for (vanilla in listOf(false, true)) {
                     assertEquals(amount > 0, invoke(SwimNodeEvaluatorMixin::class.java, target, "vs\$wrapIsPathFindable",
                         Blocks.WATER.defaultBlockState(), level, BlockPos.ZERO, PathComputationType.WATER,
@@ -214,6 +217,7 @@ class FluidNavigationHooksTest {
                     Operation { Fluids.WATER.defaultFluidState() }) as FluidState
                 assertEquals(amount == 0, result.isEmpty)
             }
+
             assertEquals(amount > 0, invoke(MixinBehaviorUtilsSwim::class.java, null, "vs\$shipAwareSwimmable",
                 Blocks.WATER.defaultBlockState(), level, BlockPos.ZERO, PathComputationType.WATER,
                 Operation { true }, mob))

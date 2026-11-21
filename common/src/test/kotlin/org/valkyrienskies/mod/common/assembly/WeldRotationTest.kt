@@ -16,6 +16,7 @@ class WeldRotationTest {
             val q = rotation.quaternion()
             val actual = rotation.transform(p.x, p.y, p.z)
             val expected = q.transform(Vector3d(p.x.toDouble(), p.y.toDouble(), p.z.toDouble()))
+
             assertEquals(0.0, expected.distance(Vector3d(actual.x.toDouble(), actual.y.toDouble(), actual.z.toDouble())), 1e-10)
             assertEquals(209, actual.x * actual.x + actual.y * actual.y + actual.z * actual.z)
         }
@@ -28,9 +29,11 @@ class WeldRotationTest {
         for (from in Direction.entries) for (to in Direction.entries) {
             val rotations = WeldRotation.candidates(from, to, Quaterniond())
             assertEquals(4, rotations.size)
+
             for (rotation in rotations) {
                 assertEquals(to.opposite, rotation.transform(from))
                 assertEquals(target.relative(to), rotation.destination(source, source, target, to))
+
                 val sourceFaceCenter = Vector3d(from.stepX * 0.5, from.stepY * 0.5, from.stepZ * 0.5)
                 val faceInTarget = rotation.quaternion().transform(sourceFaceCenter)
                     .add(to.stepX.toDouble(), to.stepY.toDouble(), to.stepZ.toDouble())

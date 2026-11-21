@@ -27,11 +27,14 @@ class DebugRendererCommandTest {
         every { source.hasPermission(2) } returns true
         val completions = dispatcher.getCompletionSuggestions(dispatcher.parse("vs debug renderer ", source)).get()
         assertEquals(setOf("none", "markers", "text", "full"), completions.list.map { it.text }.toSet())
+
         for (mode in listOf("none", "markers", "text", "full")) {
             val parsed = dispatcher.parse("vs debug renderer $mode", source)
+
             assertTrue(parsed.exceptions.isEmpty())
             assertFalse(parsed.reader.canRead())
         }
+        
         for (removed in listOf("on", "off", "test")) {
             assertThrows(CommandSyntaxException::class.java) {
                 dispatcher.execute("vs debug renderer $removed", source)
@@ -44,6 +47,7 @@ class DebugRendererCommandTest {
         val dispatcher = dispatcher()
         val source = mockk<CommandSourceStack>()
         every { source.hasPermission(2) } returns false
+
         assertThrows(CommandSyntaxException::class.java) {
             dispatcher.execute("vs debug renderer full", source)
         }

@@ -71,6 +71,7 @@ class PhysicsDebugPacketTest {
     fun `saved metadata preserves creation time and parent ID`() {
         val metadata = ShipDebugMetadata(1234, true, 20)
         val decoded = mapper.readValue(mapper.writeValueAsBytes(metadata), ShipDebugMetadata::class.java)
+
         assertEquals(metadata.createdGameTime, decoded.createdGameTime)
         assertEquals(metadata.creationTimeKnown, decoded.creationTimeKnown)
         assertEquals(metadata.parentShipId, decoded.parentShipId)

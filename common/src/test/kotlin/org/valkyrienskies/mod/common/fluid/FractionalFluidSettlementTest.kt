@@ -19,13 +19,14 @@ import org.valkyrienskies.core.internal.physics.VsiFluidOutflowResult
 import org.valkyrienskies.mod.common.BlockStateInfo
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
-import org.valkyrienskies.mod.common.dimensionId
+import org.valkyrienskies.mod.api.dimensionId
 import java.math.BigDecimal
 
 class FractionalFluidSettlementTest {
     companion object {
         private const val DIMENSION = "minecraft:overworld"
         private const val WATER = "minecraft:water"
+
         @JvmStatic @BeforeAll fun bootstrap() { SharedConstants.tryDetectVersion(); Bootstrap.bootStrap() }
     }
 
@@ -38,9 +39,42 @@ class FractionalFluidSettlementTest {
     private val levels get() = mapOf(DIMENSION to level)
     private var writes = 0
 
-    @BeforeEach fun setup() {
+    private fun ordinaryWrites() {
+        every { level.setBlock(any(), any(), any()) } answers {
+            writes++
+            blocks[firstArg<BlockPos>().immutable()] = secondArg()
+            true
+        }
+    }
+
+    private fun enqueue(volume: Double, x: Double = 0.5, y: Double = 1.5, vx: Double = 0.0) {
+        val event = VsiFluidOutflow(1, 1, 1, DIMENSION, 7, x, y, 0.5,
+            0.0, -1.0, 0.0, vx, 0.0, 0.0, 17, 255).copy(worldVolume = volume)
+        assertEquals(VsiFluidOutflowResult.APPLIED, manager.enqueue(level, event))
+    }
+
+    private fun amount(position: BlockPos = pos) = sources.amount(DIMENSION, position.x, position.y, position.z, WATER)
+
+    private fun assertAmount(expected: String, position: BlockPos = pos) =
+        assertEquals(0, BigDecimal(expected).compareTo(requireNotNull(amount(position))))
+
+    private fun entries() = manager.save().getList("parcels", Tag.TAG_COMPOUND.toInt())
+
+    private fun units(entry: CompoundTag, key: String = "volume"): BigDecimal =
+        if (entry.contains(key + "_units")) entry.getString(key + "_units").toBigDecimal()
+        else entry.getString(key).toBigDecimal() * BigDecimal(255)
+
+    private fun pending() = entries().fold(BigDecimal.ZERO) { total, entry -> total + units(entry as CompoundTag) }
+
+    private fun reload(parcelSave: CompoundTag = manager.save(), sourceSave: CompoundTag = sources.save()) {
+        sources = FractionalFluidSources().also { it.load(sourceSave) }
+        manager = WorldFluidOutflowManager(8, 8).also { it.load(parcelSave) }
+    }
+
+    @BeforeEach
+    fun setup() {
         mockkObject(MassDatapackResolver, BlockStateInfo)
-        mockkStatic("org.valkyrienskies.mod.common.VSGameUtilsKt")
+        mockkStatic("org.valkyrienskies.mod.api.ValkyrienSkies")
         every { MassDatapackResolver.getFlowingFluid(17) } returns Fluids.WATER
         every { level.server } returns server
         every { level.dimensionId } returns DIMENSION
@@ -58,36 +92,11 @@ class FractionalFluidSettlementTest {
         every { BlockStateInfo.onSourceAmountChanged(any(), any(), any(), any()) } just Runs
     }
 
-    @AfterEach fun cleanup() { unmockkAll() }
+    @AfterEach
+    fun cleanup() = unmockkAll()
 
-    private fun ordinaryWrites() {
-        every { level.setBlock(any(), any(), any()) } answers {
-            writes++
-            blocks[firstArg<BlockPos>().immutable()] = secondArg()
-            true
-        }
-    }
-
-    private fun enqueue(volume: Double, x: Double = 0.5, y: Double = 1.5, vx: Double = 0.0) {
-        val event = VsiFluidOutflow(1, 1, 1, DIMENSION, 7, x, y, 0.5,
-            0.0, -1.0, 0.0, vx, 0.0, 0.0, 17, 255).copy(worldVolume = volume)
-        assertEquals(VsiFluidOutflowResult.APPLIED, manager.enqueue(level, event))
-    }
-
-    private fun amount(position: BlockPos = pos) = sources.amount(DIMENSION, position.x, position.y, position.z, WATER)
-    private fun assertAmount(expected: String, position: BlockPos = pos) =
-        assertEquals(0, BigDecimal(expected).compareTo(requireNotNull(amount(position))))
-    private fun entries() = manager.save().getList("parcels", Tag.TAG_COMPOUND.toInt())
-    private fun units(entry: CompoundTag, key: String = "volume"): BigDecimal =
-        if (entry.contains(key + "_units")) entry.getString(key + "_units").toBigDecimal()
-        else entry.getString(key).toBigDecimal() * BigDecimal(255)
-    private fun pending() = entries().fold(BigDecimal.ZERO) { total, entry -> total + units(entry as CompoundTag) }
-    private fun reload(parcelSave: CompoundTag = manager.save(), sourceSave: CompoundTag = sources.save()) {
-        sources = FractionalFluidSources().also { it.load(sourceSave) }
-        manager = WorldFluidOutflowManager(8, 8).also { it.load(parcelSave) }
-    }
-
-    @Test fun `same visible flowing level accumulates exact amounts across reload`() {
+    @Test
+    fun `same visible flowing level accumulates exact amounts across reload`() {
         enqueue(0.125)
         manager.tick(levels)
         val state = blocks[pos]
@@ -103,7 +112,8 @@ class FractionalFluidSettlementTest {
         verify { BlockStateInfo.onSourceAmountChanged(level, pos, requireNotNull(state), 34) }
     }
 
-    @Test fun `refill retains its exact remainder until an undersized dry landing discards it`() {
+    @Test
+    fun `refill retains its exact remainder until an undersized dry landing discards it`() {
         blocks[pos] = Blocks.WATER.defaultBlockState()
         sources.setAmount(DIMENSION, 0, 1, 0, WATER, BigDecimal(29))
         enqueue(1.0)
@@ -124,7 +134,8 @@ class FractionalFluidSettlementTest {
         }.sorted())
     }
 
-    @Test fun `legacy rounded-up placement receipts survive repeated saves and finish once`() {
+    @Test
+    fun `legacy rounded-up placement receipts survive repeated saves and finish once`() {
         enqueue(0.249)
         every { level.setBlock(any(), any(), any()) } throws IllegalStateException("hold journal")
         assertThrows(IllegalStateException::class.java) { manager.tick(levels) }
@@ -144,7 +155,8 @@ class FractionalFluidSettlementTest {
         assertEquals(1, writes)
     }
 
-    @Test fun `failed and ambiguous world writes retain one owner through saved pending journals`() {
+    @Test
+    fun `failed and ambiguous world writes retain one owner through saved pending journals`() {
         for (applied in listOf(false, true)) {
             blocks.clear(); sources = FractionalFluidSources(); manager = WorldFluidOutflowManager(8, 8); writes = 0
             enqueue(0.125)
@@ -170,7 +182,8 @@ class FractionalFluidSettlementTest {
         }
     }
 
-    @Test fun `publication interruption after a same-state credit cannot replay the deposit`() {
+    @Test
+    fun `publication interruption after a same-state credit cannot replay the deposit`() {
         blocks[pos] = Blocks.WATER.defaultBlockState()
         sources.setAmount(DIMENSION, 0, 1, 0, WATER, BigDecimal("127.25"))
         enqueue(0.1)
@@ -187,7 +200,8 @@ class FractionalFluidSettlementTest {
         assertEquals(0, writes)
     }
 
-    @Test fun `capacity refusal occurs before mutation and can resume with storage available`() {
+    @Test
+    fun `capacity refusal occurs before mutation and can resume with storage available`() {
         sources = FractionalFluidSources(0)
         enqueue(0.125)
         assertThrows(FractionalFluidSources.StorageCapacityException::class.java) { manager.tick(levels) }
@@ -200,7 +214,8 @@ class FractionalFluidSettlementTest {
         assertEquals(0, manager.activeParcelCount())
     }
 
-    @Test fun `confirmed refusal restores carrier storage and a later accepted write succeeds`() {
+    @Test
+    fun `confirmed refusal restores carrier storage and a later accepted write succeeds`() {
         enqueue(0.125)
         every { level.setBlock(any(), any(), any()) } returns false
         manager.tick(levels)
@@ -213,7 +228,8 @@ class FractionalFluidSettlementTest {
         assertEquals(0, manager.activeParcelCount())
     }
 
-    @Test fun `waterlogged partial source refills without replacing its solid`() {
+    @Test
+    fun `waterlogged partial source refills without replacing its solid`() {
         val state = Blocks.OAK_SLAB.defaultBlockState().setValue(BlockStateProperties.WATERLOGGED, true)
         blocks[pos] = state
         sources.setAmount(DIMENSION, 0, 1, 0, WATER, BigDecimal("127.25"))
@@ -227,7 +243,8 @@ class FractionalFluidSettlementTest {
         assertAmount("152.75")
     }
 
-    @Test fun `moving parcel credits a partial source at its first crossed cell`() {
+    @Test
+    fun `moving parcel credits a partial source at its first crossed cell`() {
         blocks[BlockPos(1, 1, 0)] = Blocks.WATER.defaultBlockState()
         sources.setAmount(DIMENSION, 1, 1, 0, WATER, BigDecimal(29))
         enqueue(0.1, vx = 100.0)
@@ -236,7 +253,8 @@ class FractionalFluidSettlementTest {
         assertEquals(0, manager.activeParcelCount())
     }
 
-    @Test fun `malformed quantity intent cannot replace current parcel ownership`() {
+    @Test
+    fun `malformed quantity intent cannot replace current parcel ownership`() {
         enqueue(0.125)
         every { level.setBlock(any(), any(), any()) } throws IllegalStateException("hold journal")
         assertThrows(IllegalStateException::class.java) { manager.tick(levels) }
@@ -249,7 +267,8 @@ class FractionalFluidSettlementTest {
         }
     }
 
-    @Test fun `full refill waits for carrier capacity without releasing finite ownership`() {
+    @Test
+    fun `full refill waits for carrier capacity without releasing finite ownership`() {
         sources.setAmount(DIMENSION, 0, 1, 0, WATER, BigDecimal.ONE)
         val bytes = sources.retainedBytes
         val saved = sources.save()
@@ -268,7 +287,8 @@ class FractionalFluidSettlementTest {
         assertEquals(0, writes)
     }
 
-    @Test fun `a conflicting edit during placement cannot consume the parcel credit`() {
+    @Test
+    fun `a conflicting edit during placement cannot consume the parcel credit`() {
         enqueue(0.125)
         every { level.setBlock(any(), any(), any()) } answers {
             blocks[pos] = Blocks.STONE.defaultBlockState()
@@ -288,7 +308,8 @@ class FractionalFluidSettlementTest {
         assertEquals(0, manager.activeParcelCount())
     }
 
-    @Test fun `a successful write with a conflicting same-fluid callback retains its pending credit`() {
+    @Test
+    fun `a successful write with a conflicting same-fluid callback retains its pending credit`() {
         enqueue(1.0)
         every { level.setBlock(any(), any(), any()) } answers {
             blocks[pos] = Fluids.WATER.getFlowing(2, false).createLegacyBlock()
@@ -308,7 +329,8 @@ class FractionalFluidSettlementTest {
         assertEquals(0, manager.activeParcelCount())
     }
 
-    @Test fun `quantity journal storage is admitted before any carrier or world change`() {
+    @Test
+    fun `quantity journal storage is admitted before any carrier or world change`() {
         enqueue(0.125)
         val retained = manager.parcelStorageBytes()
         manager.maxParcelStorageBytes = retained

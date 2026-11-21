@@ -10,7 +10,6 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.LiquidBlock
 import net.minecraft.world.level.block.state.BlockState
-import net.minecraft.world.level.material.Fluids
 import org.joml.Vector3d
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
@@ -18,7 +17,10 @@ import org.valkyrienskies.core.internal.physics.VsiFluidOutflowResult
 import org.valkyrienskies.core.internal.physics.VsiFluidSourceWithdrawal
 import org.valkyrienskies.core.internal.physics.VsiFluidSourceWithdrawalResult
 import org.valkyrienskies.core.internal.world.chunks.VsiBlockType
-import org.valkyrienskies.mod.common.*
+import org.valkyrienskies.mod.api.dimensionId
+import org.valkyrienskies.mod.api.getShipManagingPos
+import org.valkyrienskies.mod.common.BlockStateInfo
+import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.config.VSGameConfig
 import java.math.BigDecimal
@@ -27,6 +29,7 @@ class SettledWaterSplashTest {
     companion object {
         private const val DIM = "minecraft:overworld"
         private const val WATER = "minecraft:water"
+
         @JvmStatic @BeforeAll fun bootstrap() { SharedConstants.tryDetectVersion(); Bootstrap.bootStrap() }
     }
 
@@ -38,43 +41,6 @@ class SettledWaterSplashTest {
     private val pos = BlockPos(0, 1, 0)
     private var oldLifetime = 0
     private var oldThreshold = 0.0
-
-    @BeforeEach fun setup() {
-        oldLifetime = VSGameConfig.SERVER.SpilledWater.splashLifetimeSeconds
-        oldThreshold = VSGameConfig.SERVER.SpilledWater.splashVolumeThreshold
-        VSGameConfig.SERVER.SpilledWater.splashLifetimeSeconds = 1
-        VSGameConfig.SERVER.SpilledWater.splashVolumeThreshold = 0.25
-        mockkObject(MassDatapackResolver, BlockStateInfo)
-        mockkStatic("org.valkyrienskies.mod.common.VSGameUtilsKt")
-        val server = mockk<MinecraftServer>(moreInterfaces = arrayOf(IShipObjectWorldServerProvider::class))
-        every { (server as IShipObjectWorldServerProvider).fractionalFluidSources } answers { sources }
-        every { (server as IShipObjectWorldServerProvider).shipObjectWorld } returns null
-        every { level.server } returns server
-        every { level.dimensionId } returns DIM
-        every { level.getShipManagingPos(any<BlockPos>()) } returns null
-        every { level.minBuildHeight } returns -64
-        every { level.maxBuildHeight } returns 320
-        every { level.hasChunkAt(any()) } returns true
-        every { level.players() } returns emptyList()
-        every { level.getBlockState(any()) } answers {
-            val at = firstArg<BlockPos>()
-            blocks[at] ?: if (at.y <= 0) Blocks.STONE.defaultBlockState() else Blocks.AIR.defaultBlockState()
-        }
-        every { level.getFluidState(any()) } answers { level.getBlockState(firstArg()).fluidState }
-        ordinaryWrites()
-        every { BlockStateInfo.onSourceAmountChanged(any(), any(), any(), any()) } just Runs
-        val waterType = mockk<VsiBlockType>()
-        every { MassDatapackResolver.getLiquidStateId(any()) } answers {
-            if (firstArg<BlockState>().fluidState.isEmpty) null else 17
-        }
-        every { MassDatapackResolver.getBlockStateType(any()) } returns waterType
-    }
-
-    @AfterEach fun cleanup() {
-        VSGameConfig.SERVER.SpilledWater.splashLifetimeSeconds = oldLifetime
-        VSGameConfig.SERVER.SpilledWater.splashVolumeThreshold = oldThreshold
-        unmockkAll()
-    }
 
     private fun ordinaryWrites() {
         every { level.setBlock(any(), any(), any()) } answers {
@@ -100,6 +66,45 @@ class SettledWaterSplashTest {
         sources = FractionalFluidSources().also { it.load(sources.save()) }
         assertEquals(bytes, sources.retainedBytes)
         manager = WorldFluidOutflowManager().also { it.load(manager.save()) }
+    }
+
+    @BeforeEach
+    fun setup() {
+        oldLifetime = VSGameConfig.SERVER.SpilledWater.splashLifetimeSeconds
+        oldThreshold = VSGameConfig.SERVER.SpilledWater.splashVolumeThreshold
+        VSGameConfig.SERVER.SpilledWater.splashLifetimeSeconds = 1
+        VSGameConfig.SERVER.SpilledWater.splashVolumeThreshold = 0.25
+        mockkObject(MassDatapackResolver, BlockStateInfo)
+        mockkStatic("org.valkyrienskies.mod.api.ValkyrienSkies")
+        val server = mockk<MinecraftServer>(moreInterfaces = arrayOf(IShipObjectWorldServerProvider::class))
+        every { (server as IShipObjectWorldServerProvider).fractionalFluidSources } answers { sources }
+        every { (server as IShipObjectWorldServerProvider).shipObjectWorld } returns null
+        every { level.server } returns server
+        every { level.dimensionId } returns DIM
+        every { level.getShipManagingPos(any<BlockPos>()) } returns null
+        every { level.minBuildHeight } returns -64
+        every { level.maxBuildHeight } returns 320
+        every { level.hasChunkAt(any()) } returns true
+        every { level.players() } returns emptyList()
+        every { level.getBlockState(any()) } answers {
+            val at = firstArg<BlockPos>()
+            blocks[at] ?: if (at.y <= 0) Blocks.STONE.defaultBlockState() else Blocks.AIR.defaultBlockState()
+        }
+        every { level.getFluidState(any()) } answers { level.getBlockState(firstArg()).fluidState }
+        ordinaryWrites()
+        every { BlockStateInfo.onSourceAmountChanged(any(), any(), any(), any()) } just Runs
+        val waterType = mockk<VsiBlockType>()
+        every { MassDatapackResolver.getLiquidStateId(any()) } answers {
+            if (firstArg<BlockState>().fluidState.isEmpty) null else 17
+        }
+        every { MassDatapackResolver.getBlockStateType(any()) } returns waterType
+    }
+
+    @AfterEach
+    fun cleanup() {
+        VSGameConfig.SERVER.SpilledWater.splashLifetimeSeconds = oldLifetime
+        VSGameConfig.SERVER.SpilledWater.splashVolumeThreshold = oldThreshold
+        unmockkAll()
     }
 
     @Test fun `small landed spray expires at its configured age across reload`() {

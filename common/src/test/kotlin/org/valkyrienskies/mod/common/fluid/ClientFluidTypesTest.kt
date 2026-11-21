@@ -126,11 +126,14 @@ class ClientFluidTypesTest {
         assertFalse(ShipFluidInteraction.samplePoint(level, Vec3(0.5, 0.5, 0.5)).flooded())
         receive(PacketSyncBlockStateInfo(emptyMap(), mapOf(17 to "minecraft:water")))
         assertSame(Fluids.WATER, ShipFluidInteraction.samplePoint(level, Vec3(0.5, 0.5, 0.5)).fluid())
+
         var retainedDepth = 0.0
         ShipFluidInteraction.prepareVolume(level, AABB(0.1, 0.1, 0.1, 0.9, 0.9, 0.9)).forEachRetained { fluid, depth ->
             assertTrue(fluid.type.isSame(Fluids.WATER))
+
             retainedDepth = depth
         }
+
         assertEquals(0.8, retainedDepth, 1e-8)
         assertTrue(CameraFluidState.sample(level, world, Vec3(0.5, 0.5, 0.5), Fluids.EMPTY.defaultFluidState(), true).submergedInShip())
         assertTrue(ShipFluidStateQueries.atWorld(level, 0.5, 0.5, 0.5)!!.fluid().type.isSame(Fluids.WATER))
@@ -143,12 +146,16 @@ class ClientFluidTypesTest {
         register(Blocks.LAVA.defaultBlockState(), 18)
         MassDatapackResolver.syncBlockStates(player)
         MassDatapackResolver.clearBlockStates(player)
+
         assertEquals(2, sent.size)
         assertFalse(sent[0].blockState2VS.isEmpty())
         assertTrue(sent[1].blockState2VS.isEmpty())
+
         for (packet in sent) {
             assertEquals(mapOf(17 to "minecraft:water", 18 to "minecraft:lava"), packet.liquidState2Fluid)
+
             receive(packet)
+
             assertSame(Fluids.WATER, ClientFluidTypes.get(17))
             assertSame(Fluids.LAVA, ClientFluidTypes.get(18))
         }
@@ -158,12 +165,14 @@ class ClientFluidTypesTest {
     @Test
     fun `server changes replace IDs and disconnect removes them without changing local server lookup`() {
         register(Blocks.WATER.defaultBlockState(), 17)
+
         assertSame(Fluids.WATER, MassDatapackResolver.getFlowingFluid(17))
         receive(PacketSyncBlockStateInfo(emptyMap(), mapOf(17 to "minecraft:water", 18 to "minecraft:lava")))
         receive(PacketSyncBlockStateInfo(emptyMap(), mapOf(17 to "minecraft:lava")))
         assertSame(Fluids.LAVA, ShipFluidInteraction.samplePoint(level, Vec3(0.5, 0.5, 0.5)).fluid())
         assertNull(ClientFluidTypes.get(18))
         assertSame(Fluids.WATER, MassDatapackResolver.getFlowingFluid(17))
+
         ClientFluidTypes.clear()
         assertNull(MassDatapackResolver.getFlowingFluid(17, true))
         assertSame(Fluids.WATER, MassDatapackResolver.getFlowingFluid(17, false))
@@ -172,6 +181,7 @@ class ClientFluidTypesTest {
     @Test
     fun `unknown or invalid fluid names do not resolve to water`() {
         receive(PacketSyncBlockStateInfo(emptyMap(), mapOf(17 to "missing:fluid", 18 to "bad name", 19 to "minecraft:empty")))
-        for (id in 17..19) assertNull(ClientFluidTypes.get(id))
+        for (id in 17..19)
+            assertNull(ClientFluidTypes.get(id))
     }
 }

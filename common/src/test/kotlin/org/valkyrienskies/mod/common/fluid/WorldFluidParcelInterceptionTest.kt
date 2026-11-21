@@ -25,6 +25,7 @@ import java.util.UUID
 class WorldFluidParcelInterceptionTest {
     companion object {
         private const val DIMENSION = "minecraft:overworld"
+
         @JvmStatic @BeforeAll fun bootstrap() { SharedConstants.tryDetectVersion(); Bootstrap.bootStrap() }
     }
 
@@ -37,7 +38,16 @@ class WorldFluidParcelInterceptionTest {
     private val receipts = HashMap<UUID, VsiFluidParcelInterceptionResult>()
     private val levels get() = mapOf(DIMENSION to level)
 
-    @BeforeEach fun setup() {
+    private fun manager(velocity: Double = -5.0, nanoTime: () -> Long = System::nanoTime): WorldFluidOutflowManager =
+        WorldFluidOutflowManager(8, 8, nanoTime).also {
+            assertEquals(VsiFluidOutflowResult.APPLIED, it.enqueue(level, VsiFluidOutflow(1, 1, 1, DIMENSION, 7,
+                .5, 100.5, .5, 0.0, -1.0, 0.0, 0.0, velocity, 0.0, 17, 510)))
+        }
+
+    private fun entry(manager: WorldFluidOutflowManager) = manager.save().getList("parcels", Tag.TAG_COMPOUND.toInt()).getCompound(0)
+
+    @BeforeEach
+    fun setup() {
         mockkObject(MassDatapackResolver)
         every { MassDatapackResolver.getFlowingFluid(17) } returns Fluids.WATER
         every { MassDatapackResolver.getLiquidStateId(any()) } returns 17
@@ -79,17 +89,11 @@ class WorldFluidParcelInterceptionTest {
         }
     }
 
-    @AfterEach fun cleanup() { ShipFluidCandidates.clear(world); unmockkAll() }
+    @AfterEach
+    fun cleanup() { ShipFluidCandidates.clear(world); unmockkAll() }
 
-    private fun manager(velocity: Double = -5.0, nanoTime: () -> Long = System::nanoTime): WorldFluidOutflowManager =
-        WorldFluidOutflowManager(8, 8, nanoTime).also {
-        assertEquals(VsiFluidOutflowResult.APPLIED, it.enqueue(level, VsiFluidOutflow(1, 1, 1, DIMENSION, 7,
-            .5, 100.5, .5, 0.0, -1.0, 0.0, 0.0, velocity, 0.0, 17, 510)))
-    }
-
-    private fun entry(manager: WorldFluidOutflowManager) = manager.save().getList("parcels", Tag.TAG_COMPOUND.toInt()).getCompound(0)
-
-    @Test fun `partial catch survives reload and debits the world parcel exactly once`() {
+    @Test
+    fun `partial catch survives reload and debits the world parcel exactly once`() {
         var manager = manager()
         manager.tick(levels)
         assertEquals(1, requests.size)
@@ -107,7 +111,8 @@ class WorldFluidParcelInterceptionTest {
         assertEquals(1, requests.size)
     }
 
-    @Test fun `a completed debit remains applied when later world access fails and reload retries motion`() {
+    @Test
+    fun `a completed debit remains applied when later world access fails and reload retries motion`() {
         var manager = manager()
         manager.tick(levels)
         val id = requests.keys.single()
@@ -125,7 +130,8 @@ class WorldFluidParcelInterceptionTest {
         assertEquals(1, requests.size)
     }
 
-    @Test fun `terrain before a receiver limits the native sweep and complete catches remove the parcel`() {
+    @Test
+    fun `terrain before a receiver limits the native sweep and complete catches remove the parcel`() {
         val manager = manager(-20.0)
         every { level.getBlockState(any()) } answers {
             if (firstArg<BlockPos>().y < 100) Blocks.STONE.defaultBlockState() else Blocks.AIR.defaultBlockState()
@@ -139,7 +145,8 @@ class WorldFluidParcelInterceptionTest {
         assertTrue(manager.save().getList("parcels", Tag.TAG_COMPOUND.toInt()).isEmpty())
     }
 
-    @Test fun `pressure motion does not replay the ships previous game tick movement`() {
+    @Test
+    fun `pressure motion does not replay the ships previous game tick movement`() {
         val current = ship.transform
         val previous = mockk<ShipTransform>()
         every { previous.positionInWorld } returns Vector3d(-20.0, 100.0, 0.0)
@@ -163,7 +170,8 @@ class WorldFluidParcelInterceptionTest {
         assertEquals(2.0, entry(manager).getString("volume").toDouble())
     }
 
-    @Test fun `compound domains outside the main hull and truncated publications remain candidates`() {
+    @Test
+    fun `compound domains outside the main hull and truncated publications remain candidates`() {
         fun candidates() = WorldFluidParcelReceivers.collect(world, DIMENSION,
             Vector3d(30.5, 100.5, .5), Vector3d(30.5, 100.0, .5), true) { }
         assertTrue(candidates()!!.isEmpty())

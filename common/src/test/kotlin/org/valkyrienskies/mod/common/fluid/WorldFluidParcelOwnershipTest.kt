@@ -27,6 +27,7 @@ import org.valkyrienskies.mod.api.vsCore
 class WorldFluidParcelOwnershipTest {
     companion object {
         private const val DIMENSION = "minecraft:overworld"
+
         @JvmStatic @BeforeAll fun bootstrap() { SharedConstants.tryDetectVersion(); Bootstrap.bootStrap() }
     }
 
@@ -40,7 +41,17 @@ class WorldFluidParcelOwnershipTest {
     private var fluidTicks = 0
     private val levels get() = mapOf(DIMENSION to level)
 
-    @BeforeEach fun setup() {
+    private fun outflow(fill: Int = 255, x: Double = 0.5, y: Double = 1.5, dimension: String = DIMENSION,
+        vx: Double = 0.0, fluid: Int = 17) = VsiFluidOutflow(1, 1, 1, dimension, 7, x, y, 0.5,
+        0.0, -1.0, 0.0, vx, 0.0, 0.0, fluid, fill)
+
+    private fun entries(manager: WorldFluidOutflowManager) = manager.save().getList("parcels", Tag.TAG_COMPOUND.toInt())
+    private fun pending(manager: WorldFluidOutflowManager) = entries(manager).sumOf { (it as CompoundTag).getString("volume").toDouble() }
+    private fun sources() = blocks.values.count { it.fluidState.isSource }
+
+
+    @BeforeEach
+    fun setup() {
         every { level.server } returns mockk<MinecraftServer>()
         mockkObject(MassDatapackResolver)
         every { MassDatapackResolver.getFlowingFluid(17) } returns Fluids.WATER
@@ -58,17 +69,11 @@ class WorldFluidParcelOwnershipTest {
         every { level.scheduleTick(any<BlockPos>(), any<Fluid>(), any<Int>()) } answers { fluidTicks++ }
     }
 
-    @AfterEach fun cleanup() { unmockkAll() }
+    @AfterEach
+    fun cleanup() = unmockkAll()
 
-    private fun outflow(fill: Int = 255, x: Double = 0.5, y: Double = 1.5, dimension: String = DIMENSION,
-        vx: Double = 0.0, fluid: Int = 17) = VsiFluidOutflow(1, 1, 1, dimension, 7, x, y, 0.5,
-        0.0, -1.0, 0.0, vx, 0.0, 0.0, fluid, fill)
-
-    private fun entries(manager: WorldFluidOutflowManager) = manager.save().getList("parcels", Tag.TAG_COMPOUND.toInt())
-    private fun pending(manager: WorldFluidOutflowManager) = entries(manager).sumOf { (it as CompoundTag).getString("volume").toDouble() }
-    private fun sources() = blocks.values.count { it.fluidState.isSource }
-
-    @Test fun `aggregate admission shares metadata and source growth without losing water`() {
+    @Test
+    fun `aggregate admission shares metadata and source growth without losing water`() {
         val manager = WorldFluidOutflowManager(8, 8)
         val empty = manager.parcelStorageBytes()
         manager.enqueue(level, outflow().copy(worldVolume = 3.25))
@@ -103,7 +108,8 @@ class WorldFluidParcelOwnershipTest {
         assertEquals(VsiFluidOutflowResult.RETRY_LATER, restored.enqueue(level, outflow(x = 30.5)))
     }
 
-    @Test fun `variable names are admitted before ownership and oversized owners fail explicitly`() {
+    @Test
+    fun `variable names are admitted before ownership and oversized owners fail explicitly`() {
         val manager = WorldFluidOutflowManager(8, 8)
         val empty = manager.parcelStorageBytes()
         manager.enqueue(level, outflow())
@@ -130,7 +136,8 @@ class WorldFluidParcelOwnershipTest {
         assertEquals(saved, fresh.save())
     }
 
-    @Test fun `restore reserves overlapping metadata and rolls back a malformed decoded suffix`() {
+    @Test
+    fun `restore reserves overlapping metadata and rolls back a malformed decoded suffix`() {
         val manager = WorldFluidOutflowManager(8, 8)
         val empty = manager.parcelStorageBytes()
         repeat(2) { manager.enqueue(level, outflow(x = it * 10.0 + 0.5)) }
@@ -153,7 +160,8 @@ class WorldFluidParcelOwnershipTest {
         assertEquals(empty, manager.parcelStorageBytes())
     }
 
-    @Test fun `a full parcel owner frees capacity during pressure without a normal world tick`() {
+    @Test
+    fun `a full parcel owner frees capacity during pressure without a normal world tick`() {
         var now = 0L
         val manager = WorldFluidOutflowManager(1, 1) { now }
         assertEquals(VsiFluidOutflowResult.APPLIED, manager.enqueue(level, outflow(510)))
@@ -179,7 +187,8 @@ class WorldFluidParcelOwnershipTest {
         assertEquals(0, manager.activeParcelCount())
     }
 
-    @Test fun `pressure clock retains fractional time and matches ordinary collision sampled motion`() {
+    @Test
+    fun `pressure clock retains fractional time and matches ordinary collision sampled motion`() {
         terrain = { if (it.x >= 2) Blocks.STONE.defaultBlockState() else Blocks.AIR.defaultBlockState() }
         var now = 7L
         val manager = WorldFluidOutflowManager(1, 1) { now }
@@ -204,7 +213,8 @@ class WorldFluidParcelOwnershipTest {
         assertEquals(reference.save(), manager.save())
     }
 
-    @Test fun `due motion requests another bounded pass without adding a 50 ms sleep per batch`() {
+    @Test
+    fun `due motion requests another bounded pass without adding a 50 ms sleep per batch`() {
         terrain = { Blocks.AIR.defaultBlockState() }
         var now = 0L
         val manager = WorldFluidOutflowManager(5, 2) { now }
@@ -223,7 +233,8 @@ class WorldFluidParcelOwnershipTest {
         assertEquals(saved, manager.save())
     }
 
-    @Test fun `pressure rotates the bounded parcel budget with the same 20 Hz trajectories`() {
+    @Test
+    fun `pressure rotates the bounded parcel budget with the same 20 Hz trajectories`() {
         terrain = { Blocks.AIR.defaultBlockState() }
         var now = 0L
         val manager = WorldFluidOutflowManager(32, 2) { now }
@@ -241,7 +252,8 @@ class WorldFluidParcelOwnershipTest {
         assertEquals(reference.save(), manager.save())
     }
 
-    @Test fun `pressure catch-up has a motion budget and preserves remaining debt across save load`() {
+    @Test
+    fun `pressure catch-up has a motion budget and preserves remaining debt across save load`() {
         terrain = { Blocks.AIR.defaultBlockState() }
         val manager = WorldFluidOutflowManager(2, 2) { 0L }
         manager.enqueue(level, outflow(y = 1_000_000.5))
@@ -267,7 +279,8 @@ class WorldFluidParcelOwnershipTest {
         assertEquals(2.0, pending(restored))
     }
 
-    @Test fun `unloaded pressure parcels retain water but do not accumulate motion through unavailable terrain`() {
+    @Test
+    fun `unloaded pressure parcels retain water but do not accumulate motion through unavailable terrain`() {
         terrain = { Blocks.AIR.defaultBlockState() }
         var now = 0L
         val manager = WorldFluidOutflowManager(1, 1) { now }
@@ -285,7 +298,8 @@ class WorldFluidParcelOwnershipTest {
         assertEquals(1.5, entries(manager).getCompound(0).getDouble("x"), 1e-12)
     }
 
-    @Test fun `large parcel materializes every full voxel without requiring more queue capacity`() {
+    @Test
+    fun `large parcel materializes every full voxel without requiring more queue capacity`() {
         val manager = WorldFluidOutflowManager(1, 1)
         assertEquals(VsiFluidOutflowResult.APPLIED, manager.enqueue(level, outflow(65535)))
         repeat(257) {
@@ -298,7 +312,8 @@ class WorldFluidParcelOwnershipTest {
         assertEquals(0, manager.activeParcelCount())
     }
 
-    @Test fun `fractional arrival adds to existing flowing liquid`() {
+    @Test
+    fun `fractional arrival adds to existing flowing liquid`() {
         val pos = BlockPos(0, 1, 0)
         blocks[pos] = Fluids.WATER.getFlowing(4, false).createLegacyBlock()
         val manager = WorldFluidOutflowManager()
@@ -309,7 +324,8 @@ class WorldFluidParcelOwnershipTest {
         assertEquals(1, fluidTicks)
     }
 
-    @Test fun `scaled physical quantities survive rejected writes and saves then settle at world scale`() {
+    @Test
+    fun `scaled physical quantities survive rejected writes and saves then settle at world scale`() {
         for ((volume, fullBlocks, flowingLevel) in listOf(
             Triple(0.125, 0, 1), Triple(0.249, 0, 1), Triple(8.0, 8, 0), Triple(4.75, 4, 6),
         )) {
@@ -334,7 +350,8 @@ class WorldFluidParcelOwnershipTest {
         }
     }
 
-    @Test fun `volume above double unit precision debits every placed block across reloads`() {
+    @Test
+    fun `volume above double unit precision debits every placed block across reloads`() {
         var manager = WorldFluidOutflowManager(1, 1)
         val original = java.math.BigDecimal("1.0E20")
         manager.enqueue(level, outflow().copy(worldVolume = 1e20))
@@ -351,7 +368,8 @@ class WorldFluidParcelOwnershipTest {
         assertEquals(4, sources())
     }
 
-    @Test fun `legacy integer fill checkpoints migrate to physical volume without requiring scale metadata`() {
+    @Test
+    fun `legacy integer fill checkpoints migrate to physical volume without requiring scale metadata`() {
         val manager = WorldFluidOutflowManager()
         manager.enqueue(level, outflow(511))
         val legacy = manager.save().apply { putInt("version", 1) }
@@ -372,7 +390,8 @@ class WorldFluidParcelOwnershipTest {
         assertEquals(0, restored.activeParcelCount())
     }
 
-    @Test fun `invalid physical quantities retain upstream ownership and cannot replace a saved owner`() {
+    @Test
+    fun `invalid physical quantities retain upstream ownership and cannot replace a saved owner`() {
         val manager = WorldFluidOutflowManager()
         for (volume in listOf(Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY, 0.0, -1.0)) {
             assertEquals(VsiFluidOutflowResult.RETRY_LATER,
@@ -389,7 +408,8 @@ class WorldFluidParcelOwnershipTest {
         }
     }
 
-    @Test fun `saved decimal scale and size are rejected atomically`() {
+    @Test
+    fun `saved decimal scale and size are rejected atomically`() {
         val manager = WorldFluidOutflowManager(2, 2)
         manager.enqueue(level, outflow(510))
         manager.enqueue(level, outflow(x = 8.5))
@@ -406,7 +426,8 @@ class WorldFluidParcelOwnershipTest {
         }
     }
 
-    @Test fun `saved deposited decimal bounds also apply to unavailable fluids`() {
+    @Test
+    fun `saved deposited decimal bounds also apply to unavailable fluids`() {
         val manager = WorldFluidOutflowManager(1, 1)
         manager.enqueue(level, outflow(510))
         every { level.setBlock(any(), any(), any()) } throws IllegalStateException("retain intent")
@@ -423,7 +444,8 @@ class WorldFluidParcelOwnershipTest {
         }
     }
 
-    @Test fun `finite double extremes preserve exact parcel ownership on repeated reload`() {
+    @Test
+    fun `finite double extremes preserve exact parcel ownership on repeated reload`() {
         for (volume in listOf(Double.MIN_VALUE, java.lang.Double.MIN_NORMAL, 1e-308, 0.125, 1e308, Double.MAX_VALUE)) {
             var manager = WorldFluidOutflowManager(1, 1)
             assertEquals(VsiFluidOutflowResult.APPLIED, manager.enqueue(level, outflow().copy(worldVolume = volume)))
@@ -435,7 +457,8 @@ class WorldFluidParcelOwnershipTest {
         }
     }
 
-    @Test fun `source history capacity is shared and returned when owners finish`() {
+    @Test
+    fun `source history capacity is shared and returned when owners finish`() {
         val manager = WorldFluidOutflowManager(100, 100, 96L)
         assertEquals(VsiFluidOutflowResult.APPLIED, manager.enqueue(level, outflow(x = 0.5).copy(worldVolume = 2.0)))
         assertEquals(VsiFluidOutflowResult.APPLIED, manager.enqueue(level, outflow(x = 10.5).copy(worldVolume = 2.0)))
@@ -459,7 +482,8 @@ class WorldFluidParcelOwnershipTest {
         assertEquals(VsiFluidOutflowResult.APPLIED, manager.enqueue(level, outflow(x = 20.5)))
     }
 
-    @Test fun `compact and single block parcels do not allocate hypothetical source history`() {
+    @Test
+    fun `compact and single block parcels do not allocate hypothetical source history`() {
         val manager = WorldFluidOutflowManager(2, 2, 1L)
         assertEquals(VsiFluidOutflowResult.APPLIED, manager.enqueue(level, outflow()))
         manager.tick(levels)
@@ -475,7 +499,8 @@ class WorldFluidParcelOwnershipTest {
         assertEquals(1, sources())
     }
 
-    @Test fun `history growth refuses before a write and preserves water through two cold reloads`() {
+    @Test
+    fun `history growth refuses before a write and preserves water through two cold reloads`() {
         var manager = WorldFluidOutflowManager(4, 4, 256L)
         assertEquals(VsiFluidOutflowResult.APPLIED, manager.enqueue(level, outflow().copy(worldVolume = 13.25)))
         assertThrows(WorldFluidOutflowManager.SourceStorageCapacityException::class.java) {
@@ -507,7 +532,8 @@ class WorldFluidParcelOwnershipTest {
             .map { it.fluidState.amount })
     }
 
-    @Test fun `capacity servicing lets a later owner release storage for a blocked history`() {
+    @Test
+    fun `capacity servicing lets a later owner release storage for a blocked history`() {
         for (perPass in listOf(1, 8)) {
             blocks.clear()
             val manager = WorldFluidOutflowManager(8, perPass, 128L)
@@ -526,7 +552,8 @@ class WorldFluidParcelOwnershipTest {
         }
     }
 
-    @Test fun `bounded pressure passes report exhaustion after every blocked owner has a turn`() {
+    @Test
+    fun `bounded pressure passes report exhaustion after every blocked owner has a turn`() {
         var now = 0L
         val manager = WorldFluidOutflowManager(8, 1, 96L) { now }
         manager.enqueue(level, outflow().copy(worldVolume = 4.0))
@@ -546,7 +573,8 @@ class WorldFluidParcelOwnershipTest {
         assertTrue(manager.peakSourceStorageBytes() <= manager.maxSourceStorageBytes)
     }
 
-    @Test fun `source restore admits old and new capacity atomically and refunds failed validation`() {
+    @Test
+    fun `source restore admits old and new capacity atomically and refunds failed validation`() {
         val manager = WorldFluidOutflowManager(8, 8, 512L)
         manager.enqueue(level, outflow().copy(worldVolume = Double.MAX_VALUE))
         manager.tick(levels)
@@ -583,7 +611,8 @@ class WorldFluidParcelOwnershipTest {
         assertEquals(0L, manager.sourceStorageBytes())
     }
 
-    @Test fun `large history saves in its prepaid array without a second sorting allocation`() {
+    @Test
+    fun `large history saves in its prepaid array without a second sorting allocation`() {
         val manager = WorldFluidOutflowManager(1, 1)
         manager.enqueue(level, outflow().copy(worldVolume = Double.MAX_VALUE))
         val saved = manager.save()
@@ -607,7 +636,8 @@ class WorldFluidParcelOwnershipTest {
         assertEquals(manager.allocatedSourceHistoryBytes() * 2, manager.sourceStorageBytes())
     }
 
-    @Test fun `large exact fractional debits and longest bounded coefficient survive reload`() {
+    @Test
+    fun `large exact fractional debits and longest bounded coefficient survive reload`() {
         val maximum = java.math.BigDecimal.valueOf(Double.MAX_VALUE)
         for (original in listOf(maximum, maximum.setScale(325))) {
             blocks.clear()
@@ -630,11 +660,12 @@ class WorldFluidParcelOwnershipTest {
         }
     }
 
-    @Test fun `smallest parcel merging into existing water keeps its exact deposit and scheduling receipt`() {
+    @Test
+    fun `smallest parcel merging into existing water keeps its exact deposit and scheduling receipt`() {
         blocks[BlockPos(0, 1, 0)] = Fluids.WATER.getFlowing(1, false).createLegacyBlock()
         val manager = WorldFluidOutflowManager(1, 1)
         manager.enqueue(level, outflow().copy(worldVolume = Double.MIN_VALUE))
-        every { level.scheduleTick(any<BlockPos>(), any<net.minecraft.world.level.material.Fluid>(), any<Int>()) } throws
+        every { level.scheduleTick(any<BlockPos>(), any<Fluid>(), any<Int>()) } throws
             IllegalStateException("retain scheduling receipt")
         assertThrows(IllegalStateException::class.java) { manager.tick(levels) }
         val saved = manager.save()
@@ -652,7 +683,8 @@ class WorldFluidParcelOwnershipTest {
         assertEquals(saved, manager.save())
     }
 
-    @Test fun `settlement rounds fractional tails down and discards tails below one layer`() {
+    @Test
+    fun `settlement rounds fractional tails down and discards tails below one layer`() {
         for (amount in listOf(1, 128, 254, 255, 256, 510, 511, 765)) {
             blocks.clear()
             val manager = WorldFluidOutflowManager(1, 1)
@@ -667,7 +699,8 @@ class WorldFluidParcelOwnershipTest {
         }
     }
 
-    @Test fun `existing flowing volume fills a source before its undersized remainder lands`() {
+    @Test
+    fun `existing flowing volume fills a source before its undersized remainder lands`() {
         blocks[BlockPos(0, 1, 0)] = Fluids.WATER.getFlowing(4, false).createLegacyBlock()
         val manager = WorldFluidOutflowManager()
         manager.enqueue(level, outflow(128))
@@ -679,7 +712,8 @@ class WorldFluidParcelOwnershipTest {
         assertEquals(0, blocks.values.count { !it.fluidState.isEmpty && !it.fluidState.isSource })
     }
 
-    @Test fun `same quantized flowing level is acknowledged without a failing identical write`() {
+    @Test
+    fun `same quantized flowing level is acknowledged without a failing identical write`() {
         val pos = BlockPos(0, 1, 0)
         blocks[pos] = Fluids.WATER.getFlowing(7, false).createLegacyBlock()
         val manager = WorldFluidOutflowManager()
@@ -691,7 +725,8 @@ class WorldFluidParcelOwnershipTest {
         assertEquals(1, fluidTicks)
     }
 
-    @Test fun `full falling flow cannot create a source without a positive deposit`() {
+    @Test
+    fun `full falling flow cannot create a source without a positive deposit`() {
         val pos = BlockPos(0, 1, 0)
         val falling = Fluids.WATER.getFlowing(8, true).createLegacyBlock()
         blocks[pos] = falling
@@ -726,7 +761,8 @@ class WorldFluidParcelOwnershipTest {
         assertEquals(2, sources())
     }
 
-    @Test fun `preexisting source still absorbs a newly arriving parcel`() {
+    @Test
+    fun `preexisting source still absorbs a newly arriving parcel`() {
         blocks[BlockPos(0, 0, 0)] = Fluids.WATER.getSource(false).createLegacyBlock()
         val manager = WorldFluidOutflowManager()
         manager.enqueue(level, outflow(510))
@@ -735,7 +771,8 @@ class WorldFluidParcelOwnershipTest {
         assertEquals(0, writes)
     }
 
-    @Test fun `remainder can merge into an unrelated source but never its own deposit`() {
+    @Test
+    fun `remainder can merge into an unrelated source but never its own deposit`() {
         blocks[BlockPos(0, 0, -1)] = Fluids.WATER.getSource(false).createLegacyBlock()
         val manager = WorldFluidOutflowManager()
         manager.enqueue(level, outflow(510))
@@ -747,7 +784,8 @@ class WorldFluidParcelOwnershipTest {
         assertEquals(1, writes, "The existing source absorbs the remainder without another source placement")
     }
 
-    @Test fun `blocked outlet retains accepted ownership without replacing the block`() {
+    @Test
+    fun `blocked outlet retains accepted ownership without replacing the block`() {
         val pos = BlockPos(0, 1, 0)
         val manager = WorldFluidOutflowManager()
         manager.enqueue(level, outflow())
@@ -757,7 +795,8 @@ class WorldFluidParcelOwnershipTest {
         assertEquals(0, writes)
     }
 
-    @Test fun `waterlogged block can absorb fluid without being replaced`() {
+    @Test
+    fun `waterlogged block can absorb fluid without being replaced`() {
         val pos = BlockPos(0, 1, 0)
         val slab = Blocks.OAK_SLAB.defaultBlockState().setValue(BlockStateProperties.WATERLOGGED, true)
         blocks[pos] = slab
@@ -769,7 +808,8 @@ class WorldFluidParcelOwnershipTest {
         assertEquals(0, writes)
     }
 
-    @Test fun `settlement remainder survives a full cavity and checkpoint before continuing`() {
+    @Test
+    fun `settlement remainder survives a full cavity and checkpoint before continuing`() {
         val pos = BlockPos(0, 1, 0)
         Direction.entries.forEach { blocks[pos.relative(it)] = Blocks.STONE.defaultBlockState() }
         val manager = WorldFluidOutflowManager(1, 1)
@@ -787,7 +827,8 @@ class WorldFluidParcelOwnershipTest {
         assertEquals(0, restored.activeParcelCount())
     }
 
-    @Test fun `full scheduling rotation catches up to unbudgeted 20 Hz motion including collisions`() {
+    @Test
+    fun `full scheduling rotation catches up to unbudgeted 20 Hz motion including collisions`() {
         terrain = { if (it.x >= 2) Blocks.STONE.defaultBlockState() else Blocks.AIR.defaultBlockState() }
         val reference = WorldFluidOutflowManager(1, 1)
         val budgeted = WorldFluidOutflowManager(32, 2)
@@ -803,7 +844,8 @@ class WorldFluidParcelOwnershipTest {
         assertTrue(actual.getDouble("y") < 99.0)
     }
 
-    @Test fun `unavailable chunks pause motion without accumulating a large catch-up`() {
+    @Test
+    fun `unavailable chunks pause motion without accumulating a large catch-up`() {
         terrain = { Blocks.AIR.defaultBlockState() }
         val manager = WorldFluidOutflowManager(1, 1)
         manager.enqueue(level, outflow(y = 100.5, vx = 20.0))
@@ -816,7 +858,8 @@ class WorldFluidParcelOwnershipTest {
         assertEquals(1.5, entries(manager).getCompound(0).getDouble("x"), 1e-12)
     }
 
-    @Test fun `catch-up cannot cross an unloaded chunk and restores its attempted step velocity`() {
+    @Test
+    fun `catch-up cannot cross an unloaded chunk and restores its attempted step velocity`() {
         terrain = { Blocks.AIR.defaultBlockState() }
         loaded = { it.x < 1 }
         val manager = WorldFluidOutflowManager(1, 1)
@@ -832,7 +875,8 @@ class WorldFluidParcelOwnershipTest {
         assertEquals(1.5, entries(manager).getCompound(0).getDouble("x"), 1e-12)
     }
 
-    @Test fun `capacity and unsupported input retain upstream ownership`() {
+    @Test
+    fun `capacity and unsupported input retain upstream ownership`() {
         val manager = WorldFluidOutflowManager(1, 1)
         assertEquals(VsiFluidOutflowResult.RETRY_LATER, manager.enqueue(null, outflow()))
         every { MassDatapackResolver.getFlowingFluid(19) } returns null
@@ -842,7 +886,8 @@ class WorldFluidParcelOwnershipTest {
         assertEquals(2.0, pending(manager))
     }
 
-    @Test fun `every accepted parcel is saveable before its first motion step`() {
+    @Test
+    fun `every accepted parcel is saveable before its first motion step`() {
         val manager = WorldFluidOutflowManager()
         assertEquals(VsiFluidOutflowResult.RETRY_LATER, manager.enqueue(level, outflow(x = Double.NaN)))
         assertEquals(VsiFluidOutflowResult.RETRY_LATER, manager.enqueue(level, outflow(0)))
@@ -854,7 +899,8 @@ class WorldFluidParcelOwnershipTest {
         assertEquals(0.0, entries(restored).getCompound(0).getDouble("vx"))
     }
 
-    @Test fun `checkpoint retains names dimensions scheduling lag and motion without runtime fluid ids`() {
+    @Test
+    fun `checkpoint retains names dimensions scheduling lag and motion without runtime fluid ids`() {
         terrain = { Blocks.AIR.defaultBlockState() }
         val manager = WorldFluidOutflowManager(4, 1)
         manager.enqueue(level, outflow(510, y = 100.5, vx = 3.0))
@@ -874,7 +920,8 @@ class WorldFluidParcelOwnershipTest {
         assertEquals(manager.save(), restored.save(), "Teardown must retain saveable parcel ownership")
     }
 
-    @Test fun `missing mod fluid remains paused and survives repeated saves`() {
+    @Test
+    fun `missing mod fluid remains paused and survives repeated saves`() {
         val manager = WorldFluidOutflowManager()
         manager.enqueue(level, outflow(510))
         val saved = manager.save()
@@ -886,7 +933,8 @@ class WorldFluidParcelOwnershipTest {
         assertEquals(0, writes)
     }
 
-    @Test fun `malformed checkpoint is rejected atomically`() {
+    @Test
+    fun `malformed checkpoint is rejected atomically`() {
         val manager = WorldFluidOutflowManager()
         manager.enqueue(level, outflow(510))
         val before = manager.save()
@@ -899,8 +947,9 @@ class WorldFluidParcelOwnershipTest {
         assertEquals(before, manager.save())
     }
 
-    @Test fun `ShipSavedData serializes and restores the actual parcel owner beside pipeline data`() {
-        mockkStatic("org.valkyrienskies.mod.common.VSGameUtilsKt")
+    @Test
+    fun `ShipSavedData serializes and restores the actual parcel owner beside pipeline data`() {
+        mockkStatic("org.valkyrienskies.mod.api.ValkyrienSkies")
         val core = mockk<VsiCore>()
         val pipeline = mockk<VsiPipeline>()
         every { vsCore } returns core
