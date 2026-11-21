@@ -6,9 +6,9 @@ import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands.argument
 import net.minecraft.commands.Commands.literal
 import org.valkyrienskies.core.api.ships.Ship
+import org.valkyrienskies.mod.api.getLevel
+import org.valkyrienskies.mod.api.toMinecraft
 import org.valkyrienskies.mod.common.command.arguments.ShipArgument
-import org.valkyrienskies.mod.common.getLevelFromDimensionId
-import org.valkyrienskies.mod.common.util.toMinecraft
 
 object VanillaExecuteCommand {
     private const val PERMISSION_LEVEL = 2
@@ -38,7 +38,7 @@ object VanillaExecuteCommand {
     }
 
     private fun CommandSourceStack.atShip(ship: Ship): CommandSourceStack {
-        val level = server.getLevelFromDimensionId(ship.chunkClaimDimension) ?: level
+        val level = server.getLevel(ship.chunkClaimDimension) ?: level
         return withLevel(level)
             .withPosition(ship.transform.positionInWorld.toMinecraft())
     }

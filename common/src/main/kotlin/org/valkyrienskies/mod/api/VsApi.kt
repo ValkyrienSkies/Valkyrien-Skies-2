@@ -95,10 +95,19 @@ interface VsApi : VsCoreApi {
      * Returns the [ClientShipWorld] associated with the given [Minecraft]
      * if it exists.
      *
-     * This will return null if there is no [ClientShipWorld] associated with
-     * [client]
+     * This will return null if the player is not logged into a world (there is no [ClientShipWorld] associated with
+     * [client])
      */
     fun getClientShipWorld(client: Minecraft?): ClientShipWorld?
+
+    /**
+     * Returns the [ClientShipWorld] associated with the given [ClientLevel]
+     * if it exists.
+     *
+     * This will return null if the player is not logged into a world (there is no [ClientShipWorld] associated with
+     * [clientLevel])
+     */
+    fun getClientShipWorld(clientLevel: ClientLevel?): ClientShipWorld?
 
     /**
      * Returns the [ShipWorld] associated with the given [Level] if it exists.

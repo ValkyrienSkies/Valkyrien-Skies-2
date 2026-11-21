@@ -8,9 +8,9 @@ import org.joml.Vector3ic
 import org.valkyrienskies.core.internal.world.chunks.VsiTerrainUpdate
 import org.valkyrienskies.mod.api.vsApi
 import org.valkyrienskies.mod.common.config.VSGameConfig
-import org.valkyrienskies.mod.common.shipObjectWorld
-import org.valkyrienskies.mod.common.toDenseVoxelUpdate
-import org.valkyrienskies.mod.common.vsCore
+import org.valkyrienskies.mod.api.shipWorldNullable
+import org.valkyrienskies.mod.api.toDenseVoxelUpdate
+import org.valkyrienskies.mod.api.vsCore
 
 object ClientConnectivityUpdateQueue {
     private const val MAX_CHUNKS_PER_TICK = 8
@@ -41,7 +41,7 @@ object ClientConnectivityUpdateQueue {
             val (pos, shouldForce) = toInitialize.removeFirstOrNull() ?: break
             val level = Minecraft.getInstance().level ?: continue
             val worldChunk = level.getChunk(pos.x, pos.z) ?: continue
-            val clientShipWorld = level.shipObjectWorld
+            val clientShipWorld = level.shipWorldNullable
             if (clientShipWorld != null && VSGameConfig.CLIENT.Connectivity.enableClientConnectivity) {
                 val voxelShapeUpdates: ArrayList<VsiTerrainUpdate> = ArrayList()
 

@@ -24,7 +24,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ServerShip;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.api.ValkyrienSkies;
 import org.valkyrienskies.mod.common.entity.ShipMountedToData;
 import org.valkyrienskies.mod.common.networking.PacketEntityShipMotion;
 import org.valkyrienskies.mod.common.util.EntityDragger;
@@ -84,7 +84,7 @@ public class MixinServerEntity {
     @Unique
     private ServerShip vs$currentShip() {
         if (!EntityDragger.isDraggable(entity)) return null;
-        final ShipMountedToData mounted = VSGameUtilsKt.getShipMountedToData(entity, null);
+        final ShipMountedToData mounted = ValkyrienSkies.getShipMountedToData(entity, null);
         if (mounted != null && mounted.getShipMountedTo() instanceof ServerShip ship) return ship;
         final EntityDraggingInformation info = ((IEntityDraggingInformationProvider) entity).getDraggingInformation();
         if (!info.isEntityBeingDraggedByAShip() || info.getLastShipStoodOn() == null) return null;
@@ -102,7 +102,7 @@ public class MixinServerEntity {
         double headYaw = entity.getYHeadRot();
         int age = 0;
         if (ship != null) {
-            final ShipMountedToData mounted = VSGameUtilsKt.getShipMountedToData(entity, null);
+            final ShipMountedToData mounted = ValkyrienSkies.getShipMountedToData(entity, null);
             if (mounted != null && mounted.getShipMountedTo().getId() == ship.getId()) {
                 position = mounted.getMountPosInShip();
             } else {
@@ -128,7 +128,7 @@ public class MixinServerEntity {
 
     @Unique
     private void vs$send(PacketEntityShipMotion packet, ServerPlayer player) {
-        VSGameUtilsKt.getVsCore().getSimplePacketNetworking().sendToClients(packet,
+        ValkyrienSkies.vsCore().getSimplePacketNetworking().sendToClients(packet,
             ((PlayerDuck) player).vs_getPlayer());
     }
 }

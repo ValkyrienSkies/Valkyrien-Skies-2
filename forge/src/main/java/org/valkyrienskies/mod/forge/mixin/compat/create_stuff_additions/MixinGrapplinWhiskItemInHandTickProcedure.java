@@ -1,8 +1,8 @@
 package org.valkyrienskies.mod.forge.mixin.compat.create_stuff_additions;
+
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
-import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Slice;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.api.ValkyrienSkies;
 
 @Pseudo
 @Mixin(targets = {"net.mcreator.createstuffadditions.procedures.GrapplinWhiskItemInHandTickProcedure"})
@@ -42,7 +42,7 @@ public abstract class MixinGrapplinWhiskItemInHandTickProcedure {
                 original.call(instance, "yPostion"),
                 original.call(instance, "zPostion")
             );
-            Vector3d worldPos = VSGameUtilsKt.getWorldCoordinates((Level)world, BlockPos.containing(truePos.x, truePos.y, truePos.z), truePos);
+            Vector3d worldPos = ValkyrienSkies.transformToWorld((Level)world, truePos);
             if (x) return worldPos.x;
             if (y) return worldPos.y;
             return worldPos.z;

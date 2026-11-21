@@ -8,10 +8,10 @@ import org.valkyrienskies.core.internal.hooks.VsiPlayState.CLIENT_MULTIPLAYER
 import org.valkyrienskies.core.internal.hooks.VsiPlayState.CLIENT_SINGLEPLAYER
 import org.valkyrienskies.core.internal.hooks.VsiPlayState.CLIENT_TITLESCREEN
 import org.valkyrienskies.core.internal.hooks.VsiPlayState.SERVERSIDE
+import org.valkyrienskies.mod.api.shipWorld
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.config.SlugDatapackResolver
-import org.valkyrienskies.mod.common.shipObjectWorld
-import org.valkyrienskies.mod.common.vsCore
+import org.valkyrienskies.mod.api.vsCore
 
 abstract class CommonHooksImpl : VsiCoreHooksOut {
 
@@ -79,8 +79,8 @@ abstract class CommonHooksImpl : VsiCoreHooksOut {
     }
 
     override val currentShipServerWorld: ShipWorld?
-        get() = ValkyrienSkiesMod.currentServer?.shipObjectWorld
+        get() = ValkyrienSkiesMod.currentServer?.shipWorld
 
     override val currentShipClientWorld: ShipWorld
-        get() = Minecraft.getInstance().shipObjectWorld!!
+        get() = Minecraft.getInstance().shipWorld!!
 }

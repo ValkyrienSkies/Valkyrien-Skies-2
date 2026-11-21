@@ -10,8 +10,7 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.entity.BlockEntity
 import org.joml.Matrix4f
 import org.valkyrienskies.core.api.ships.ClientShip
-import org.valkyrienskies.mod.common.getShipManagingPos
-import org.valkyrienskies.mod.common.vsCore
+import org.valkyrienskies.mod.api.getShipManagingPos
 import org.valkyrienskies.mod.compat.LoadedMods
 import org.valkyrienskies.mod.compat.LoadedMods.FlywheelVersion
 
@@ -61,7 +60,7 @@ object FlywheelCompat {
     }
 
     fun setShipEffectDirty(ship: ClientShip, x: Int, y: Int, z: Int, important: Boolean = false) {
-        ShipEffect.Companion.getShipEffect(ship).setDirty(x, y, z, important)
+        ShipEffect.getShipEffect(ship).setDirty(x, y, z, important)
     }
 
     fun onLightUpdate(ship: ClientShip, pos: SectionPos) {

@@ -30,13 +30,14 @@ import org.valkyrienskies.core.internal.physics.VSSphereCollisionShapeData
 import org.valkyrienskies.core.internal.world.VsiClientShipWorld
 import org.valkyrienskies.core.internal.world.VsiServerShipWorld
 import org.valkyrienskies.mod.api.vsApi
-import org.valkyrienskies.mod.common.dimensionId
-import org.valkyrienskies.mod.common.shipObjectWorld
-import org.valkyrienskies.mod.common.util.toJOML
-import org.valkyrienskies.mod.common.util.toMinecraft
-import org.valkyrienskies.mod.common.vsCore
+import org.valkyrienskies.mod.api.dimensionId
+import org.valkyrienskies.mod.api.shipWorld
+import org.valkyrienskies.mod.api.toJOML
+import org.valkyrienskies.mod.api.toMinecraft
+import org.valkyrienskies.mod.api.vsCore
 import org.valkyrienskies.mod.mixin.accessors.entity.EntityAccessor
 
+@Deprecated("Replaced with bodies")
 open class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : Mob(type, level) {
     // Physics data, persistent
     protected var physicsEntityData: PhysicsEntityData? = null
@@ -173,7 +174,7 @@ open class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : Mo
                 if (physicsEntityServer != null) {
                     throw IllegalStateException("Rigid body is already in the world!")
                 }
-                physicsEntityServer = (level().shipObjectWorld as VsiServerShipWorld).createPhysicsEntity(
+                physicsEntityServer = (level().shipWorld as VsiServerShipWorld).createPhysicsEntity(
                     physicsEntityData!!, level().dimensionId
                 )
             } else {
@@ -182,7 +183,7 @@ open class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : Mo
                     return
                     // throw IllegalStateException("Rigid body does not exist in the world!")
                 }
-                (level().shipObjectWorld as VsiServerShipWorld).deletePhysicsEntity(physicsEntityData!!.shipId)
+                (level().shipWorld as VsiServerShipWorld).deletePhysicsEntity(physicsEntityData!!.shipId)
                 physicsEntityServer = null
             }
         }
@@ -204,7 +205,7 @@ open class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : Mo
             if (physicsEntityServerCopy != null) {
                 val newPos = Vector3d(d, e, f)
                 val teleportData = vsCore.newShipTeleportData(newPos = newPos)
-                (this.level().shipObjectWorld as VsiServerShipWorld).teleportPhysicsEntity(this.physicsEntityServer!!, teleportData)
+                (this.level().shipWorld as VsiServerShipWorld).teleportPhysicsEntity(this.physicsEntityServer!!, teleportData)
             } else {
                 physicsEntityData!!.transform = vsApi.newBodyTransform(
                     Vector3d(d, e, f),

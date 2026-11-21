@@ -15,7 +15,6 @@ import net.minecraft.world.entity.MobCategory
 import net.minecraft.world.item.CreativeModeTabs
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.Item.Properties
-import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.entity.BlockEntityType
 import net.minecraftforge.client.event.EntityRenderersEvent
@@ -90,7 +89,7 @@ import org.valkyrienskies.mod.common.item.DebugGravitronItem
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
 import org.valkyrienskies.mod.common.item.ShipRemoverItem
 import org.valkyrienskies.mod.common.item.VSBlockItem
-import org.valkyrienskies.mod.common.playerWrapper
+import org.valkyrienskies.mod.api.playerWrapper
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.compat.LoadedMods
 import org.valkyrienskies.mod.compat.flywheel.FlywheelCompat
@@ -236,7 +235,7 @@ class ValkyrienSkiesModForge {
                 ::ShipMountingEntity,
                 MobCategory.MISC
             ).sized(.3f, .3f)
-                .build(ResourceLocation(MOD_ID, "ship_mounting_entity").toString())
+                .build(ResourceLocation.fromNamespaceAndPath(MOD_ID, "ship_mounting_entity").toString())
         }
 
         PHYSICS_ENTITY_TYPE_REGISTRY = ENTITIES.register("vs_physics_entity") {
@@ -246,7 +245,7 @@ class ValkyrienSkiesModForge {
             ).sized(1f, 1f)
                 .setUpdateInterval(1)
                 .clientTrackingRange(10)
-                .build(ResourceLocation(MOD_ID, "vs_physics_entity").toString())
+                .build(ResourceLocation.fromNamespaceAndPath(MOD_ID, "vs_physics_entity").toString())
         }
         modBus.addListener(::registerAttributes)
 

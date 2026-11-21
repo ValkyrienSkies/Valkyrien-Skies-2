@@ -11,6 +11,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
+import org.valkyrienskies.mod.api.ValkyrienSkies;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
@@ -23,8 +24,7 @@ public class MixinEnchantmentMenu {
         if (level.getBlockState(blockPos.offset(offset)).is(BlockTags.ENCHANTMENT_POWER_PROVIDER) && level.getBlockState(blockPos.offset(offset.getX() / 2, offset.getY(), offset.getZ() / 2)).is(BlockTags.ENCHANTMENT_POWER_TRANSMITTER)) {
             return blockPos.offset(offset);
         } else {
-            Vec3 worldCoordinates = VectorConversionsMCKt.toMinecraft(
-                VSGameUtilsKt.getWorldCoordinates(level, blockPos, VectorConversionsMCKt.toJOML(blockPos.getCenter())));
+            Vec3 worldCoordinates = ValkyrienSkies.transformToWorld(level, blockPos);
             return BlockPos.containing(worldCoordinates).offset(offset);
         }
     }

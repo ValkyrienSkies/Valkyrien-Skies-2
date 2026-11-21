@@ -9,16 +9,16 @@ import net.minecraftforge.network.PacketDistributor
 import net.minecraftforge.network.simple.SimpleChannel
 import org.valkyrienskies.core.internal.hooks.VsiCoreHooksIn
 import org.valkyrienskies.core.internal.world.VsiPlayer
+import org.valkyrienskies.mod.api.mcPlayer
+import org.valkyrienskies.mod.api.playerWrapper
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
-import org.valkyrienskies.mod.common.mcPlayer
 import org.valkyrienskies.mod.common.networking.VSPacketFragmenter
-import org.valkyrienskies.mod.common.playerWrapper
 
 object VSForgeNetworking {
 
     private val protocolVersion = "1"
     private val vsForgeChannel: SimpleChannel = NetworkRegistry.newSimpleChannel(
-        ResourceLocation(ValkyrienSkiesMod.MOD_ID, "vs_packet"),
+        ResourceLocation.fromNamespaceAndPath(ValkyrienSkiesMod.MOD_ID, "vs_packet"),
         { protocolVersion },
         protocolVersion::equals,
         protocolVersion::equals

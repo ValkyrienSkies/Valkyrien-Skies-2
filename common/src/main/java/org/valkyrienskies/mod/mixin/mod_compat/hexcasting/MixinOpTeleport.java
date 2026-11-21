@@ -13,6 +13,6 @@ import org.valkyrienskies.mod.api.ValkyrienSkies;
 public class MixinOpTeleport {
     @ModifyVariable(method = "teleportRespectSticky", at = @At("STORE"), name = "target")
     private Vec3 hexxyskies$modifyTarget(Vec3 target, @Local(argsOnly = true) ServerLevel world) {
-        return ValkyrienSkies.positionToWorld(world, target);
+        return ValkyrienSkies.transformToWorld(world, target);
     }
 }

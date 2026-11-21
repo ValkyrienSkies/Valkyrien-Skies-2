@@ -14,9 +14,9 @@ import org.valkyrienskies.mod.common.command.arguments.ShipArgument
 import org.valkyrienskies.mod.common.command.getMessage
 import org.valkyrienskies.mod.common.command.shipWorld
 import org.valkyrienskies.mod.common.config.VSGameConfig
-import org.valkyrienskies.mod.common.dimensionId
-import org.valkyrienskies.mod.common.util.toJOML
-import org.valkyrienskies.mod.common.vsCore
+import org.valkyrienskies.mod.api.dimensionId
+import org.valkyrienskies.mod.api.toJOML
+import org.valkyrienskies.mod.api.vsCore
 import kotlin.collections.forEach
 
 object TeleportCommand {

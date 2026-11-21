@@ -4,6 +4,7 @@ import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.LiquidBlock
 import net.minecraft.world.level.block.state.BlockState
 import org.valkyrienskies.core.internal.world.chunks.VsiBlockType
+import org.valkyrienskies.mod.api.vsCore
 import org.valkyrienskies.mod.common.config.VSGameConfig
 
 object DefaultBlockStateInfoProvider : BlockStateInfoProvider {

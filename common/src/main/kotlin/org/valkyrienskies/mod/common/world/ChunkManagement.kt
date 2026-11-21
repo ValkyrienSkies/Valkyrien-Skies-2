@@ -13,9 +13,9 @@ import org.valkyrienskies.core.internal.world.VsiPlayer
 import org.valkyrienskies.core.internal.world.VsiServerShipWorld
 import org.valkyrienskies.core.internal.world.chunks.VsiChunkUnwatchTask
 import org.valkyrienskies.core.internal.world.chunks.VsiChunkWatchTask
+import org.valkyrienskies.mod.api.getLevel
+import org.valkyrienskies.mod.api.mcPlayer
 import org.valkyrienskies.mod.common.VS2ChunkAllocator
-import org.valkyrienskies.mod.common.getLevelFromDimensionId
-import org.valkyrienskies.mod.common.mcPlayer
 import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.common.util.VSServerLevel
@@ -58,7 +58,7 @@ object ChunkManagement {
 
             val chunkPos = ChunkPos(chunkWatchTask.chunkX, chunkWatchTask.chunkZ)
 
-            val level = server.getLevelFromDimensionId(chunkWatchTask.dimensionId)!!
+            val level = server.getLevel(chunkWatchTask.dimensionId)!!
 
             val shipAABB: AABBic? = chunkWatchTask.ship.shipAABB
             val canContainShipBlocks =
@@ -91,7 +91,7 @@ object ChunkManagement {
         for (chunkUnwatchTask in chunkUnwatchTasks) {
             val currentShip = shipWorld.allShips.getById(chunkUnwatchTask.ship.id)
             val isShipDeleted = currentShip == null
-            val isOneShotTask = isShipDeleted || currentShip!!.chunkClaimDimension != chunkUnwatchTask.dimensionId
+            val isOneShotTask = isShipDeleted || currentShip.chunkClaimDimension != chunkUnwatchTask.dimensionId
             if (!isOneShotTask) {
                 if (cappedUnwatchTasksExecuted >= maxUnwatchTasks) continue
                 cappedUnwatchTasksExecuted++
@@ -104,7 +104,7 @@ object ChunkManagement {
             val chunkPos = ChunkPos(chunkUnwatchTask.chunkX, chunkUnwatchTask.chunkZ)
 
             if (chunkUnwatchTask.shouldUnload) {
-                val level = server.getLevelFromDimensionId(chunkUnwatchTask.dimensionId)!!
+                val level = server.getLevel(chunkUnwatchTask.dimensionId)!!
                 val isLiveShipChunk =
                     VS2ChunkAllocator.isChunkInShipyardCompanion(chunkPos.x, chunkPos.z) &&
                         !isOneShotTask
@@ -135,7 +135,7 @@ object ChunkManagement {
         while (toScan-- > 0 && sends < maxSends) {
             val pending = pendingChunkSends.poll() ?: break
 
-            if (server.getLevelFromDimensionId(pending.dimensionId) !== pending.level) {
+            if (server.getLevel(pending.dimensionId) !== pending.level) {
                 continue
             }
 
@@ -202,7 +202,7 @@ object ChunkManagement {
         val dimensionIterator = shipChunkOnlyColumns.entries.iterator()
         while (dimensionIterator.hasNext()) {
             val (dimensionId, columns) = dimensionIterator.next()
-            val level = server.getLevelFromDimensionId(dimensionId)
+            val level = server.getLevel(dimensionId)
             val columnIterator = columns.long2LongEntrySet().fastIterator()
             while (columnIterator.hasNext()) {
                 val entry = columnIterator.next()

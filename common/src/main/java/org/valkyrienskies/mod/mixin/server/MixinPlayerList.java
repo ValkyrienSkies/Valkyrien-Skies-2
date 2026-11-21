@@ -30,6 +30,8 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.valkyrienskies.core.api.ships.LoadedShip;
+import org.valkyrienskies.mod.api.ValkyrienSkies;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.entity.handling.VSEntityManager;
 import org.valkyrienskies.mod.common.util.MinecraftPlayer;
@@ -51,7 +53,7 @@ public abstract class MixinPlayerList {
         at = @At("TAIL")
     )
     private void afterPlayerJoin(final Connection netManager, final ServerPlayer player, final CallbackInfo ci) {
-        final MinecraftPlayer wrapped = VSGameUtilsKt.getPlayerWrapper(player);
+        final MinecraftPlayer wrapped = ValkyrienSkies.getPlayerWrapper(player);
         getVsCore().getHooks().afterClientJoinServer(wrapped);
         if (!KrunchSupport.INSTANCE.isKrunchSupported()) {
             player.sendSystemMessage(

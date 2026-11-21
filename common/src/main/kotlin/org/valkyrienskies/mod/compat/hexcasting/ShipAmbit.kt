@@ -8,43 +8,36 @@ import at.petrak.hexcasting.api.casting.eval.env.CircleCastEnv
 import net.minecraft.core.BlockPos
 import net.minecraft.world.phys.Vec3
 import org.valkyrienskies.core.api.util.GameTickOnly
-import org.valkyrienskies.mod.api.positionToShip
-import org.valkyrienskies.mod.api.positionToWorld
-import org.valkyrienskies.mod.common.getLoadedShipManagingPos
-import org.valkyrienskies.mod.common.util.toJOML
+import org.valkyrienskies.mod.api.getLoadedShipManagingPos
+import org.valkyrienskies.mod.api.toContaining
+import org.valkyrienskies.mod.api.transformToShip
+import org.valkyrienskies.mod.api.transformToWorld
 import java.util.UUID
 
+@OptIn(GameTickOnly::class)
 open class ShipAmbit(val env: CastingEnvironment) : IsVecInRange, HasEditPermissionsAt {
     private val id = UUID.randomUUID()
     private val key = Key(id)
 
     override fun getKey(): Key<*> = key
 
-    @OptIn(GameTickOnly::class)
     override fun onHasEditPermissionsAt(pos: BlockPos, current: Boolean): Boolean {
-        if (current) return true
-        // Always use Worldspace for permissions
-        val ship = env.world.getLoadedShipManagingPos(pos)
-        return env.hasEditPermissionsAt(ship?.let { BlockPos.containing(it.positionToWorld(pos.center)) } ?: pos)
+        return current || env.hasEditPermissionsAt(env.world.transformToWorld(pos.center).toContaining())
     }
 
-    @OptIn(GameTickOnly::class)
     override fun onIsVecInRange(vec: Vec3, current: Boolean): Boolean {
         if (current) return true
+
         val level = env.world
         val castVec = getCasterPosition() ?: Vec3.ZERO
-        val casterShip = level.getLoadedShipManagingPos(castVec.toJOML())
-        val otherShip = level.getLoadedShipManagingPos(vec.toJOML())
+        val casterShip = level.getLoadedShipManagingPos(castVec)
+        val otherShip = level.getLoadedShipManagingPos(vec)
 
-        // If both null or same ship, use current check
-        if (casterShip == otherShip) return current
+        if (casterShip == otherShip) return false
 
-        // Is Other Position on a Ship? Transform to Worldspace
-        val otherPos = otherShip?.positionToWorld(vec) ?: vec
+        val otherPos = otherShip.transformToWorld(vec)
 
-        // Is Caster in the Shipyard?
-        // Transform Other Position to Caster's Shipyard
-        return env.isVecInRange(casterShip?.positionToShip(otherPos) ?: otherPos)
+        return env.isVecInRange(casterShip.transformToShip(otherPos))
     }
 
     open fun getCasterPosition(): Vec3? {
@@ -59,4 +52,4 @@ open class ShipAmbit(val env: CastingEnvironment) : IsVecInRange, HasEditPermiss
     }
 }
 
-class Key(val id: UUID) : Key<ShipAmbit> {}
+class Key(val id: UUID) : Key<ShipAmbit>

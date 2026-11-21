@@ -11,6 +11,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.valkyrienskies.mod.api.ValkyrienSkies;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Pseudo
@@ -54,7 +55,7 @@ public abstract class MixinGrapplinWhiskChainsLineProcedure {
                 original.call(instance, "yPostion"),
                 original.call(instance, "zPostion")
             );
-            Vector3d worldPos = VSGameUtilsKt.getWorldCoordinates((Level)world, BlockPos.containing(truePos.x, truePos.y, truePos.z), truePos);
+            Vector3d worldPos = ValkyrienSkies.transformToWorld((Level)world, truePos); // same as todo for mixin vibration system
             if (x) return worldPos.x;
             if (y) return worldPos.y;
             return worldPos.z;

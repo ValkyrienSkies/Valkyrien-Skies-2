@@ -17,6 +17,7 @@ import org.joml.primitives.AABBdc
 import org.valkyrienskies.core.api.VsCoreApi
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.api.ships.properties.ShipId
+import org.valkyrienskies.core.api.util.GameTickOnly
 import org.valkyrienskies.core.api.util.PhysTickOnly
 import org.valkyrienskies.core.api.world.ClientShipWorld
 import org.valkyrienskies.core.api.world.ServerShipWorld
@@ -32,6 +33,7 @@ import org.valkyrienskies.mod.api.render.ShipMaterialSelector
 import org.valkyrienskies.mod.client.render.ShipMaterials
 import org.valkyrienskies.mod.client.render.ShipRenderViews
 import org.valkyrienskies.mod.api.getShipManagingBlock
+import org.valkyrienskies.mod.api.shipWorld
 import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
@@ -41,10 +43,10 @@ import org.valkyrienskies.mod.common.getLoadedShipManagingPos
 import org.valkyrienskies.mod.common.getShipManagingPos
 import org.valkyrienskies.mod.common.getShipMountedToData
 import org.valkyrienskies.mod.common.getShipsIntersecting
+import org.valkyrienskies.mod.common.util.DimensionIdProvider
 import java.util.concurrent.ConcurrentHashMap
 
 @Suppress("OVERRIDE_DEPRECATION")
-@OptIn(PhysTickOnly::class)
 class VsApiImpl(
     private val core: VsCoreApi
 ) : VsApi, VsCoreApi by core {
@@ -63,7 +65,7 @@ class VsApiImpl(
     }
 
     override fun getDimensionId(level: Level): String =
-        level.dimensionId
+        (level as DimensionIdProvider).dimensionId
 
     override fun getShipMountedTo(entity: Entity?): Ship? =
         entity?.let { org.valkyrienskies.mod.common.getShipMountedTo(it) }
@@ -74,30 +76,38 @@ class VsApiImpl(
     override fun getMountPosInShip(entity: Entity?, partialTicks: Float): Vector3dc? =
         entity?.let { getShipMountedToData(it, partialTicks) }?.mountPosInShip
 
+    @GameTickOnly
     override fun getServerShipWorld(): ServerShipWorld? =
         getServerShipWorld(ValkyrienSkiesMod.currentServer)
 
+    @GameTickOnly
     override fun getServerShipWorld(server: MinecraftServer?): ServerShipWorld? =
         (server as IShipObjectWorldServerProvider?)?.shipObjectWorld
 
+    @GameTickOnly
     override fun getClientShipWorld(): ClientShipWorld? =
         getClientShipWorld(Minecraft.getInstance())
 
-    override fun getShipWorld(level: Level?): ShipWorld? =
-        when (level) {
-            is ServerLevel -> getServerShipWorld(level.server)
-            is ClientLevel -> getClientShipWorld()
-            else -> null
-        }
+    @GameTickOnly
+    override fun getClientShipWorld(clientLevel: ClientLevel?): ClientShipWorld? =
+        (clientLevel as IShipObjectWorldClientProvider?)?.shipObjectWorld
 
-    override fun isChunkInShipyard(level: Level?, chunkX: Int, chunkZ: Int): Boolean {
-        if (level == null) return false
-        return getShipWorld(level)?.isChunkInShipyard(chunkX, chunkZ, getDimensionId(level)) ?: false
-    }
-
+    @GameTickOnly
     override fun getClientShipWorld(client: Minecraft?): ClientShipWorld? =
         (client as IShipObjectWorldClientProvider?)?.shipObjectWorld
 
+    @GameTickOnly
+    override fun getShipWorld(level: Level?): ShipWorld? =
+        when {
+            level == null -> null
+            level is ServerLevel -> getServerShipWorld(level.server)
+            level is ClientLevel && level.isClientSide -> getClientShipWorld(level)
+            else -> null
+        }
+
+    @GameTickOnly
+    override fun isChunkInShipyard(level: Level?, chunkX: Int, chunkZ: Int): Boolean =
+        level != null && getShipWorld(level)?.isChunkInShipyard(chunkX, chunkZ, getDimensionId(level)) ?: false
 
     override fun getShipManagingBlock(level: Level?, pos: BlockPos?): Ship? {
         return pos?.let { level?.getShipManagingPos(it) }
@@ -118,5 +128,4 @@ class VsApiImpl(
 
     override fun getShipsIntersecting(level: Level?, x: Double, y: Double, z: Double): Iterable<Ship> =
         getShipsIntersecting(level, AABBd(x, y, z, x, y, z))
-
 }

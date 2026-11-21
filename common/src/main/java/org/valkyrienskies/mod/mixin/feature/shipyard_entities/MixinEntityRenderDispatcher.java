@@ -19,7 +19,6 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -41,10 +40,9 @@ import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.api.ValkyrienSkies;
 import org.valkyrienskies.mod.common.entity.ShipMountedToData;
 import org.valkyrienskies.mod.common.entity.handling.VSEntityManager;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(value = EntityRenderDispatcher.class, priority = 500)
 public class MixinEntityRenderDispatcher {
@@ -57,7 +55,7 @@ public class MixinEntityRenderDispatcher {
         final Vec3 pos = entity.position();
         // entity seems to be null sometimes when the "real camera" mod is used
         if (entity == null) return;
-        cir.setReturnValue(VSGameUtilsKt.squaredDistanceToInclShips(entity, pos.x, pos.y, pos.z));
+        cir.setReturnValue(ValkyrienSkies.shipAwareDistanceToSqr(entity, pos.x, pos.y, pos.z));
     }
 
     @Inject(method = "distanceToSqr(DDD)D", at = @At("HEAD"), cancellable = true)
@@ -65,7 +63,7 @@ public class MixinEntityRenderDispatcher {
         final CallbackInfoReturnable<Double> cir) {
         // entity seems to be null sometimes when the "real camera" mod is used
         if (camera.getEntity() == null) return;
-        cir.setReturnValue(VSGameUtilsKt.squaredDistanceToInclShips(camera.getEntity(), x, y, z));
+        cir.setReturnValue(ValkyrienSkies.shipAwareDistanceToSqr(camera.getEntity(), x, y, z));
     }
 
     @Inject(method = "render",
@@ -80,7 +78,7 @@ public class MixinEntityRenderDispatcher {
         final MultiBufferSource buffer, final int packedLight, final CallbackInfo ci,
         final EntityRenderer<T> entityRenderer
     ) {
-        final ShipMountedToData shipMountedToData = VSGameUtilsKt.getShipMountedToData(entity, partialTicks);
+        final ShipMountedToData shipMountedToData = ValkyrienSkies.getShipMountedToData(entity, partialTicks);
 
         if (shipMountedToData != null) {
             // Remove the earlier applied translation
@@ -105,7 +103,7 @@ public class MixinEntityRenderDispatcher {
             matrixStack.translate(offset.x, offset.y, offset.z);
         } else {
             final ClientShip ship =
-                (ClientShip) VSGameUtilsKt.getLoadedShipManagingPos(entity.level(), entity.blockPosition());
+                (ClientShip) ValkyrienSkies.getLoadedShipManagingPos(entity.level(), entity.blockPosition());
             if (ship != null) {
                 // Remove the earlier applied translation
                 matrixStack.popPose();
@@ -117,7 +115,7 @@ public class MixinEntityRenderDispatcher {
                         buffer, packedLight);
             } else if (entity.isPassenger()) {
                 final ClientShip vehicleShip =
-                    (ClientShip) VSGameUtilsKt.getLoadedShipManagingPos(entity.level(),
+                    (ClientShip) ValkyrienSkies.getLoadedShipManagingPos(entity.level(),
                         entity.getVehicle().blockPosition());
                 // If the entity is a passenger and that vehicle is in ship space
                 if (vehicleShip != null) {
@@ -138,7 +136,7 @@ public class MixinEntityRenderDispatcher {
 
         if (!returns) {
             final ClientShip ship =
-                (ClientShip) VSGameUtilsKt.getLoadedShipManagingPos(entity.level(), entity.blockPosition());
+                (ClientShip) ValkyrienSkies.getLoadedShipManagingPos(entity.level(), entity.blockPosition());
             if (ship != null) {
                 AABB aABB = entity.getBoundingBoxForCulling().inflate(0.5);
                 if (aABB.hasNaN() || aABB.getSize() == 0.0) {
@@ -146,11 +144,11 @@ public class MixinEntityRenderDispatcher {
                         entity.getZ() - 2.0, entity.getX() + 2.0,
                         entity.getY() + 2.0, entity.getZ() + 2.0);
                 }
-                final AABBd aabb = VectorConversionsMCKt.toJOML(aABB);
+                final AABBd aabb = ValkyrienSkies.toJOML(aABB);
 
                 // Get the in world position and do it minus what the aabb already has and then add the offset
                 aabb.transform(ship.getRenderTransform().getShipToWorld());
-                return frustum.isVisible(VectorConversionsMCKt.toMinecraft(aabb));
+                return frustum.isVisible(ValkyrienSkies.toMinecraft(aabb));
             }
         }
 
@@ -175,7 +173,7 @@ public class MixinEntityRenderDispatcher {
         final float weight, final float partialTicks, final LevelReader level, final float radius,
         final CallbackInfo ci
     ) {
-        final Ship ship = VSGameUtilsKt.getEnclosingShip(entity);
+        final Ship ship = ValkyrienSkies.getEnclosingShip(entity);
         if (ship == null) return;
 
         final ShipTransform transform = ((ClientShip) ship).getRenderTransform();

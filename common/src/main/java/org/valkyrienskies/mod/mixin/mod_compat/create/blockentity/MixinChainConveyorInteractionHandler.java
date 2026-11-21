@@ -14,9 +14,8 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.mod.api.ValkyrienSkies;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(ChainConveyorInteractionHandler.class)
 public abstract class MixinChainConveyorInteractionHandler {
@@ -30,9 +29,9 @@ public abstract class MixinChainConveyorInteractionHandler {
     private static Vec3 wrapRelativePos(final Vec3 instance, final Vec3 liftVec, final Operation<Vec3> original) {
         ClientShip ship = VSClientGameUtils.getClientShip(liftVec.x, liftVec.y, liftVec.z);
         if (ship != null) {
-            Vector3d shipInstance = VectorConversionsMCKt.toJOML(instance);
+            Vector3d shipInstance = ValkyrienSkies.toJOML(instance);
             shipInstance = ship.getTransform().getWorldToShip().transformPosition(shipInstance);
-            return original.call(VectorConversionsMCKt.toMinecraft(shipInstance), liftVec);
+            return original.call(ValkyrienSkies.toMinecraft(shipInstance), liftVec);
         } else return original.call(instance, liftVec);
     }
 
@@ -41,7 +40,7 @@ public abstract class MixinChainConveyorInteractionHandler {
         at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/Vec3;distanceToSqr(Lnet/minecraft/world/phys/Vec3;)D")
     )
     private static double wrapDistanceSqr(final Vec3 instance, final Vec3 from, Operation<Double> original) {
-        return VSGameUtilsKt.squaredDistanceBetweenInclShips(Minecraft.getInstance().level, instance, from, original);
+        return ValkyrienSkies.distanceSquared(Minecraft.getInstance().level, instance, from, original);
     }
 
     @WrapOperation(

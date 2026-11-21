@@ -30,7 +30,7 @@ public class MixinGoalUtil {
         Level instance, BlockPos blockPos, Operation<BlockState> original) {
         BlockState originalState = original.call(instance, blockPos);
         if (originalState.isSolid()) return originalState;
-        Iterable<Vector3d> candidates = ValkyrienSkies.positionToNearbyShips(instance, blockPos.getX(), blockPos.getY(), blockPos.getZ());
+        Iterable<Vector3d> candidates = ValkyrienSkies.transformToShips(instance, blockPos);
         for (Vector3d candidate : candidates) {
             BlockPos candidatePos = BlockPos.containing(ValkyrienSkies.toMinecraft(candidate));
             BlockState candidateState = instance.getBlockState(candidatePos);
@@ -56,7 +56,7 @@ public class MixinGoalUtil {
         if (originalState.is(FluidTags.WATER)) return originalState;
         final FluidStateManager.QueryCache queryCache = new FluidStateManager.QueryCache();
         final BlockPos.MutableBlockPos candidatePos = new BlockPos.MutableBlockPos();
-        Iterable<Vector3d> candidates = ValkyrienSkies.positionToNearbyShips(instance, blockPos.getX(), blockPos.getY(), blockPos.getZ());
+        Iterable<Vector3d> candidates = ValkyrienSkies.transformToShips(instance, blockPos);
         for (Vector3d candidate : candidates) {
             candidatePos.set(
                 net.minecraft.util.Mth.floor(candidate.x()),

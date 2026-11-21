@@ -11,12 +11,12 @@ import org.valkyrienskies.core.internal.physics.VsiPhysicsDebugSnapshot
 import org.valkyrienskies.core.internal.world.VsiPlayer
 import org.valkyrienskies.core.internal.world.VsiServerShipWorld
 import org.slf4j.LoggerFactory
-import org.valkyrienskies.mod.common.dimensionId
+import org.valkyrienskies.mod.api.dimensionId
 import org.valkyrienskies.mod.common.networking.DebugShipInfo
 import org.valkyrienskies.mod.common.networking.PacketPhysicsDebug
-import org.valkyrienskies.mod.common.playerWrapper
-import org.valkyrienskies.mod.common.shipObjectWorld
-import org.valkyrienskies.mod.common.vsCore
+import org.valkyrienskies.mod.api.playerWrapper
+import org.valkyrienskies.mod.api.shipWorld
+import org.valkyrienskies.mod.api.vsCore
 import java.util.UUID
 import java.util.concurrent.Executors
 
@@ -38,7 +38,7 @@ object ShipDebugService {
     private val sender by lazy {
         Executors.newSingleThreadExecutor { task -> Thread(task, "VS debug packets").apply { isDaemon = true } }
     }
-    private val samples = LatestValueTask<Sample>({ sender.execute(it) }, ::sendSample)
+    private val samples = LatestValueTask({ sender.execute(it) }, ::sendSample)
     @Volatile private var subscriptions: List<Subscription> = emptyList()
     @Volatile private var debugWorld: VsiServerShipWorld? = null
 
@@ -82,7 +82,7 @@ object ShipDebugService {
 
     @JvmStatic
     fun tick(server: MinecraftServer) {
-        val world = server.shipObjectWorld
+        val world = server.shipWorld
         if (users.isEmpty()) {
             stopCollection()
             return

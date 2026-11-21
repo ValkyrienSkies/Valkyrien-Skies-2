@@ -30,6 +30,7 @@ import org.valkyrienskies.mod.api.BlockEntityPhysicsListener
 import org.valkyrienskies.mod.api.EntityPhysicsListener
 import org.valkyrienskies.mod.api.SeatedControllingPlayer
 import org.valkyrienskies.mod.api.dimensionId
+import org.valkyrienskies.mod.api.getLevel
 import org.valkyrienskies.mod.api.getShipManagingBlock
 import org.valkyrienskies.mod.api_impl.events.VsApiImpl
 import org.valkyrienskies.mod.common.blockentity.TestAntigravBlockEntity
@@ -188,7 +189,7 @@ object ValkyrienSkiesMod {
             event.ship.setAttachment(BuoyancyHandlerAttachment())
             event.ship.setAttachment(WorldBorderAttachment())
             event.ship.setAttachment(VoidAttachment())
-            val level = currentServer?.getLevelFromDimensionId(event.ship.chunkClaimDimension)
+            val level = currentServer?.getLevel(event.ship.chunkClaimDimension)
             // Maybe we should perf test this?
             level?.let {
                 event.ship.getAttachment(WorldBorderAttachment::class.java)!!.border = it.worldBorder

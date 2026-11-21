@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.api.ValkyrienSkies;
 
 @Mixin(targets = "cofh.core.block.entity.TileCoFH", remap = false)
 @Pseudo
@@ -31,12 +31,10 @@ public abstract class MixinTileCoFH extends BlockEntity {
         final CallbackInfoReturnable<Boolean> ci) {
         final Level level = getLevel();
         // Sanity check
-        if (level == null) {
-            return;
-        }
+        if (level == null) return;
+
         final BlockPos worldPos = getBlockPos();
-        final double squareDistance =
-            VSGameUtilsKt.squaredDistanceToInclShips(player, worldPos.getX(), worldPos.getY(), worldPos.getZ());
+        final double squareDistance = ValkyrienSkies.shipAwareDistanceToSqr(player, worldPos.getX(), worldPos.getY(), worldPos.getZ());
         final boolean isPlayerWithinDistance = !isRemoved() && squareDistance <= distanceSq;
         ci.setReturnValue(isPlayerWithinDistance);
     }

@@ -27,6 +27,15 @@ import org.valkyrienskies.core.api.ships.properties.ShipId
 import org.valkyrienskies.core.api.util.GameTickOnly
 import org.valkyrienskies.core.impl.config.VSCoreConfig
 import org.valkyrienskies.core.internal.ships.VsiServerShip
+import org.valkyrienskies.mod.api.getLoadedShipManagingPos
+import org.valkyrienskies.mod.api.getShipManagingPos
+import org.valkyrienskies.mod.api.dimensionId
+import org.valkyrienskies.mod.api.executeIf
+import org.valkyrienskies.mod.common.fluid.FractionalFluidLifecycle
+import org.valkyrienskies.mod.api.forEach
+import org.valkyrienskies.mod.api.inAssemblyBlacklist
+import org.valkyrienskies.mod.api.isChunkLoadedForVS
+import org.valkyrienskies.mod.api.playerWrapper
 import org.valkyrienskies.mod.common.assembly.ShipAssembler.assembleToShipFull
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.executeIf
@@ -38,16 +47,15 @@ import org.valkyrienskies.mod.common.inAssemblyBlacklist
 import org.valkyrienskies.mod.common.isChunkLoadedForVS
 import org.valkyrienskies.mod.common.networking.sendRestartChunkUpdates
 import org.valkyrienskies.mod.common.networking.sendStopChunkUpdates
-import org.valkyrienskies.mod.common.playerWrapper
 import org.valkyrienskies.mod.common.shipObjectWorld
-import org.valkyrienskies.mod.common.toDenseVoxelUpdate
+import org.valkyrienskies.mod.api.toDenseVoxelUpdate
 import org.valkyrienskies.mod.common.util.EntityShipCollisionUtils
 import org.valkyrienskies.mod.common.util.SplittingDisablerAttachment
-import org.valkyrienskies.mod.common.util.toJOML
-import org.valkyrienskies.mod.common.util.toJOMLD
-import org.valkyrienskies.mod.common.vsCore
+import org.valkyrienskies.mod.api.toJOML
+import org.valkyrienskies.mod.api.toJOMLd
+import org.valkyrienskies.mod.api.vsCore
 import org.valkyrienskies.mod.common.world.VSTicketType
-import org.valkyrienskies.mod.common.yRange
+import org.valkyrienskies.mod.api.yRange
 import org.valkyrienskies.mod.mixin.accessors.server.level.ServerChunkCacheAccessor
 import org.valkyrienskies.mod.util.AIR
 import org.valkyrienskies.mod.util.StructureTemplateFillFromVoxelSet
@@ -131,8 +139,8 @@ object ShipAssembler {
         }
 
         val (minB, maxB) = findMinAndMax(blocks)
-        val oldMin = minB.toJOMLD()
-        val oldMax = maxB.toJOMLD()
+        val oldMin = minB.toJOMLd()
+        val oldMax = maxB.toJOMLd()
         //offset to center from corner of structure
         val offset = oldMax.get(Vector3d())
             .sub(oldMin)
@@ -221,8 +229,8 @@ object ShipAssembler {
         val fromId = fromShip?.id ?: -1L
         val eventData = mutableMapOf<String, CompoundTag>()
 
-        val oldMin = minStructurePos.toJOMLD()
-        val oldMax = maxStructurePos.toJOMLD()
+        val oldMin = minStructurePos.toJOMLd()
+        val oldMax = maxStructurePos.toJOMLd()
         //offset to center from corner of structure
         val offset = oldMax.get(Vector3d())
             .sub(oldMin)
@@ -303,7 +311,7 @@ object ShipAssembler {
 
         //structure template builds from a corner, so offset center of plot so that structure's center and center of
         //plot roughly align
-        val centerOfShip = cornerOfShip.toJOMLD().add(offset)
+        val centerOfShip = cornerOfShip.toJOMLd().add(offset)
 
         val structureSettings = StructurePlaceSettings().addProcessor(
             ICopyableProcessor(
