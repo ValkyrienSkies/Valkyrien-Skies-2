@@ -13,9 +13,6 @@ import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.level.ClipContext;
-import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 import org.joml.Vector3d;
@@ -39,8 +36,6 @@ import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.ShipDraggingMath;
 import org.valkyrienskies.mod.common.util.EntityRenderPosition;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
-import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
-import org.valkyrienskies.mod.mixinducks.client.MinecraftDuck;
 import org.valkyrienskies.mod.mixinducks.client.player.LocalPlayerDuck;
 
 import java.util.IdentityHashMap;
@@ -65,45 +60,6 @@ public abstract class MixinGameRenderer {
 
     @Unique
     private final Map<Entity, EntityRenderPosition.Snapshot> vs$renderPositionSnapshots = new IdentityHashMap<>();
-
-    /**
-     * {@link Entity#pick(double, float, boolean)} except the hit pos is not transformed
-     */
-    @Unique
-    private static HitResult entityRaycastNoTransform(
-        final Entity entity, final double maxDistance, final float tickDelta, final boolean includeFluids) {
-        final Vec3 vec3d = entity.getEyePosition(tickDelta);
-        final Vec3 vec3d2 = entity.getViewVector(tickDelta);
-        final Vec3 vec3d3 = vec3d.add(vec3d2.x * maxDistance, vec3d2.y * maxDistance, vec3d2.z * maxDistance);
-        return RaycastUtilsKt.clipIncludeShips(
-            entity.level(),
-            new ClipContext(
-                vec3d,
-                vec3d3,
-                ClipContext.Block.OUTLINE,
-                includeFluids ? ClipContext.Fluid.ANY : ClipContext.Fluid.NONE,
-                entity
-            ),
-            false
-        );
-    }
-
-    @WrapOperation(
-        method = "pick",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/world/entity/Entity;pick(DFZ)Lnet/minecraft/world/phys/HitResult;"
-        )
-    )
-    public HitResult modifyCrosshairTargetBlocks(final Entity receiver, final double maxDistance, final float tickDelta,
-        final boolean includeFluids, final Operation<HitResult> pick) {
-
-        HitResult result = pick.call(receiver, maxDistance, tickDelta, includeFluids);
-        HitResult noTransform = result instanceof BlockHitResult hit
-            ? RaycastUtilsKt.blockHitForUse(minecraft.level, hit) : result;
-        ((MinecraftDuck) this.minecraft).vs$setOriginalCrosshairTarget(noTransform);
-        return result;
-    }
 
     @Inject(method = "render", at = @At("HEAD"))
     private void preRender(final float tickDelta, final long startTime, final boolean tick, final CallbackInfo ci) {

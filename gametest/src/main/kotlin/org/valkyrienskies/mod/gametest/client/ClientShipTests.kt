@@ -1,6 +1,23 @@
 package org.valkyrienskies.mod.gametest.client
 
 import com.simibubi.create.AllBlocks
+import com.simibubi.create.AllItems
+import com.simibubi.create.content.kinetics.base.HorizontalKineticBlock
+import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour
+import com.simibubi.create.foundation.blockEntity.behaviour.ValueBox
+import com.simibubi.create.foundation.blockEntity.behaviour.ValueBoxTransform
+import com.simibubi.create.foundation.blockEntity.behaviour.edgeInteraction.EdgeInteractionRenderer
+import com.simibubi.create.foundation.blockEntity.behaviour.filtering.FilteringBehaviour
+import com.simibubi.create.foundation.blockEntity.behaviour.filtering.FilteringRenderer
+import net.createmod.catnip.data.Pair
+import org.joml.Quaterniond
+import org.valkyrienskies.core.api.world.ServerShipWorld
+import org.valkyrienskies.mod.common.dimensionId
+import org.valkyrienskies.mod.common.shipObjectWorld
+import org.valkyrienskies.mod.common.vsCore
+import net.createmod.catnip.outliner.Outliner
+import net.minecraft.core.Direction
+import net.minecraft.world.InteractionHand
 import com.simibubi.create.content.equipment.clipboard.ClipboardScreen
 import com.simibubi.create.content.trains.entity.TrainRelocator
 import com.simibubi.create.foundation.sound.SoundScapes
@@ -20,7 +37,63 @@ import org.valkyrienskies.mod.gametest.spawnAt
 object ClientShipTests {
     private val stone = Blocks.STONE.defaultBlockState()
 
+
+    /** Whether the value box Create's renderer outlined under [key] is highlighted (not passive). */
+    private fun outlineActive(key: Any): Boolean? = (Outliner.getInstance().outlines[key]?.outline as? ValueBox)?.let { !it.isPassive }
+
     val all: List<ClientShipTest> = listOf(
+        // The crosshair's hit location on a ship block is in shipyard coordinates, like its block pos.
+        ClientShipTest(
+            "crafter edge on a ship highlights under the crosshair",
+            run {
+                val crafter = AllBlocks.MECHANICAL_CRAFTER.defaultState.setValue(HorizontalKineticBlock.HORIZONTAL_FACING, Direction.NORTH)
+                mapOf(BlockPos.ZERO to crafter, BlockPos(1, 0, 0) to crafter)
+            },
+            BlockPos(0, 0, 3)
+        ) { mc, ship, _ ->
+            val pos = ship.shipPos(0, 0, 0)
+            mc.player!!.setItemInHand(InteractionHand.MAIN_HAND, AllItems.WRENCH.asStack())
+            mc.hitResult = BlockHitResult(Vec3(pos.x + 0.9, pos.y + 1.0, pos.z + 0.5), Direction.UP, pos, false)
+            EdgeInteractionRenderer.tick()
+            val active = outlineActive("edge")
+            clientCheck(active == true) { "crosshair on a ship crafter's east edge didn't highlight it (outline active=$active)" }
+        },
+
+        // Rotated: on an unrotated ship a wrong ship transform here is undone by the ship-aware distance check in
+        // Create's slot hit test, which would hide the bug.
+        ClientShipTest(
+            "funnel filter slot on a ship highlights under the crosshair",
+            mapOf(BlockPos(0, -1, 0) to stone, BlockPos.ZERO to AllBlocks.BRASS_FUNNEL.defaultState),
+            BlockPos(0, 1, 3),
+            serverSetup = { level, ship, _ ->
+                val teleport = vsCore.newShipTeleportData(
+                    newPos = ship.ship.transform.positionInWorld,
+                    newRot = Quaterniond().rotateY(Math.PI / 4),
+                    newDimension = level.dimensionId
+                )
+                vsCore.teleportShip(level.server.shipObjectWorld as ServerShipWorld, ship.ship, teleport)
+                emptyList()
+            }
+        ) { mc, ship, _ ->
+            val level = mc.level!!
+            val pos = ship.shipPos(0, 0, 0)
+            val filtering = BlockEntityBehaviour.get(level, pos, FilteringBehaviour.TYPE)
+            clientCheck(filtering != null) { "ship brass funnel has no filtering behaviour on the client; test setup is wrong" }
+            val slot = filtering!!.slotPositioning
+            val state = level.getBlockState(pos)
+            val (face, local) = Direction.values().firstNotNullOfOrNull { face ->
+                (slot as? ValueBoxTransform.Sided)?.fromSide(face)
+                slot.getLocalOffset(level, pos, state)?.takeIf { slot.testHit(level, pos, state, it) }?.let { face to it }
+            } ?: throw ClientTestFailure("brass funnel filter slot accepts no local hit; test setup is wrong")
+            mc.player!!.setItemInHand(InteractionHand.MAIN_HAND, net.minecraft.world.item.ItemStack.EMPTY)
+            mc.hitResult = BlockHitResult(Vec3.atLowerCornerOf(pos).add(local), face, pos, false)
+            FilteringRenderer.tick()
+            val active = Outliner.getInstance().outlines.entries
+                .firstOrNull { (key, _) -> key is Pair<*, *> && key.second == pos && (key.first as? String)?.startsWith("filter") == true }
+                ?.let { (key, _) -> outlineActive(key) }
+            clientCheck(active == true) { "crosshair on a ship funnel's filter slot didn't highlight it (outline active=$active)" }
+        },
+
         // The camera (player eyes at base + 1.62) sits inside a ship water block with air in the world there.
         ClientShipTest(
             "camera inside ship water is underwater",

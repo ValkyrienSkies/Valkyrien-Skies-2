@@ -446,7 +446,6 @@
     "mod_compat.create.client.MixinChasingAABBOutline",
     "mod_compat.create.client.MixinCogwheelBlockItem",
     "mod_compat.create.client.MixinContraptionRenderDispatcher",
-    "mod_compat.create.client.MixinEdgeInteractionRenderer",
     "mod_compat.create.client.MixinElevatorControlsHandler",
     "mod_compat.create.client.MixinFilteringRenderer",
     "mod_compat.create.client.MixinFrogportRenderer",
