@@ -58,7 +58,11 @@ public abstract class MixinChainConveyorRidingHandler {
     private static void preTick(CallbackInfo ci){
         if (ridingChainConveyor == null) {
             vs$ridingShip = null;
-        } else if (vs$ridingShip != null) {
+            return;
+        }
+        // The rider may have crossed to a conveyor in another frame.
+        vs$ridingShip = VSClientGameUtils.getClientShip(ridingChainConveyor.getX(), ridingChainConveyor.getY(), ridingChainConveyor.getZ());
+        if (vs$ridingShip != null) {
             Player player = Minecraft.getInstance().player;
             if (player != null) ((IEntityDraggingInformationProvider)player).getDraggingInformation().setLastShipStoodOn(vs$ridingShip.getId());
         }

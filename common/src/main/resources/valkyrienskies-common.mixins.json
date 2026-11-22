@@ -369,7 +369,10 @@
     "feature.distance_replace.MixinVec3",
     "feature.distance_replace.MixinVec3i",
     "feature.ship_aware_level.MixinBiomeManager",
-    "feature.ship_aware_level.MixinLevel"
+    "feature.ship_aware_level.MixinLevel",
+    "mod_compat.create.packets.MixinChainConveyorConnectionPacket",
+    "mod_compat.create.blockentity.MixinChainConveyorCrossFrame",
+    "mod_compat.create.block.MixinChainConveyorBlock"
   ],
   "client": [
     "feature.ship_walk_animation.MixinLivingEntity",
@@ -515,7 +518,11 @@
     "world.level.lighting.MixinLayerLightSectionStorage",
     "world.level.lighting.MixinLevelLightEngineSafeUpdates",
     "world.level.lighting.MixinLightEngineNullSafeRead",
-    "world.level.lighting.MixinSkyLightSectionStorage"
+    "world.level.lighting.MixinSkyLightSectionStorage",
+    "mod_compat.create.client.MixinChainConveyorConnectionHandlerFrames",
+    "mod_compat.create.client.MixinChainConveyorRidingHandlerFrames",
+    "mod_compat.create.client.MixinChainConveyorRendererFrames",
+    "mod_compat.create.client.MixinChainConveyorVisualFrames"
   ],
   "injectors": {
     "defaultRequire": 1,

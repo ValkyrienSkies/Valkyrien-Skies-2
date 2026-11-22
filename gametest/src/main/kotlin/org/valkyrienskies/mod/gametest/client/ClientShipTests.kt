@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.gametest.client
 
+import kotlin.math.abs
+import kotlin.math.sqrt
 import com.simibubi.create.AllBlocks
 import com.simibubi.create.AllItems
 import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorBlockEntity
@@ -61,8 +63,8 @@ object ClientShipTests {
             val stats = be!!.connectionStats[BlockPos(4, 0, 0)]
             clientCheck(stats != null) { "client chain connection stored under ${be.connections}, not offset (4, 0, 0)" }
             val d = stats!!.end().subtract(stats.start())
-            val raw = kotlin.math.sqrt(d.x * d.x + d.y * d.y + d.z * d.z)
-            clientCheck(kotlin.math.abs(stats.chainLength() - raw) < 1e-3) {
+            val raw = sqrt(d.x * d.x + d.y * d.y + d.z * d.z)
+            clientCheck(abs(stats.chainLength() - raw) < 1e-3) {
                 "client chain on a ship has length ${stats.chainLength()}, but its ends are $raw apart"
             }
         },
