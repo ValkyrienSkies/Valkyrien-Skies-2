@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
-// PiglinBruteAi.initMemories stores the brute's guard post as a HOME GlobalPos at finalizeSpawn from brute.blockPosition() — for a ship-spawned brute the world-coord HOME goes stale once the ship moves, and the brute walks off the deck back toward where the ship used to be. Substitute a shipyard BlockPos so the existing MixinStrollToPoi/MixinStrollAroundPoi shipyard→world reprojection per tick keeps the guard post tracking the moving ship.
+// PiglinBruteAi.initMemories stores the brute's guard post as a HOME GlobalPos at finalizeSpawn from brute.blockPosition() — for a ship-spawned brute the world-coord HOME goes stale once the ship moves, and the brute walks off the deck back toward where the ship used to be. Substitute a shipyard BlockPos so the ship-aware BlockPos distance checks (ShipAwareDistance) keep the guard post tracking the moving ship.
 @Mixin(PiglinBruteAi.class)
 public abstract class MixinPiglinBruteAi {
 

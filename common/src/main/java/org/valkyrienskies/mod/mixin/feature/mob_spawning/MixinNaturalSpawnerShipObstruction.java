@@ -6,7 +6,6 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.level.NaturalSpawner;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.valkyrienskies.mod.common.util.ShipAwareCollisionUtil;
 
 // Backstop for natural-spawn: Mob.checkSpawnObstruction overrides that don't call super
 // (Drowned, WaterAnimal, IronGolem, Ocelot, Axolotl, Guardian, Strider, ZombifiedPiglin,
@@ -20,6 +19,6 @@ public abstract class MixinNaturalSpawnerShipObstruction {
         final ServerLevel level, final Mob mob, final double distSqr
     ) {
         if (!original) return false;
-        return ShipAwareCollisionUtil.noCollisionIncludingShips(level, mob, mob.getBoundingBox());
+        return level.noCollision(mob, mob.getBoundingBox());
     }
 }

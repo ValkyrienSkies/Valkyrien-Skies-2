@@ -6,13 +6,10 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
-import org.joml.Vector3d;
-import org.joml.primitives.AABBd;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
-import org.valkyrienskies.core.api.ships.Ship;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.util.ShipBlockQueries;
 
 // EnderMan$EndermanTakeBlockGoal.tick reads getBlockState at a random nearby cell, runs a
 // clip-based visibility check, then removeBlock — all world-only, so an enderman next to
@@ -23,12 +20,6 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 @Mixin(targets = "net.minecraft.world.entity.monster.EnderMan$EndermanTakeBlockGoal")
 public abstract class MixinEndermanTakeBlockGoal {
 
-    @Unique
-    private static final ThreadLocal<Vector3d> VS$CENTER = ThreadLocal.withInitial(Vector3d::new);
-    @Unique
-    private static final ThreadLocal<Vector3d> VS$LOCAL = ThreadLocal.withInitial(Vector3d::new);
-    @Unique
-    private static final ThreadLocal<AABBd> VS$PROBE = ThreadLocal.withInitial(AABBd::new);
     @Unique
     private static final ThreadLocal<BlockPos> VS$SHIP_TARGET_POS = new ThreadLocal<>();
 
@@ -45,23 +36,11 @@ public abstract class MixinEndermanTakeBlockGoal {
         VS$SHIP_TARGET_POS.remove();
         final BlockState worldState = original.call(instance, pos);
         if (worldState.is(BlockTags.ENDERMAN_HOLDABLE)) return worldState;
-        final double cx = pos.getX() + 0.5;
-        final double cy = pos.getY() + 0.5;
-        final double cz = pos.getZ() + 0.5;
-        final Vector3d worldCenter = VS$CENTER.get().set(cx, cy, cz);
-        final AABBd probe = VS$PROBE.get()
-            .setMin(cx - 0.5, cy - 0.5, cz - 0.5)
-            .setMax(cx + 0.5, cy + 0.5, cz + 0.5);
-        final Vector3d shipLocal = VS$LOCAL.get();
-        for (final Ship ship : VSGameUtilsKt.getShipsIntersecting(instance, probe)) {
-            if (!ship.getWorldAABB().containsPoint(worldCenter)) continue;
-            ship.getTransform().getWorldToShip().transformPosition(worldCenter, shipLocal);
-            final BlockPos shipLocalPos = BlockPos.containing(shipLocal.x, shipLocal.y, shipLocal.z);
-            final BlockState shipState = instance.getBlockState(shipLocalPos);
-            if (shipState.is(BlockTags.ENDERMAN_HOLDABLE)) {
-                VS$SHIP_TARGET_POS.set(shipLocalPos);
-                return shipState;
-            }
+        final BlockPos shipLocalPos =
+            ShipBlockQueries.findShipBlockPos(instance, pos, s -> s.is(BlockTags.ENDERMAN_HOLDABLE));
+        if (shipLocalPos != null) {
+            VS$SHIP_TARGET_POS.set(shipLocalPos);
+            return instance.getBlockState(shipLocalPos);
         }
         return worldState;
     }

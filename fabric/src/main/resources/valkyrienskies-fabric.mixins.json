@@ -8,20 +8,15 @@
     "compat.connectiblechains.MixinChainCollisionEntity",
     "compat.create.MixinControlledContraptionEntity",
     "entity.MixinBoat",
-    "entity.MixinContainerEntity",
     "feature.explosions.ClipContextMixin",
     "feature.fix_tp_ships_cross_dimension.MixinLevelChunk",
     "feature.mob_spawning.MixinBaseSpawnerShipObstruction",
-    "feature.mob_spawning.MixinCatSpawnerShipFinalize",
-    "feature.mob_spawning.MixinEntityTypeShipFinalize",
-    "feature.mob_spawning.MixinNaturalSpawnerShipFinalize",
-    "feature.mob_spawning.MixinPatrolSpawnerShipFinalize",
-    "feature.mob_spawning.MixinPhantomSpawnerShipFinalize",
     "feature.shipyard_entities.MixinPersistentEntitySectionManager",
     "feature.water_in_ships_entity.MixinEntity",
     "server.network.MixinServerGamePacketListenerImpl",
     "server.network.MixinServerPlayerGameMode",
-    "world.level.block.FireMixin"
+    "world.level.block.FireMixin",
+    "compat.create.MixinSimplePacketBaseContext"
   ],
   "client": [
     "client.render.MixinLevelRenderer",

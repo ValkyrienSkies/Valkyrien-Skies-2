@@ -105,17 +105,6 @@ public abstract class MixinGameRenderer {
         return result;
     }
 
-    @WrapOperation(
-        method = "pick",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/world/phys/Vec3;distanceToSqr(Lnet/minecraft/world/phys/Vec3;)D"
-        )
-    )
-    public double correctDistanceChecks(final Vec3 instance, final Vec3 vec3, final Operation<Double> original) {
-        return VSGameUtilsKt.squaredDistanceBetweenInclShips(this.minecraft.level, instance, vec3, original);
-    }
-
     @Inject(method = "render", at = @At("HEAD"))
     private void preRender(final float tickDelta, final long startTime, final boolean tick, final CallbackInfo ci) {
         final ClientLevel clientWorld = minecraft.level;

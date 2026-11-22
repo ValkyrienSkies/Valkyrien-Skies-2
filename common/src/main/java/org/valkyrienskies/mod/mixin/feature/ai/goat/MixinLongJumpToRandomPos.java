@@ -8,12 +8,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.behavior.LongJumpToRandomPos;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
 import org.joml.primitives.AABBd;
@@ -26,9 +23,8 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.util.ShipAwareCollisionUtil;
 
-// LongJumpToRandomPos (goat long-jump): vanilla world-only candidate enumeration misses ship-mounted targets, the chosen target needs world projection for the jump-vector calc, the canStillUse position-equals check fails under EntityDragger drift, and the trajectory clearance check needs ship-block awareness.
+// LongJumpToRandomPos (goat long-jump): vanilla world-only candidate enumeration misses ship-mounted targets, the chosen target needs world projection for the jump-vector calc, and the canStillUse position-equals check fails under EntityDragger drift.
 @Mixin(LongJumpToRandomPos.class)
 public abstract class MixinLongJumpToRandomPos {
 
@@ -117,18 +113,4 @@ public abstract class MixinLongJumpToRandomPos {
         return VSGameUtilsKt.getEnclosingShip(mob) != null;
     }
 
-    // isClearTransition steps the mob's bbox along the jump arc; vanilla world-only would accept arcs that pass through ship hulls.
-    @WrapOperation(
-        method = "isClearTransition",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/world/level/Level;noCollision(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/phys/AABB;)Z"
-        )
-    )
-    private boolean vs$noCollisionIncludingShipsForTrajectory(
-        final Level level, final Entity entity, final AABB aabb,
-        final Operation<Boolean> original
-    ) {
-        return ShipAwareCollisionUtil.noCollisionIncludingShips(level, entity, aabb);
-    }
 }

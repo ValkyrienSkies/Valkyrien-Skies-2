@@ -29,7 +29,6 @@ import net.minecraft.client.renderer.ViewArea;
 import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Vec3i;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.chunk.LevelChunk;
@@ -54,7 +53,6 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
@@ -172,23 +170,6 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererDuck, Le
         sig = 31L * sig + vs$quantizeRenderCoord(renderAabb.maxY());
         sig = 31L * sig + vs$quantizeRenderCoord(renderAabb.maxZ());
         return sig;
-    }
-
-    /**
-     * Fix the distance to render chunks, so that MC doesn't think ship chunks are too far away
-     */
-    @Redirect(
-        method = "compileChunks",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/core/BlockPos;distSqr(Lnet/minecraft/core/Vec3i;)D"
-        ),
-        require = 0
-    )
-    private double includeShipChunksInNearChunks(final BlockPos b, final Vec3i v) {
-        return VSGameUtilsKt.squaredDistanceBetweenInclShips(
-            level, b.getX(), b.getY(), b.getZ(), v.getX(), v.getY(), v.getZ()
-        );
     }
 
     /**

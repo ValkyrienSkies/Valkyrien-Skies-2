@@ -5,7 +5,6 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
 import li.cil.oc2.client.renderer.blockentity.MonitorRenderer;
 import li.cil.oc2.common.blockentity.MonitorBlockEntity;
-import net.minecraft.core.Position;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
@@ -28,19 +27,4 @@ public class MixinMonitorRenderer {
         return ValkyrienSkies.positionToShip(ship, original.call(instance, partialTicks));
     }
 
-    @WrapOperation(method = "renderTerminal", at = @At(
-        value = "INVOKE",
-        target = "Lnet/minecraft/world/phys/Vec3;closerThan(Lnet/minecraft/core/Position;D)Z"
-    ))
-    private boolean valkyrienskies$renderTerminalDistanceCheck(Vec3 instance, Position arg, double d, Operation<Boolean> original, @Local(argsOnly = true) MonitorBlockEntity be) {
-        return ValkyrienSkies.closerThan(be.getLevel(), instance, arg, d);
-    }
-
-    @WrapOperation(method = "renderStatusText", at = @At(
-        value = "INVOKE",
-        target = "Lnet/minecraft/world/phys/Vec3;closerThan(Lnet/minecraft/core/Position;D)Z"
-    ))
-    private boolean valkyrienskies$renderStatusTextDistanceCheck(Vec3 instance, Position arg, double d, Operation<Boolean> original, @Local(argsOnly = true) MonitorBlockEntity be) {
-        return ValkyrienSkies.closerThan(be.getLevel(), instance, arg, d);
-    }
 }

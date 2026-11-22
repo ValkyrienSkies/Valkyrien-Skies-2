@@ -4,7 +4,6 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorInteractionHandler;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.Vec3;
@@ -15,7 +14,6 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(ChainConveyorInteractionHandler.class)
@@ -34,14 +32,6 @@ public abstract class MixinChainConveyorInteractionHandler {
             shipInstance = ship.getTransform().getWorldToShip().transformPosition(shipInstance);
             return original.call(VectorConversionsMCKt.toMinecraft(shipInstance), liftVec);
         } else return original.call(instance, liftVec);
-    }
-
-    @WrapOperation(
-        method = "clientTick",
-        at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/Vec3;distanceToSqr(Lnet/minecraft/world/phys/Vec3;)D")
-    )
-    private static double wrapDistanceSqr(final Vec3 instance, final Vec3 from, Operation<Double> original) {
-        return VSGameUtilsKt.squaredDistanceBetweenInclShips(Minecraft.getInstance().level, instance, from, original);
     }
 
     @WrapOperation(

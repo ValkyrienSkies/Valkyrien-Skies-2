@@ -11,9 +11,10 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.valkyrienskies.mod.api.ValkyrienSkies;
 import ram.talia.hexal.api.linkable.ILinkable;
 import ram.talia.hexal.common.casting.actions.spells.link.OpLink;
+import ram.talia.hexal.common.casting.actions.spells.link.OpLinkOthers;
 
 @Pseudo
-@Mixin(OpLink.class)
+@Mixin({OpLink.class, OpLinkOthers.class})
 public class MixinOpLink {
     @Redirect(method = "execute", at = @At(value = "INVOKE",
         target = "Lram/talia/hexal/api/linkable/ILinkable;isInRange(Lram/talia/hexal/api/linkable/ILinkable;)Z"), remap = false, require = 0)

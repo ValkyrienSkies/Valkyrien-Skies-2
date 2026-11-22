@@ -32,20 +32,6 @@ public abstract class MixinPathfinderMob {
         return entityBlockPos;
     }
 
-    @Redirect(
-            method = "tickLeash",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/world/entity/PathfinderMob;distanceTo(Lnet/minecraft/world/entity/Entity;)F"
-            )
-    )
-    float worldAwareDistanceTo(PathfinderMob instance, Entity entity) {
-        return (float)
-                VSGameUtilsKt.toWorldCoordinates(instance.level(), instance.position())
-                .distanceTo(
-                VSGameUtilsKt.toWorldCoordinates(entity.level(), entity.position()));
-    }
-
     // BAD CODE
     @Redirect(
             method = "tickLeash",

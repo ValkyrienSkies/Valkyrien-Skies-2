@@ -1,6 +1,8 @@
 package org.valkyrienskies.mod.util
 
 import net.minecraft.core.BlockPos
+import net.minecraft.util.Mth
+import kotlin.math.abs
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.entity.vehicle.DismountHelper
 import net.minecraft.world.level.Level
@@ -15,6 +17,17 @@ object ShipAwareDismount {
     private val VS_OUT_FWD: ThreadLocal<Vector3d> = ThreadLocal.withInitial { Vector3d() }
     private val VS_IN_BACK: ThreadLocal<Vector3d> = ThreadLocal.withInitial { Vector3d() }
     private val VS_OUT_BACK: ThreadLocal<Vector3d> = ThreadLocal.withInitial { Vector3d() }
+
+    /** Vanilla `AbstractHorse.getCollisionHorizontalEscapeVector`: offset to just outside the mount towards [yawDegrees]. */
+    @JvmStatic
+    fun horizontalEscape(mountWidth: Double, passengerWidth: Double, yawDegrees: Float): Vec3 {
+        val half = (mountWidth + passengerWidth + 1.0E-7) / 2.0
+        val radians = yawDegrees * (Math.PI / 180.0).toFloat()
+        val sx = -Mth.sin(radians)
+        val sz = Mth.cos(radians)
+        val maxAxis = maxOf(abs(sx), abs(sz))
+        return Vec3(sx * half / maxAxis, 0.0, sz * half / maxAxis)
+    }
 
     @JvmStatic
     fun tryShipyardSpots(
