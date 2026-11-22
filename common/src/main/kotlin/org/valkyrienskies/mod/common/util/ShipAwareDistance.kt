@@ -27,7 +27,7 @@ import org.valkyrienskies.mod.common.vsCore
 // server thread -> the context level (set around level ticks, player ticks, packets and commands), else the single server level
 // owning that chunk (vanilla if several do);
 // any other thread on a physical client -> the client level; otherwise vanilla is left alone.
-// Points on the same ship (and split piece) keep their shipyard distance (also keeps scaled ships in ship units).
+// Points on the same ship keep their shipyard distance (also keeps scaled ships in ship units).
 object ShipAwareDistance {
 
     private val LOGGER = LogManager.getLogger("[Valkyrien Skies] Ship distance")
@@ -96,17 +96,16 @@ object ShipAwareDistance {
         val loc2 = if (inShipyard2) locate(cx2, cz2) else null
         if (loc1 == null && loc2 == null) return null
 
+        // Same ship, split or not: ship-space code (e.g. Create chain geometry) expects the shipyard distance.
+        if (loc1 != null && loc2 != null && loc1.ship.id == loc2.ship.id) return null
         val pieces1 = loc1?.let { it.level.allShips.getSplitPieces(it.ship.id) }.orEmpty()
         val pieces2 = loc2?.let { it.level.allShips.getSplitPieces(it.ship.id) }.orEmpty()
-        val sameShip = loc1 != null && loc2 != null && loc1.ship.id == loc2.ship.id
-        if (sameShip && pieces1.isEmpty()) return null
 
         // Split pieces are chosen by the other point's rough (whole-ship) world position.
         val piece1 = if (pieces1.isEmpty()) null else retainedUsePiece(pieces1, Vec3(x1, y1, z1),
             loc2?.let { transform(wholeShip(it), x2, y2, z2) } ?: Vec3(x2, y2, z2), BlockPos.containing(x1, y1, z1)) ?: return GONE
         val piece2 = if (pieces2.isEmpty()) null else retainedUsePiece(pieces2, Vec3(x2, y2, z2),
             loc1?.let { transform(wholeShip(it), x1, y1, z1) } ?: Vec3(x1, y1, z1), BlockPos.containing(x2, y2, z2)) ?: return GONE
-        if (sameShip && piece1 === piece2) return null
 
         val w1 = loc1?.let { transform(matrixFor(it, piece1), x1, y1, z1) } ?: Vec3(x1, y1, z1)
         val w2 = loc2?.let { transform(matrixFor(it, piece2), x2, y2, z2) } ?: Vec3(x2, y2, z2)
