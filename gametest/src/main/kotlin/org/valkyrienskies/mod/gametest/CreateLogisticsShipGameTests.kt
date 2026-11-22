@@ -33,7 +33,8 @@ class CreateLogisticsShipGameTests {
     @GameTest(template = TEST_AREA, batch = "create_curved_track_destroy", timeoutTicks = 200)
     fun curvedTrackOnShipCanBeDestroyedByNearbyPlayer(helper: GameTestHelper) {
         val track = AllBlocks.TRACK.defaultState.setValue(TrackBlock.HAS_BE, true)
-        val blocks = mapOf(BlockPos(0, -1, 0) to stone, BlockPos(4, -1, 0) to stone, BlockPos.ZERO to track, BlockPos(4, 0, 0) to track)
+        // A stone floor keeps the ship in one piece (disconnected parts get split off).
+        val blocks = (0..4).associate { BlockPos(it, -1, 0) to stone } + mapOf(BlockPos.ZERO to track, BlockPos(4, 0, 0) to track)
         var player: ServerPlayer? = null
         helper.withShip(blocks, helper.absolutePos(shipAt), thenAfter = 3, thenCheck = { ship ->
             try {

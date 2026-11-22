@@ -2,6 +2,7 @@ package org.valkyrienskies.mod.gametest.client
 
 import com.simibubi.create.AllBlocks
 import com.simibubi.create.AllItems
+import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorBlockEntity
 import com.simibubi.create.content.kinetics.base.HorizontalKineticBlock
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour
 import com.simibubi.create.foundation.blockEntity.behaviour.ValueBox
@@ -42,6 +43,29 @@ object ClientShipTests {
     private fun outlineActive(key: Any): Boolean? = (Outliner.getInstance().outlines[key]?.outline as? ValueBox)?.let { !it.isPassive }
 
     val all: List<ClientShipTest> = listOf(
+        // The client recomputes connection stats from synced data, with its own ship transforms.
+        ClientShipTest(
+            "chain conveyor connection on a ship keeps its shape on the client",
+            (0..4).associate { BlockPos(it, -1, 0) to stone } +
+                mapOf(BlockPos.ZERO to AllBlocks.CHAIN_CONVEYOR.defaultState, BlockPos(4, 0, 0) to AllBlocks.CHAIN_CONVEYOR.defaultState),
+            BlockPos(0, 2, 4),
+            serverSetup = { level, ship, _ ->
+                val be = level.getBlockEntity(ship.shipPos(0, 0, 0)) as ChainConveyorBlockEntity
+                be.tick() // connection stats are set up on the first tick
+                be.addConnectionTo(ship.shipPos(4, 0, 0))
+                emptyList()
+            }
+        ) { mc, ship, _ ->
+            val be = mc.level!!.getBlockEntity(ship.shipPos(0, 0, 0)) as? ChainConveyorBlockEntity
+            clientCheck(be != null) { "no chain conveyor on the client; test setup is wrong" }
+            val stats = be!!.connectionStats[BlockPos(4, 0, 0)]
+            clientCheck(stats != null) { "client chain connection stored under ${be.connections}, not offset (4, 0, 0)" }
+            val d = stats!!.end().subtract(stats.start())
+            val raw = kotlin.math.sqrt(d.x * d.x + d.y * d.y + d.z * d.z)
+            clientCheck(kotlin.math.abs(stats.chainLength() - raw) < 1e-3) {
+                "client chain on a ship has length ${stats.chainLength()}, but its ends are $raw apart"
+            }
+        },
         // The crosshair's hit location on a ship block is in shipyard coordinates, like its block pos.
         ClientShipTest(
             "crafter edge on a ship highlights under the crosshair",

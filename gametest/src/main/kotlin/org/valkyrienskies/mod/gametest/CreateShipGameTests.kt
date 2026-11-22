@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.gametest
 
 import com.simibubi.create.AllBlocks
+import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorBlockEntity
 import com.simibubi.create.Create
 import com.simibubi.create.content.redstone.link.IRedstoneLinkable
 import net.createmod.catnip.data.Couple
@@ -119,6 +120,24 @@ class CreateShipGameTests {
             val p = helper.mockPlayerAt(ship.worldCenter(pos).add(2.0, -0.5, 0.0))
             player = p
             handleCreatePacket(ConfigureThresholdSwitchPacket(pos, 3, 7, false, false), p)
+        }
+    }
+
+    @GameTest(template = TEST_AREA, batch = "chain_conveyor_stats", timeoutTicks = 200)
+    fun chainConveyorConnectionOnShipKeepsItsShape(helper: GameTestHelper) {
+        val conveyor = AllBlocks.CHAIN_CONVEYOR.defaultState
+        // A stone floor keeps the ship in one piece (disconnected parts get split off).
+        val blocks = (0..4).associate { BlockPos(it, -1, 0) to stone } + mapOf(BlockPos.ZERO to conveyor, BlockPos(4, 0, 0) to conveyor)
+        helper.withShip(blocks, helper.absolutePos(shipAt)) { ship ->
+            val be = helper.level.getBlockEntity(ship.shipPos(0, 0, 0)) as ChainConveyorBlockEntity
+            helper.check(be.addConnectionTo(ship.shipPos(4, 0, 0))) { "chain conveyor connection wasn't added; test setup is wrong" }
+            val stats = be.connectionStats[BlockPos(4, 0, 0)]
+            helper.check(stats != null) { "chain connection on a ship was stored under ${be.connections}, not offset (4, 0, 0)" }
+            val d = stats!!.end().subtract(stats.start())
+            val raw = kotlin.math.sqrt(d.x * d.x + d.y * d.y + d.z * d.z)
+            helper.check(kotlin.math.abs(stats.chainLength() - raw) < 1e-3) {
+                "chain on a ship has length ${stats.chainLength()}, but its ends are $raw apart"
+            }
         }
     }
 }
