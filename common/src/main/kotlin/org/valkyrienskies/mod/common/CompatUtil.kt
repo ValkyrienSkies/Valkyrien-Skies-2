@@ -33,8 +33,8 @@ object CompatUtil {
         val result = Vector3d(position)
         val ship = sourceShip ?: level?.getShipManagingPos(result)
         if (ship != targetShip) {
-            ship?.shipToWorld?.transformPosition(result)
-            targetShip?.worldToShip?.transformPosition(result)
+            if (ship != null && !alreadyInWorld(result.x, result.y, result.z)) ship.shipToWorld.transformPosition(result)
+            if (targetShip != null && !alreadyInShipyard(result.x, result.y, result.z)) targetShip.worldToShip.transformPosition(result)
         }
         return result
     }

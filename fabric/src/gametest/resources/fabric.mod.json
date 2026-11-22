@@ -11,6 +11,7 @@
       "org.valkyrienskies.mod.gametest.ShipLevelQueryGameTests",
       "org.valkyrienskies.mod.gametest.ShipBlockLookupGameTests",
       "org.valkyrienskies.mod.gametest.ShipInteractionGameTests",
+      "org.valkyrienskies.mod.gametest.ShipTransformGameTests",
       "org.valkyrienskies.mod.gametest.ShipVillagerGameTests",
       "org.valkyrienskies.mod.gametest.ShipMobGameTests",
       "org.valkyrienskies.mod.gametest.ShipRandomMobGameTests",

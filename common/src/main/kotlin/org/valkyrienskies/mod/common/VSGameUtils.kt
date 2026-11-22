@@ -1,7 +1,9 @@
 package org.valkyrienskies.mod.common
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation
+import org.valkyrienskies.mod.common.util.DoubleTransformWarnings
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider
+import net.minecraft.util.Mth
 import net.minecraft.client.Minecraft
 import org.valkyrienskies.core.api.ships.ShipPhysicalPiece
 import net.minecraft.client.multiplayer.ClientLevel
@@ -749,11 +751,21 @@ fun ServerLevel?.getShipManagingPos(posX: Double, posY: Double, posZ: Double) =
 fun ServerLevel?.getShipManagingPos(chunkPos: ChunkPos) =
     getShipManagingPos(chunkPos.x, chunkPos.z)
 
+/** Whether the point's chunk is in the shipyard. */
+fun isPointInShipyard(x: Double, z: Double): Boolean = vsCore.isChunkInShipyard(Mth.floor(x) shr 4, Mth.floor(z) shr 4)
+
+// VS's transform helpers leave a point already in the target space alone, and warn.
+internal fun alreadyInWorld(x: Double, y: Double, z: Double): Boolean =
+    (!isPointInShipyard(x, z)).also { if (it) DoubleTransformWarnings.warn(true, x, y, z) }
+
+internal fun alreadyInShipyard(x: Double, y: Double, z: Double): Boolean =
+    isPointInShipyard(x, z).also { if (it) DoubleTransformWarnings.warn(false, x, y, z) }
+
 fun Ship.toWorldCoordinates(pos: BlockPos): Vector3d =
-    shipToWorld.transformPosition(pos.toJOMLD())
+    if (alreadyInWorld(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())) pos.toJOMLD() else shipToWorld.transformPosition(pos.toJOMLD())
 
 fun Ship.toWorldCoordinates(pos: Vec3): Vec3 =
-    shipToWorld.transformPosition(pos.toJOML()).toMinecraft()
+    if (alreadyInWorld(pos.x, pos.y, pos.z)) pos else shipToWorld.transformPosition(pos.toJOML()).toMinecraft()
 
 fun Level?.toWorldCoordinates(pos: BlockPos): Vec3 {
     return this?.getShipManagingPos(pos)?.toWorldCoordinates(pos)?.toMinecraft() ?: pos.toJOMLD().toMinecraft()
@@ -764,7 +776,7 @@ fun Level?.toWorldCoordinates(pos: Vec3): Vec3 {
 }
 
 fun ClientLevel?.toShipRenderCoordinates(shipPos: Vec3, pos: Vec3): Vec3 =
-    this?.getLoadedShipManagingPos(shipPos)
+    if (alreadyInShipyard(pos.x, pos.y, pos.z)) pos else this?.getLoadedShipManagingPos(shipPos)
         ?.renderTransform
         ?.worldToShip
         ?.transformPosition(pos.toJOML())
@@ -799,7 +811,7 @@ fun Level?.toWorldCoordinates(x: Double, y: Double, z: Double, dest: Vector3d = 
 
 @JvmOverloads
 fun Ship.toWorldCoordinates(x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
-    transform.shipToWorld.transformPosition(dest.set(x, y, z))
+    if (alreadyInWorld(x, y, z)) dest.set(x, y, z) else transform.shipToWorld.transformPosition(dest.set(x, y, z))
 
 @JvmOverloads
 fun LevelChunkSection.toDenseVoxelUpdate(chunkPos: Vector3ic, level: Level? = null): VsiTerrainUpdate {

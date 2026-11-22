@@ -41,6 +41,8 @@ import org.valkyrienskies.core.api.world.ServerShipWorld
 import org.valkyrienskies.core.api.world.ShipWorld
 import org.valkyrienskies.core.api.world.properties.DimensionId
 import org.valkyrienskies.core.impl.config.VSCoreConfig
+import org.valkyrienskies.mod.common.alreadyInShipyard
+import org.valkyrienskies.mod.common.alreadyInWorld
 import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.util.EntityShipCollisionUtils
 import kotlin.contracts.ExperimentalContracts
@@ -214,23 +216,24 @@ fun Ship?.positionToShip(pos: Vector3d): Vector3d =
 fun Ship?.positionToShip(pos: Vector3dc, dest: Vector3d): Vector3d =
     this?.transform.positionToShip(pos, dest)
 
+// These leave a point that's already in the target space alone (no double transform).
 fun ShipTransform?.positionToWorld(pos: Vec3): Vec3 =
-    this?.shipToWorld?.transformPosition(pos) ?: pos
+    if (this == null || alreadyInWorld(pos.x, pos.y, pos.z)) pos else shipToWorld.transformPosition(pos)
 
 fun ShipTransform?.positionToWorld(pos: Vector3d): Vector3d =
     positionToWorld(pos, pos)
 
 fun ShipTransform?.positionToWorld(pos: Vector3dc, dest: Vector3d): Vector3d =
-    this?.shipToWorld?.transformPosition(pos, dest) ?: dest.set(pos)
+    if (this == null || alreadyInWorld(pos.x(), pos.y(), pos.z())) dest.set(pos) else shipToWorld.transformPosition(pos, dest)
 
 fun ShipTransform?.positionToShip(pos: Vec3): Vec3 =
-    this?.worldToShip?.transformPosition(pos) ?: pos
+    if (this == null || alreadyInShipyard(pos.x, pos.y, pos.z)) pos else worldToShip.transformPosition(pos)
 
 fun ShipTransform?.positionToShip(pos: Vector3d): Vector3d =
     positionToShip(pos, pos)
 
 fun ShipTransform?.positionToShip(pos: Vector3dc, dest: Vector3d): Vector3d =
-    this?.worldToShip?.transformPosition(pos, dest) ?: dest.set(pos)
+    if (this == null || alreadyInShipyard(pos.x(), pos.y(), pos.z())) dest.set(pos) else worldToShip.transformPosition(pos, dest)
 
 /**
  * Returns all the ships whose AABBs contain x/y/z
