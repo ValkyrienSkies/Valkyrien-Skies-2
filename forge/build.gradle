@@ -147,7 +147,7 @@ dependencies {
         transitive = false
     }
     // TIS-3d
-    modCompileOnly("maven.modrinth:tis3d:${tis3d_version}")
+    modCompileOnly("maven.modrinth:tis3d:${tis3d_forge_version}")
 
     // Modular Routers
     modCompileOnly("curse.maven:mr-250294:4696089")
@@ -168,7 +168,7 @@ dependencies {
         modRuntimeOnly("maven.modrinth:mffs:5.1.18")
         modRuntimeOnly("curse.maven:mr-250294:4696089")
         modRuntimeOnly("maven.modrinth:patchouli:1.20.1-85-forge")
-        modRuntimeOnly("maven.modrinth:tis3d:${tis3d_version}")
+        modRuntimeOnly("maven.modrinth:tis3d:${tis3d_forge_version}")
         modRuntimeOnly("maven.modrinth:markdownmanual:MC1.20.1-forge-1.2.5")
         modRuntimeOnly("maven.modrinth:architectury-api:9.2.14+forge")
         modRuntimeOnly("com.rbasamoyai:createbigcannons:${createbigcannons_version}+mc.${minecraft_version}-forge${createbigcannons_build}") { transitive = false }
