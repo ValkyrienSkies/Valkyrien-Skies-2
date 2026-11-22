@@ -282,6 +282,7 @@ shadowJar {
 }
 
 remapJar {
+    classpath.from(project(":common").sourceSets.main.compileClasspath.filter { it.name.startsWith("imm_ptl_core-") })
     input.set shadowJar.archiveFile
     dependsOn shadowJar
     archiveClassifier.set null
