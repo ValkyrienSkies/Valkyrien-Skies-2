@@ -126,7 +126,7 @@ public abstract class MixinExplosion {
         final int radius = (int) Math.ceil(this.radius);
         final double blastForce = VSGameConfig.SERVER.getExplosionBlastForce();
         final int rayCount = (2 * radius + 1) * (2 * radius + 1) * (2 * radius + 1) - 1;
-        final double rayDensityCorrection = (double) rayCount / 728.0;
+        final double rayDensityCorrection = 728.0 / rayCount;
         final double powerMult = Math.pow(this.radius / 4.0, 2.0) * rayDensityCorrection;
         for (int x = -radius; x <= radius; x++) {
             for (int y = -radius; y <= radius; y++) {
