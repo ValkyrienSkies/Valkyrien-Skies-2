@@ -370,6 +370,10 @@
     "feature.distance_replace.MixinVec3i",
     "feature.ship_aware_level.MixinBiomeManager",
     "feature.ship_aware_level.MixinLevel",
+    "feature.ship_hit_location.MixinBlockHitResult",
+    "feature.ship_hit_location.MixinVec3",
+    "feature.ship_hit_location.MixinFriendlyByteBuf",
+    "feature.ship_hit_location.MixinAABB",
     "mod_compat.create.packets.MixinChainConveyorConnectionPacket",
     "mod_compat.create.blockentity.MixinChainConveyorCrossFrame",
     "mod_compat.create.block.MixinChainConveyorBlock"

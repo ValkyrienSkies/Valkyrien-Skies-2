@@ -77,6 +77,15 @@ object ShipAwareDistance {
             abs(Mth.floor(w[5]) - Mth.floor(w[2]))
     }
 
+    /** The ship whose shipyard holds this point, found the same way as for distance checks. */
+    @JvmStatic
+    fun shipAt(x: Double, y: Double, z: Double): Ship? {
+        val cx = Mth.floor(x) shr 4
+        val cz = Mth.floor(z) shr 4
+        if (!vsCore.isChunkInShipyard(cx, cz)) return null
+        return locate(cx, cz)?.ship
+    }
+
     // A point no split piece retains no longer exists physically; it reads as infinitely far.
     private val GONE = DoubleArray(6)
 

@@ -43,14 +43,12 @@ import java.util.Vector
 import java.util.function.BiFunction
 import java.util.function.Function
 import java.util.function.Predicate
+import org.valkyrienskies.mod.common.util.ShipHitVec3
 
 private val logger = LogManager.getLogger("RaycastUtilsKt")
 
-private class MappedShipHit(world: Vec3, val local: BlockHitResult) :
-    BlockHitResult(world, local.direction, local.blockPos, local.isInside)
-
 fun ClientLevel?.blockHitForUse(hit: BlockHitResult): BlockHitResult {
-    if (hit is MappedShipHit) return hit.local
+    (hit.location as? ShipHitVec3)?.local?.let { return BlockHitResult(it, hit.direction, hit.blockPos, hit.isInside) }
     if (hit.type == HitResult.Type.MISS || hit.blockPos.center.closerThan(hit.location, 1.0)) return hit
     val local = toShipRenderCoordinates(hit.blockPos.center, hit.location)
     return if (local == hit.location) hit else BlockHitResult(local, hit.direction, hit.blockPos, hit.isInside)
@@ -156,7 +154,9 @@ fun Level.clipIncludeShips(
         }
     }
 
-    return if (shouldTransformHitPos && closestHit !== vanillaHit) MappedShipHit(closestHitPos, closestHit) else closestHit
+    return if (shouldTransformHitPos && closestHit !== vanillaHit) {
+        BlockHitResult(ShipHitVec3.of(closestHitPos, closestHit.location, closestHit.blockPos), closestHit.direction, closestHit.blockPos, closestHit.isInside)
+    } else closestHit
 }
 
 internal fun clipToPiece(from: Vec3, to: Vec3, piece: ShipPhysicalPiece): Pair<Vec3, Vec3>? {

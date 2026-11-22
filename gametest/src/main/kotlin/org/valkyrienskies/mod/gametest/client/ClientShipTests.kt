@@ -1,7 +1,11 @@
 package org.valkyrienskies.mod.gametest.client
 
+import net.minecraft.world.item.ItemStack
 import kotlin.math.abs
 import kotlin.math.sqrt
+import org.joml.Vector3d
+import org.valkyrienskies.mod.common.VSClientGameUtils
+import org.valkyrienskies.mod.common.util.ShipHitVec3
 import com.simibubi.create.AllBlocks
 import com.simibubi.create.AllItems
 import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorBlockEntity
@@ -41,6 +45,12 @@ object ClientShipTests {
     private val stone = Blocks.STONE.defaultBlockState()
 
 
+    private fun toWorld(shipyard: Vec3): Vec3 {
+        val ship = VSClientGameUtils.getClientShip(shipyard.x, shipyard.y, shipyard.z)
+            ?: throw ClientTestFailure("no client ship at $shipyard; test setup is wrong")
+        return ship.renderTransform.shipToWorld.transformPosition(Vector3d(shipyard.x, shipyard.y, shipyard.z)).let { Vec3(it.x, it.y, it.z) }
+    }
+
     /** Whether the value box Create's renderer outlined under [key] is highlighted (not passive). */
     private fun outlineActive(key: Any): Boolean? = (Outliner.getInstance().outlines[key]?.outline as? ValueBox)?.let { !it.isPassive }
 
@@ -68,7 +78,7 @@ object ClientShipTests {
                 "client chain on a ship has length ${stats.chainLength()}, but its ends are $raw apart"
             }
         },
-        // The crosshair's hit location on a ship block is in shipyard coordinates, like its block pos.
+        // The crosshair's hit location on a ship block is in world coordinates; Create subtracts the block pos from it.
         ClientShipTest(
             "crafter edge on a ship highlights under the crosshair",
             run {
@@ -79,7 +89,7 @@ object ClientShipTests {
         ) { mc, ship, _ ->
             val pos = ship.shipPos(0, 0, 0)
             mc.player!!.setItemInHand(InteractionHand.MAIN_HAND, AllItems.WRENCH.asStack())
-            mc.hitResult = BlockHitResult(Vec3(pos.x + 0.9, pos.y + 1.0, pos.z + 0.5), Direction.UP, pos, false)
+            mc.hitResult = BlockHitResult(toWorld(Vec3(pos.x + 0.9, pos.y + 1.0, pos.z + 0.5)), Direction.UP, pos, false)
             EdgeInteractionRenderer.tick()
             val active = outlineActive("edge")
             clientCheck(active == true) { "crosshair on a ship crafter's east edge didn't highlight it (outline active=$active)" }
@@ -111,8 +121,8 @@ object ClientShipTests {
                 (slot as? ValueBoxTransform.Sided)?.fromSide(face)
                 slot.getLocalOffset(level, pos, state)?.takeIf { slot.testHit(level, pos, state, it) }?.let { face to it }
             } ?: throw ClientTestFailure("brass funnel filter slot accepts no local hit; test setup is wrong")
-            mc.player!!.setItemInHand(InteractionHand.MAIN_HAND, net.minecraft.world.item.ItemStack.EMPTY)
-            mc.hitResult = BlockHitResult(Vec3.atLowerCornerOf(pos).add(local), face, pos, false)
+            mc.player!!.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY)
+            mc.hitResult = BlockHitResult(toWorld(Vec3.atLowerCornerOf(pos).add(local)), face, pos, false)
             FilteringRenderer.tick()
             val active = Outliner.getInstance().outlines.entries
                 .firstOrNull { (key, _) -> key is Pair<*, *> && key.second == pos && (key.first as? String)?.startsWith("filter") == true }
@@ -128,8 +138,8 @@ object ClientShipTests {
             val fog = mc.gameRenderer.mainCamera.fluidInCamera
             clientCheck(fog == FogType.WATER) { "camera inside a ship water block reported $fog" }
         },
-        // The player looks south at a ship block with a villager behind it. The block hit's location is in
-        // shipyard coordinates, so the entity-vs-block distance comparison has to be ship-aware.
+        // The player looks south at a ship block with a villager behind it. The block hit's location is in world
+        // coordinates.
         ClientShipTest(
             "crosshair picks ship block, not the entity behind it",
             mapOf(BlockPos.ZERO to stone), BlockPos(0, 1, 3),
@@ -144,6 +154,10 @@ object ClientShipTests {
             val hit = mc.hitResult
             clientCheck(hit is BlockHitResult && hit.type == HitResult.Type.BLOCK && hit.blockPos == ship.shipPos(0, 0, 0)) {
                 "crosshair on a ship block 2.5 blocks away picked $hit (${(hit as? BlockHitResult)?.blockPos})"
+            }
+            val location = hit!!.location
+            clientCheck(location is ShipHitVec3 && location.distanceTo(mc.player!!.eyePosition) < 4.0 && !ShipHitVec3.inShipyard(location.x, location.z)) {
+                "crosshair hit on a ship block has location $location (${location.javaClass.simpleName}), not a world-space ship hit"
             }
         },
 
