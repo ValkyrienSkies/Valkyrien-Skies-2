@@ -16,8 +16,10 @@ import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.Vec3
+import net.minecraftforge.event.RegisterGameTestsEvent
+import net.minecraftforge.eventbus.api.SubscribeEvent
 import net.minecraftforge.fml.ModList
-import net.minecraftforge.gametest.GameTestHolder
+import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.gametest.PrefixGameTestTemplate
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod.MOD_ID
 import org.valkyrienskies.mod.gametest.*
@@ -26,22 +28,18 @@ import rbasamoyai.createbigcannons.munitions.AbstractCannonProjectile
 import rbasamoyai.createbigcannons.network.ServerboundSetFixedCannonMountValuePacket
 
 // Other mods' range and collision checks against ship blocks. Needs the mods at runtime: run with -PvsTestMods.
-@GameTestHolder(MOD_ID)
+// Registered only when they're loaded: listing these methods resolves the mods' classes.
 @PrefixGameTestTemplate(false)
 class ModCompatShipGameTests {
 
     private val stone = Blocks.STONE.defaultBlockState()
     private val shipAt = BlockPos(8, 5, 8)
 
-    private fun GameTestHelper.requireMod(id: String) =
-        check(ModList.get().isLoaded(id)) { "mod '$id' isn't loaded; run the game tests with -PvsTestMods" }
-
     private fun block(id: String): BlockState =
         BuiltInRegistries.BLOCK.get(ResourceLocation(id)).defaultBlockState()
 
-    @GameTest(template = TEST_AREA, batch = "ie_inventory", timeoutTicks = 200)
+    @GameTest(template = TEST_AREA, templateNamespace = MOD_ID, batch = "ie_inventory", timeoutTicks = 200)
     fun immersiveEngineeringInventoryOnShipIsUsableNearby(helper: GameTestHelper) {
-        helper.requireMod("immersiveengineering")
         helper.withShip(mapOf(BlockPos.ZERO to Blocks.CHEST.defaultBlockState()), helper.absolutePos(shipAt)) { ship ->
             val pos = ship.shipPos(0, 0, 0)
             val player = helper.mockPlayerAt(ship.worldCenter(pos).add(2.0, -0.5, 0.0))
@@ -55,9 +53,8 @@ class ModCompatShipGameTests {
         }
     }
 
-    @GameTest(template = TEST_AREA, batch = "modular_router_menu", timeoutTicks = 200)
+    @GameTest(template = TEST_AREA, templateNamespace = MOD_ID, batch = "modular_router_menu", timeoutTicks = 200)
     fun modularRouterMenuOnShipStaysValidNearby(helper: GameTestHelper) {
-        helper.requireMod("modularrouters")
         helper.withShip(mapOf(BlockPos.ZERO to block("modularrouters:modular_router")), helper.absolutePos(shipAt)) { ship ->
             val pos = ship.shipPos(0, 0, 0)
             val player = helper.mockPlayerAt(ship.worldCenter(pos).add(2.0, -0.5, 0.0))
@@ -70,9 +67,8 @@ class ModCompatShipGameTests {
         }
     }
 
-    @GameTest(template = TEST_AREA, batch = "mffs_frequency", timeoutTicks = 200)
+    @GameTest(template = TEST_AREA, templateNamespace = MOD_ID, batch = "mffs_frequency", timeoutTicks = 200)
     fun mffsFortronStorageOnShipIsInRange(helper: GameTestHelper) {
-        helper.requireMod("mffs")
         helper.withShip(mapOf(BlockPos.ZERO to Blocks.CHEST.defaultBlockState()), helper.absolutePos(shipAt)) { ship ->
             val owner = helper.level.getBlockEntity(ship.shipPos(0, 0, 0))!!
             val storage = object : FortronStorage {
@@ -100,9 +96,8 @@ class ModCompatShipGameTests {
         }
     }
 
-    @GameTest(template = TEST_AREA, batch = "cbc_projectile_fall", timeoutTicks = 200)
+    @GameTest(template = TEST_AREA, templateNamespace = MOD_ID, batch = "cbc_projectile_fall", timeoutTicks = 200)
     fun cannonShotStuckInShipBlockDoesNotFall(helper: GameTestHelper) {
-        helper.requireMod("createbigcannons")
         helper.withShip(mapOf(BlockPos.ZERO to stone), helper.absolutePos(shipAt)) { ship ->
             val type = EntityType.byString("createbigcannons:ap_shot").orElseThrow()
             val shot = type.create(helper.level) as AbstractCannonProjectile
@@ -116,9 +111,8 @@ class ModCompatShipGameTests {
         }
     }
 
-    @GameTest(template = TEST_AREA, batch = "cbc_mount_packet", timeoutTicks = 200)
+    @GameTest(template = TEST_AREA, templateNamespace = MOD_ID, batch = "cbc_mount_packet", timeoutTicks = 200)
     fun cannonMountSettingFromNearbyPlayerIsApplied(helper: GameTestHelper) {
-        helper.requireMod("createbigcannons")
         helper.withShip(mapOf(BlockPos.ZERO to block("createbigcannons:fixed_cannon_mount")), helper.absolutePos(shipAt)) { ship ->
             val pos = ship.shipPos(0, 0, 0)
             val player = helper.mockPlayerAt(ship.worldCenter(pos).add(2.0, -0.5, 0.0))
@@ -132,5 +126,16 @@ class ModCompatShipGameTests {
                 player.removeMock()
             }
         }
+    }
+}
+
+@Mod.EventBusSubscriber(modid = MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD)
+object ModCompatShipGameTestRegistration {
+    private val mods = listOf("immersiveengineering", "modularrouters", "mffs", "createbigcannons")
+
+    @SubscribeEvent
+    @JvmStatic
+    fun register(event: RegisterGameTestsEvent) {
+        if (mods.all { ModList.get().isLoaded(it) }) event.register(ModCompatShipGameTests::class.java)
     }
 }
