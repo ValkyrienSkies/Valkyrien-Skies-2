@@ -21,8 +21,44 @@ configurations {
     developmentFabric.extendsFrom common
 }
 
+// Shared game tests plus the Fabric hooks; see loom.mods below.
+sourceSets {
+    gametest {
+        kotlin.srcDirs = [rootProject.file("gametest/src/main/kotlin"), "src/gametest/kotlin"]
+        compileClasspath += main.compileClasspath + main.output
+        runtimeClasspath += main.runtimeClasspath + main.output
+    }
+}
+
 loom {
     accessWidenerPath = project(":common").loom.accessWidenerPath
+
+    // Game tests run as a separate dev-only mod so they never ship (Fabric API registers game tests in production).
+    mods {
+        "valkyrienskies" {
+            sourceSet sourceSets.main
+        }
+        "valkyrienskies-gametest" {
+            sourceSet sourceSets.gametest
+        }
+    }
+    runs {
+        gameTestServer {
+            server()
+            name "Fabric Game Test Server"
+            source sourceSets.gametest
+            runDir "run/gametest"
+            vmArg "-Dfabric-api.gametest"
+            vmArg "-Dfabric-api.gametest.report-file=${project.buildDir}/gametest-report.xml"
+        }
+        gameTestClient {
+            client()
+            name "Fabric Client Ship Tests"
+            source sourceSets.gametest
+            runDir "run/clienttest"
+            vmArg "-Dvs.clientTests=true"
+        }
+    }
 }
 
 dependencies {

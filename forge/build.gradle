@@ -25,6 +25,8 @@ architectury {
 }
 
 sourceSets {
+    // Game tests shared with Fabric
+    main.kotlin.srcDir rootProject.file("gametest/src/main/kotlin")
     main {
         resources {
             srcDir "$buildDir/generated/resources"
@@ -43,6 +45,23 @@ loom {
     }
     mixin {
         defaultRefmapName = "valkyrienskies-refmap.json"
+    }
+
+    runs {
+        gameTestServer {
+            server()
+            name "Forge Game Test Server"
+            runDir "run/gametest"
+            property "forge.enableGameTest", "true"
+            property "forge.gameTestServer", "true"
+            property "forge.enabledGameTestNamespaces", "valkyrienskies"
+        }
+        gameTestClient {
+            client()
+            name "Forge Client Ship Tests"
+            runDir "run/clienttest"
+            property "vs.clientTests", "true"
+        }
     }
 }
 
@@ -135,6 +154,26 @@ dependencies {
 
     // Modular Force Field System
     modCompileOnly("maven.modrinth:mffs:5.1.18")
+
+    // Compat mods the game tests exercise. Compile-only always; loaded at runtime only with -PvsTestMods, so
+    // ordinary dev runs are unchanged.
+    modCompileOnly("maven.modrinth:immersiveengineering:10.2.0-183")
+    modCompileOnly("maven.modrinth:echo-chest:v8.0.0-1.20.1-Forge")
+    modCompileOnly("com.rbasamoyai:createbigcannons:${createbigcannons_version}+mc.${minecraft_version}-forge${createbigcannons_build}") { transitive = false }
+    modCompileOnly("com.rbasamoyai:ritchiesprojectilelib:${rpl_version}+mc.${minecraft_version}-forge")
+    if (project.hasProperty("vsTestMods")) {
+        modRuntimeOnly("maven.modrinth:immersiveengineering:10.2.0-183")
+        modRuntimeOnly("maven.modrinth:echo-chest:v8.0.0-1.20.1-Forge")
+        modRuntimeOnly("maven.modrinth:puzzles-lib:8.1.36")
+        modRuntimeOnly("maven.modrinth:mffs:5.1.18")
+        modRuntimeOnly("curse.maven:mr-250294:4696089")
+        modRuntimeOnly("maven.modrinth:patchouli:1.20.1-85-forge")
+        modRuntimeOnly("maven.modrinth:tis3d:${tis3d_version}")
+        modRuntimeOnly("maven.modrinth:markdownmanual:MC1.20.1-forge-1.2.5")
+        modRuntimeOnly("maven.modrinth:architectury-api:9.2.14+forge")
+        modRuntimeOnly("com.rbasamoyai:createbigcannons:${createbigcannons_version}+mc.${minecraft_version}-forge${createbigcannons_build}") { transitive = false }
+        modRuntimeOnly("com.rbasamoyai:ritchiesprojectilelib:${rpl_version}+mc.${minecraft_version}-forge")
+    }
 
     // Epic Fight
     modCompileOnly("maven.modrinth:epic-fight:20.10.3")
