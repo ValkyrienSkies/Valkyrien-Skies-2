@@ -6,4 +6,6 @@ public interface PlayerDuck {
 
     MinecraftPlayer vs_getPlayer();
 
+    void vs_setPlayer(MinecraftPlayer player);
+
 }
