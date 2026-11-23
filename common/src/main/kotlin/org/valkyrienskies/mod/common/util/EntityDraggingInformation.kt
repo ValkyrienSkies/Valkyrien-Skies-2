@@ -58,10 +58,6 @@ class EntityDraggingInformation {
     // Null unless vanilla requested an animation update before ship interpolation this tick.
     var pendingWalkAnimation: Boolean? = null
 
-    // Used by the client rendering code only
-    var cachedLastPosition: Vector3dc? = null
-    var restoreCachedLastPosition = false
-
     var serverRelativePlayerPosition: Vector3dc? = null
     var serverRelativePlayerYaw: Double? = null
 

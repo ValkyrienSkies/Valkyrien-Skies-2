@@ -43,8 +43,9 @@ import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
 import org.valkyrienskies.mod.mixinducks.client.MinecraftDuck;
 import org.valkyrienskies.mod.mixinducks.client.player.LocalPlayerDuck;
 
-import java.util.IdentityHashMap;
-import java.util.Map;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import org.valkyrienskies.mod.client.LevelViewScopes;
+import org.valkyrienskies.mod.client.RiderPresentation;
 
 @Mixin(GameRenderer.class)
 public abstract class MixinGameRenderer {
@@ -63,8 +64,7 @@ public abstract class MixinGameRenderer {
     @Shadow
     public abstract Matrix4f getProjectionMatrix(double d);
 
-    @Unique
-    private final Map<Entity, EntityRenderPosition.Snapshot> vs$renderPositionSnapshots = new IdentityHashMap<>();
+    @Unique private final LevelViewScopes<ClientLevel, RiderPresentation> vs$views = new LevelViewScopes<>();
 
     /**
      * {@link Entity#pick(double, float, boolean)} except the hit pos is not transformed
@@ -116,13 +116,11 @@ public abstract class MixinGameRenderer {
         return VSGameUtilsKt.squaredDistanceBetweenInclShips(this.minecraft.level, instance, vec3, original);
     }
 
-    @Inject(method = "render", at = @At("HEAD"))
-    private void preRender(final float tickDelta, final long startTime, final boolean tick, final CallbackInfo ci) {
-        final ClientLevel clientWorld = minecraft.level;
-        if (clientWorld != null) {
-            // Update ship render transforms
-            final VsiClientShipWorld shipWorld =
-                IShipObjectWorldClientProvider.class.cast(this.minecraft).getShipObjectWorld();
+    @Unique
+    private void vs$sampleShips(RiderPresentation frame) {
+        if (frame != null) {
+            float tickDelta = frame.time;
+            final VsiClientShipWorld shipWorld = frame.world;
             if (shipWorld == null) {
                 return;
             }
@@ -132,20 +130,47 @@ public abstract class MixinGameRenderer {
         }
     }
 
-    @Inject(method = "render", at = @At(value = "INVOKE", target =
-        "Lnet/minecraft/client/renderer/GameRenderer;renderLevel(FJLcom/mojang/blaze3d/vertex/PoseStack;)V"))
-    private void vs$prepareRiderRenderPositions(final float tickDelta, final long startTime, final boolean tick, final CallbackInfo ci) {
-        final ClientLevel clientWorld = minecraft.level;
-        final VsiClientShipWorld shipWorld = IShipObjectWorldClientProvider.class.cast(minecraft).getShipObjectWorld();
-        if (clientWorld != null && shipWorld != null) {
+    // Wrap the method itself: portal/alternate views need not arrive through GameRenderer.render.
+    @WrapMethod(method = "renderLevel")
+    private void vs$presentLevel(float t, long time, PoseStack stack, Operation<Void> render) {
+        ClientLevel level = minecraft.level;
+        if (level == null) { render.call(t, time, stack); return; }
+        vs$views.withView(level, () -> new RiderPresentation(t, ((IShipObjectWorldClientProvider) minecraft).getShipObjectWorld()),
+            this::vs$suspendHits, (frame, outer, fresh) -> {
+                try {
+                    if (frame != outer) vs$sampleShips(frame);
+                    if (fresh) vs$prepareRiderRenderPositions(level, frame);
+                    render.call(frame.time, time, stack);
+                } finally {
+                    try { if (fresh) frame.restore(); }
+                    finally { if (frame != outer) vs$sampleShips(outer); }
+                }
+            });
+    }
 
-            if (this.minecraft.player != null) {
-                ((LocalPlayerDuck) this.minecraft.player).vs$updateMountedCameraRotation(true);
-            }
+    @Unique
+    private Runnable vs$suspendHits() {
+        MinecraftDuck hits = (MinecraftDuck) minecraft;
+        HitResult priorHit = minecraft.hitResult, priorBlock = hits.vs$getOriginalCrosshairTarget();
+        // The owner can supply a remote block (or no hit) and suppress pick, leaving
+        // the previous view's independent name-tag target behind.
+        Runnable restore = org.valkyrienskies.mod.client.NestedViewHits.enter(priorHit, minecraft.crosshairPickEntity,
+            hit -> minecraft.hitResult = hit, entity -> minecraft.crosshairPickEntity = entity);
+        return () -> {
+            restore.run();
+            hits.vs$setOriginalCrosshairTarget(priorBlock);
+        };
+    }
 
+    @Unique
+    private void vs$prepareRiderRenderPositions(ClientLevel clientWorld, RiderPresentation frameState) {
+        final var vs$renderPositionSnapshots = frameState.snapshots;
+        float tickDelta = frameState.time;
+        VsiClientShipWorld shipWorld = frameState.world;
+        if (shipWorld != null) {
             // Also update entity last tick positions, so that they interpolate correctly
             for (final Entity entity : clientWorld.entitiesForRendering()) {
-                if (!EntityDragger.isDraggable(entity)) {
+                if (vs$renderPositionSnapshots.containsKey(entity) || !EntityDragger.isDraggable(entity)) {
                     continue;
                 }
                 // The position we want to render [entity] at for this frame
@@ -162,6 +187,7 @@ public abstract class MixinGameRenderer {
                     entityShouldBeHere = shipMountedTo.getRenderTransform().getShipToWorld()
                         .transformPosition(passengerPos, new Vector3d());
                     vs$moveEntityToRenderPosition(entity, entityShouldBeHere);
+                    if (entity == minecraft.player) ((LocalPlayerDuck) entity).vs$updateMountedCameraRotation(true);
                     continue;
                 }
 
@@ -198,7 +224,7 @@ public abstract class MixinGameRenderer {
 
     @Unique
     private void vs$moveEntityToRenderPosition(final Entity entity, final Vector3dc renderPosition) {
-        vs$renderPositionSnapshots.computeIfAbsent(entity, EntityRenderPosition::capture);
+        vs$views.current().snapshots.computeIfAbsent(entity, EntityRenderPosition::capture);
         EntityRenderPosition.setWithoutSectionUpdate(
             entity,
             renderPosition.x(),
@@ -211,32 +237,6 @@ public abstract class MixinGameRenderer {
         entity.xOld = renderPosition.x();
         entity.yOld = renderPosition.y();
         entity.zOld = renderPosition.z();
-    }
-
-    @Inject(method = "render", at = @At("TAIL"))
-    private void postRender(final float tickDelta, final long startTime, final boolean tick, final CallbackInfo ci) {
-        final ClientLevel clientWorld = minecraft.level;
-        if (clientWorld != null) {
-            vs$renderPositionSnapshots.forEach((entity, snapshot) -> snapshot.restore(entity));
-            vs$renderPositionSnapshots.clear();
-
-            // Restore the entity last tick positions that were replaced during this frame
-            for (final Entity entity : clientWorld.entitiesForRendering()) {
-                final EntityDraggingInformation vsEntity =
-                    ((IEntityDraggingInformationProvider) entity).getDraggingInformation();
-                if (vsEntity.getRestoreCachedLastPosition()) {
-                    vsEntity.setRestoreCachedLastPosition(false);
-                    final Vector3dc cachedLastPosition = vsEntity.getCachedLastPosition();
-                    if (cachedLastPosition != null) {
-                        entity.xo = cachedLastPosition.x();
-                        entity.yo = cachedLastPosition.y();
-                        entity.zo = cachedLastPosition.z();
-                    } else {
-                        System.err.println("How was cachedLastPosition was null?");
-                    }
-                }
-            }
-        }
     }
 
     @Inject(
