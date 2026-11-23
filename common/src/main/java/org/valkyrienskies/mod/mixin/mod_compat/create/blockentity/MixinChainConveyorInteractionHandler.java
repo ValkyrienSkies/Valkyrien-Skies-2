@@ -53,7 +53,9 @@ public abstract class MixinChainConveyorInteractionHandler {
         if(ship != null) {
             Vector3d liftShipPos = ship.getRenderTransform().getShipToWorld().transformPosition(selectedLift.getX(), selectedLift.getY(), selectedLift.getZ(), new Vector3d());
             original.call(instance, liftShipPos.x - camera.x, liftShipPos.y - camera.y, liftShipPos.z - camera.z);
-            instance.last().pose().rotate(ship.getRenderTransform().getShipToWorldRotation().get(new Quaternionf()));
+            instance.mulPose(ship.getRenderTransform().getShipToWorldRotation().get(new Quaternionf()));
+            final var scale = ship.getRenderTransform().getShipToWorldScaling();
+            instance.scale((float) scale.x(), (float) scale.y(), (float) scale.z());
         } else original.call(instance, x, y, z);
     }
 }

@@ -75,7 +75,7 @@ public abstract class MixinChainConveyorRidingHandler {
     private static Vec3 wrapStart(ConnectionStats instance, Operation<Vec3> original){
         Vec3 origPos = original.call(instance);
         if (vs$ridingShip != null) {
-            Vector3d newPos = vs$ridingShip.getRenderTransform().getShipToWorld().transformPosition(origPos.x, origPos.y, origPos.z, new Vector3d());
+            Vector3d newPos = vs$ridingShip.getTransform().getShipToWorld().transformPosition(origPos.x, origPos.y, origPos.z, new Vector3d());
             return VectorConversionsMCKt.toMinecraft(newPos);
         }
         return origPos;
@@ -92,7 +92,7 @@ public abstract class MixinChainConveyorRidingHandler {
     private static Vec3 wrapEnd(ConnectionStats instance, Operation<Vec3> original){
         Vec3 origPos = original.call(instance);
         if (vs$ridingShip != null) {
-            Vector3d newPos = vs$ridingShip.getRenderTransform().getShipToWorld().transformPosition(origPos.x, origPos.y, origPos.z, new Vector3d());
+            Vector3d newPos = vs$ridingShip.getTransform().getShipToWorld().transformPosition(origPos.x, origPos.y, origPos.z, new Vector3d());
             return VectorConversionsMCKt.toMinecraft(newPos);
         }
         return origPos;
@@ -107,7 +107,7 @@ public abstract class MixinChainConveyorRidingHandler {
     private static Vec3 wrapBottomCenterOfConveyor(Vec3i vec3i, Operation<Vec3> original){
         Vec3 origPos = original.call(vec3i);
         if (vs$ridingShip != null) {
-            Vector3d newPos = vs$ridingShip.getRenderTransform().getShipToWorld().transformPosition(origPos.x, origPos.y, origPos.z, new Vector3d());
+            Vector3d newPos = vs$ridingShip.getTransform().getShipToWorld().transformPosition(origPos.x, origPos.y, origPos.z, new Vector3d());
             return VectorConversionsMCKt.toMinecraft(newPos);
         }
         return origPos;
@@ -124,7 +124,7 @@ public abstract class MixinChainConveyorRidingHandler {
         Vec3 result = original.call(vec, deg, axis);
         if (vs$ridingShip != null) {
             Vector3d resultD = VectorConversionsMCKt.toJOML(result);
-            vs$ridingShip.getRenderTransform().getShipToWorld().transformDirection(resultD);
+            vs$ridingShip.getTransform().getShipToWorld().transformDirection(resultD);
             return VectorConversionsMCKt.toMinecraft(resultD);
         }
         return result;
@@ -137,7 +137,7 @@ public abstract class MixinChainConveyorRidingHandler {
     private static Vec3 wrapLookVectorToShip(final LocalPlayer player, final Operation<Vec3> original) {
         if(vs$ridingShip != null){
             final Vector3d lookVectorWorld = VectorConversionsMCKt.toJOML(original.call(player));
-            vs$ridingShip.getRenderTransform().getWorldToShip().transformDirection(lookVectorWorld);
+            vs$ridingShip.getTransform().getWorldToShip().transformDirection(lookVectorWorld);
             return VectorConversionsMCKt.toMinecraft(lookVectorWorld);
         }
         return original.call(player);
