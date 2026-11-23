@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.mixin.client.renderer;
 
+import org.valkyrienskies.mod.common.world.RayQuery;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
@@ -13,7 +14,6 @@ import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
@@ -27,6 +27,8 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyArg;
+import org.valkyrienskies.mod.common.world.SeatHoverBox;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.internal.world.VsiClientShipWorld;
@@ -67,26 +69,19 @@ public abstract class MixinGameRenderer {
 
     @Unique private final LevelViewScopes<ClientLevel, RiderPresentation> vs$views = new LevelViewScopes<>();
 
-    /**
-     * {@link Entity#pick(double, float, boolean)} except the hit pos is not transformed
-     */
-    @Unique
-    private static HitResult entityRaycastNoTransform(
-        final Entity entity, final double maxDistance, final float tickDelta, final boolean includeFluids) {
-        final Vec3 vec3d = entity.getEyePosition(tickDelta);
-        final Vec3 vec3d2 = entity.getViewVector(tickDelta);
-        final Vec3 vec3d3 = vec3d.add(vec3d2.x * maxDistance, vec3d2.y * maxDistance, vec3d2.z * maxDistance);
-        return RaycastUtilsKt.clipIncludeShips(
-            entity.level(),
-            new ClipContext(
-                vec3d,
-                vec3d3,
-                ClipContext.Block.OUTLINE,
-                includeFluids ? ClipContext.Fluid.ANY : ClipContext.Fluid.NONE,
-                entity
-            ),
-            false
-        );
+    @WrapOperation(method = "pick", at = @At(value = "INVOKE", target =
+        "Lnet/minecraft/world/entity/projectile/ProjectileUtil;getEntityHitResult(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/AABB;Ljava/util/function/Predicate;D)Lnet/minecraft/world/phys/EntityHitResult;"))
+    private net.minecraft.world.phys.EntityHitResult vs$frameEntityQuery(Entity viewer, Vec3 from, Vec3 to,
+        net.minecraft.world.phys.AABB bounds, java.util.function.Predicate<Entity> filter, double limit,
+        Operation<net.minecraft.world.phys.EntityHitResult> original) {
+        return RayQuery.crosshairCall(() -> original.call(viewer, from, to, bounds, filter, limit));
+    }
+
+    // Vanilla uses pick's partial tick for the block ray but hard-codes 1 for the entity ray.
+    @WrapOperation(method = "pick", at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/world/entity/Entity;getViewVector(F)Lnet/minecraft/world/phys/Vec3;"))
+    private Vec3 vs$entityPickDirection(Entity entity, float ignored, Operation<Vec3> original, float partialTick) {
+        return original.call(entity, partialTick);
     }
 
     @WrapOperation(
@@ -114,7 +109,11 @@ public abstract class MixinGameRenderer {
         )
     )
     public double correctDistanceChecks(final Vec3 instance, final Vec3 vec3, final Operation<Double> original) {
-        return VSGameUtilsKt.squaredDistanceBetweenInclShips(this.minecraft.level, instance, vec3, original);
+        if (RayQuery.frameTime() == null) {
+            return VSGameUtilsKt.squaredDistanceBetweenInclShips(minecraft.level, instance, vec3, original);
+        }
+        return original.call(VSGameUtilsKt.toWorldRenderCoordinates(minecraft.level, instance),
+            VSGameUtilsKt.toWorldRenderCoordinates(minecraft.level, vec3));
     }
 
     @Unique
@@ -141,7 +140,8 @@ public abstract class MixinGameRenderer {
                 try {
                     if (frame != outer) vs$sampleShips(frame);
                     if (fresh) vs$prepareRiderRenderPositions(level, frame);
-                    render.call(frame.time, time, stack);
+                    RayQuery.frame(frame.time, frame.snapshots.keySet(),
+                        () -> render.call(frame.time, time, stack));
                 } finally {
                     try { if (fresh) frame.restore(); }
                     finally { if (frame != outer) vs$sampleShips(outer); }
@@ -274,6 +274,15 @@ public abstract class MixinGameRenderer {
         entity.xOld = renderPosition.x();
         entity.yOld = renderPosition.y();
         entity.zOld = renderPosition.z();
+    }
+
+    // Vanilla sweeps the viewer's upright box; the mounted eye can be outside it.
+    // Change only candidate discovery, not the ray, its range or the winner loop.
+    @ModifyArg(method = "pick", index = 3, at = @At(value = "INVOKE", target =
+        "Lnet/minecraft/world/entity/projectile/ProjectileUtil;getEntityHitResult(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/AABB;Ljava/util/function/Predicate;D)Lnet/minecraft/world/phys/EntityHitResult;"))
+    private net.minecraft.world.phys.AABB vs$includeFrameEyeRay(Entity viewer, Vec3 from, Vec3 to,
+        net.minecraft.world.phys.AABB bounds, java.util.function.Predicate<Entity> filter, double limit) {
+        return RayQuery.frameTime() != null ? SeatHoverBox.discoveryBounds(bounds, from, to) : bounds;
     }
 
     @Inject(

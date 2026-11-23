@@ -1,6 +1,9 @@
 package org.valkyrienskies.mod.mixin.feature.shipyard_entities;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import org.valkyrienskies.mod.common.world.RayQuery;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Camera;
@@ -68,6 +71,15 @@ public class MixinEntityRenderDispatcher {
         cir.setReturnValue(VSGameUtilsKt.squaredDistanceToInclShips(camera.getEntity(), x, y, z));
     }
 
+    // Vanilla samples an offset before translating its pose stack. Seated model placement
+    // replaces that translation below, but vanilla also uses the value after drawing (e.g. shadows).
+    @WrapOperation(method = "render", at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/client/renderer/entity/EntityRenderer;getRenderOffset(Lnet/minecraft/world/entity/Entity;F)Lnet/minecraft/world/phys/Vec3;"))
+    private Vec3 vs$viewOffset(EntityRenderer<?> renderer, Entity actor, float t, Operation<Vec3> original) {
+        var pose = RayQuery.visualSeat(actor);
+        return pose == null ? original.call(renderer, actor, t) : pose.offset;
+    }
+
     @Inject(method = "render",
         at = @At(
             value = "INVOKE",
@@ -80,7 +92,15 @@ public class MixinEntityRenderDispatcher {
         final MultiBufferSource buffer, final int packedLight, final CallbackInfo ci,
         final EntityRenderer<T> entityRenderer
     ) {
-        final ShipMountedToData shipMountedToData = VSGameUtilsKt.getShipMountedToData(entity, partialTicks);
+        var pose = RayQuery.visualSeat(entity);
+        if (pose != null) {
+            matrixStack.popPose();
+            matrixStack.pushPose();
+            final Vec3 pos = entity.getPosition(partialTicks);
+            pose.apply(matrixStack, x - pos.x, y - pos.y, z - pos.z);
+            return;
+        }
+        final ShipMountedToData shipMountedToData = RayQuery.frameTime() != null ? null : VSGameUtilsKt.getShipMountedToData(entity, partialTicks);
 
         if (shipMountedToData != null) {
             // Remove the earlier applied translation

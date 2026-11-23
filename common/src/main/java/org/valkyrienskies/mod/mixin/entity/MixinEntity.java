@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.mixin.entity;
 
+import org.valkyrienskies.mod.common.world.RayQuery;
 import static org.valkyrienskies.mod.common.util.VectorConversionsMCKt.toJOML;
 
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
@@ -149,13 +150,13 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
                         }
 
                         final ShipTransform shipTransform;
-                        if (shipDraggedBy instanceof ClientShip) {
+                        if (RayQuery.frameTime() != null && shipDraggedBy instanceof ClientShip) {
                             shipTransform = ((ClientShip) shipDraggedBy).getRenderTransform();
                         } else {
                             shipTransform = shipDraggedBy.getShipTransform();
                         }
                         ShipPhysicalPiece piece = dragProvider.getDraggingInformation().getSupportPiece();
-                        if (piece != null && shipDraggedBy instanceof ClientShip) piece = ShipPieceRenderFrames.rendered(piece);
+                        if (piece != null && RayQuery.frameTime() != null && shipDraggedBy instanceof ClientShip) piece = ShipPieceRenderFrames.rendered(piece);
                         final Vec3 worldEyePosition = VectorConversionsMCKt.toMinecraft(
                             (piece == null ? shipTransform.getShipToWorld() : piece.getShipToWorld()).transformPosition(VectorConversionsMCKt.toJOML(localEyePosition))
                         );
@@ -168,7 +169,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         final LoadedShip shipMountedTo = shipMountedToData.getShipMountedTo();
 
         final ShipTransform shipTransform;
-        if (shipMountedTo instanceof ClientShip) {
+        if (RayQuery.frameTime() != null && shipMountedTo instanceof ClientShip) {
             shipTransform = ((ClientShip) shipMountedTo).getRenderTransform();
         } else {
             shipTransform = shipMountedTo.getTransform();
@@ -189,18 +190,13 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
      */
     @Inject(method = "getEyePosition()Lnet/minecraft/world/phys/Vec3;", at = @At("HEAD"), cancellable = true)
     private void preGetEyePositionServer(final CallbackInfoReturnable<Vec3> cir) {
-        final ShipMountedToData shipMountedToData = VSGameUtilsKt.getShipMountedToData(Entity.class.cast(this), null);
+        final ShipMountedToData shipMountedToData = VSGameUtilsKt.getShipMountedToData(Entity.class.cast(this), 1.0f);
         if (shipMountedToData == null) {
             return;
         }
         final LoadedShip shipMountedTo = shipMountedToData.getShipMountedTo();
 
-        final ShipTransform shipTransform;
-        if (shipMountedTo instanceof ClientShip) {
-            shipTransform = ((ClientShip) shipMountedTo).getRenderTransform();
-        } else {
-            shipTransform = shipMountedTo.getShipTransform();
-        }
+        final ShipTransform shipTransform = shipMountedTo.getTransform();
         final Vector3dc basePos = shipTransform.getShipToWorldMatrix()
             .transformPosition(shipMountedToData.getMountPosInShip(), new Vector3d());
         final Vector3dc eyeRelativePos = shipTransform.getShipCoordinatesToWorldCoordinatesRotation().transform(

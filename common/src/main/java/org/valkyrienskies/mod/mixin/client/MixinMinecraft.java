@@ -7,6 +7,8 @@ import org.valkyrienskies.mod.common.fluid.RetainedFluidRenderer;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.GameRenderer;
+import org.valkyrienskies.mod.mixinducks.client.player.LocalPlayerDuck;
 import net.minecraft.client.multiplayer.ClientLevel;
 import org.valkyrienskies.mod.common.render.batched.ShipPieceRenderFrames;
 import net.minecraft.client.multiplayer.ClientPacketListener;
@@ -78,6 +80,14 @@ public abstract class MixinMinecraft
         return originalCrosshairTarget;
     }
 
+    // Refresh tick eyes/aim before vanilla computes the no-presentation fallback.
+    @WrapOperation(method = "tick", at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/client/renderer/GameRenderer;pick(F)V"))
+    private void vs$tickPick(GameRenderer renderer, float partialTick, Operation<Void> pick) {
+        if (player != null) ((LocalPlayerDuck) player).vs$updateMountedCameraRotation(false);
+        pick.call(renderer, partialTick);
+    }
+
     @Unique
     private VsiClientShipWorld shipObjectWorld = null;
 
@@ -93,7 +103,7 @@ public abstract class MixinMinecraft
         final BlockHitResult blockHitResult, final Operation<InteractionResult> useItemOn) {
 
         return useItemOn.call(instance, localPlayer, interactionHand,
-            RaycastUtilsKt.blockHitForUse(localPlayer.clientLevel, blockHitResult));
+            RaycastUtilsKt.blockHitForUse(localPlayer.clientLevel, blockHitResult, true));
     }
 
     @NotNull

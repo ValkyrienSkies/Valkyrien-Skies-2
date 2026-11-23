@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.common.world
 
 import net.minecraft.client.multiplayer.ClientLevel
+import org.valkyrienskies.mod.common.getLoadedShipManagingPos
 import org.valkyrienskies.mod.common.toShipRenderCoordinates
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
@@ -49,10 +50,13 @@ private val logger = LogManager.getLogger("RaycastUtilsKt")
 private class MappedShipHit(world: Vec3, val local: BlockHitResult) :
     BlockHitResult(world, local.direction, local.blockPos, local.isInside)
 
-fun ClientLevel?.blockHitForUse(hit: BlockHitResult): BlockHitResult {
+@JvmOverloads
+fun ClientLevel?.blockHitForUse(hit: BlockHitResult, tickGeometry: Boolean = RayQuery.frameTime() == null): BlockHitResult {
     if (hit is MappedShipHit) return hit.local
     if (hit.type == HitResult.Type.MISS || hit.blockPos.center.closerThan(hit.location, 1.0)) return hit
-    val local = toShipRenderCoordinates(hit.blockPos.center, hit.location)
+    val local = if (tickGeometry) getLoadedShipManagingPos(hit.blockPos)?.worldToShip
+        ?.transformPosition(hit.location.toJOML())?.toMinecraft() ?: hit.location
+    else toShipRenderCoordinates(hit.blockPos.center, hit.location)
     return if (local == hit.location) hit else BlockHitResult(local, hit.direction, hit.blockPos, hit.isInside)
 }
 
@@ -81,14 +85,15 @@ fun Level.clipIncludeShips(
 
     // Iterate every ship, find do the raycast in ship space,
     // choose the raycast with the lowest distance to the start position.
-    val ships = if (isClientSide() && this is ClientLevel) getRenderShipsIntersecting(clipAABB) else getShipsIntersecting(clipAABB)
+    val render = RayQuery.frameTime() != null && isClientSide()
+    val ships = if (render && this is ClientLevel) getRenderShipsIntersecting(clipAABB) else getShipsIntersecting(clipAABB)
     for (ship in ships) {
         val split = allShips.getSplitPieces(ship.id)
         if (split.isNotEmpty()) {
             if (ship.id == skipShip) continue
             for (physical in split) {
                 if (ship is ClientShip && physical.dimensionId != dimensionId) continue
-                val piece = if (ship is ClientShip) ShipPieceRenderFrames.rendered(physical) else physical
+                val piece = if (render && ship is ClientShip) ShipPieceRenderFrames.rendered(physical) else physical
                 if (!piece.worldBounds.intersectsAABB(clipAABB)) continue
                 val segment = clipToPiece(ctx.from, ctx.to, piece) ?: continue
                 val start = piece.worldToShip.transformPosition(segment.first.toJOML()).toMinecraft()
@@ -107,7 +112,7 @@ fun Level.clipIncludeShips(
         }
         val chopParam = Vector2d()
         // Pad AABB size to increase raycast tolerance
-        val expandedAABB = AABBd((ship as? ClientShip)?.renderAABB ?: ship.worldAABB).expand(1.0)
+        val expandedAABB = AABBd(if (render && ship is ClientShip) ship.renderAABB else ship.worldAABB).expand(1.0)
         val intersectType = expandedAABB.intersectsLineSegment(
             ctx.from.x, ctx.from.y, ctx.from.z, ctx.to.x, ctx.to.y, ctx.to.z, chopParam)
         if (intersectType == Intersectiond.OUTSIDE) {
@@ -140,8 +145,8 @@ fun Level.clipIncludeShips(
             choppedTo = ctx.to.toJOML()
         }
 
-        val worldToShip = (ship as? ClientShip)?.renderTransform?.worldToShip ?: ship.worldToShip
-        val shipToWorld = (ship as? ClientShip)?.renderTransform?.shipToWorld ?: ship.shipToWorld
+        val worldToShip = if (render && ship is ClientShip) ship.renderTransform.worldToShip else ship.worldToShip
+        val shipToWorld = if (render && ship is ClientShip) ship.renderTransform.shipToWorld else ship.shipToWorld
         val shipStart = worldToShip.transformPosition(choppedFrom).toMinecraft()
         val shipEnd = worldToShip.transformPosition(choppedTo).toMinecraft()
 
@@ -282,7 +287,8 @@ fun Level.raytraceEntities(
     var location: Vec3? = null
 
     val bounds = origBoundingBoxM.toJOML()
-    val ships = if (isClientSide() && this is ClientLevel) getRenderShipsIntersecting(bounds) else getShipsIntersecting(bounds)
+    val render = RayQuery.isFrameEntityPick() && isClientSide()
+    val ships = if (render && this is ClientLevel) getRenderShipsIntersecting(bounds) else getShipsIntersecting(bounds)
     if (!ships.iterator().hasNext()) return null
 
     fun checkEntities(entities: List<Entity>, startVec: Vec3, endVec: Vec3, scale: Double, toWorld: Matrix4dc? = null) =
@@ -330,19 +336,20 @@ fun Level.raytraceEntities(
 
     for (ship in ships) {
         if (ship is ClientShip && this is ClientLevel) {
+            val pose = if (render) ship.renderTransform else ship.transform
             fun trace(from: Vec3, to: Vec3, worldToShip: Matrix4dc, shipToWorld: Matrix4dc) {
                 val localBounds = AABBd(bounds).transform(worldToShip).toMinecraft()
                 checkEntities(getEntities(shooter, localBounds, filter),
                     worldToShip.transformPosition(from.toJOML()).toMinecraft(),
                     worldToShip.transformPosition(to.toJOML()).toMinecraft(),
-                    1.0 / ship.renderTransform.shipToWorldScaling.x(), shipToWorld)
+                    1.0 / pose.shipToWorldScaling.x(), shipToWorld)
             }
             val pieces = allShips.getSplitPieces(ship.id)
             if (pieces.isEmpty()) {
-                trace(origStartVecM, origEndVecM, ship.renderTransform.worldToShip, ship.renderTransform.shipToWorld)
+                trace(origStartVecM, origEndVecM, pose.worldToShip, pose.shipToWorld)
             } else for (physical in pieces) {
                 if (physical.dimensionId != dimensionId) continue
-                val piece = ShipPieceRenderFrames.rendered(physical)
+                val piece = if (render) ShipPieceRenderFrames.rendered(physical) else physical
                 val (from, to) = clipToPiece(origStartVecM, origEndVecM, piece) ?: continue
                 trace(from, to, piece.worldToShip, piece.shipToWorld)
             }
