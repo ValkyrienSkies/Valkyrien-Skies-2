@@ -1,0 +1,36 @@
+# Does world fluid still get the shaderpack's water program once it is re-meshed into the cull layer?
+#
+# Ship fluid culling moves world water out of the translucent chunk layer into AIR_CULL_RENDER_TYPE
+# (vanilla) / AIR_POCKET_PASS (Sodium). Under a shaderpack, water is supposed to be drawn by
+# gbuffers_water, which is what gives it waves and reflections. If the re-meshed layer instead lands on
+# gbuffers_terrain, the surface goes flat and still — visible immediately on a large open pool.
+#
+# Run this twice with Underwater.enableWaterCulling flipped in valkyrienskies-client.toml. Culling off
+# is the control: water takes the stock translucent pass. The two sets of screenshots should be
+# indistinguishable. Any difference in the water surface is the cull layer losing the water program.
+world autotest
+wait-level
+wait 100
+cmd gamemode creative
+cmd time set noon
+cmd gamerule doDaylightCycle false
+
+# A wide, deep pool: big enough that wave animation and reflections are obvious.
+cmd fill 62 -60 62 138 -57 138 minecraft:stone
+wait 10
+cmd fill 64 -59 64 136 -57 136 minecraft:water
+wait 30
+
+# Just above the surface, looking out across the water at a grazing angle, where a pack's
+# normals and reflections show up most strongly.
+cmd tp @s 100 -56 70 0 8
+wait 60
+screenshot water_surface_a
+wait 20
+screenshot water_surface_b
+
+# Steeper angle: shows the wave normals rather than the reflection.
+cmd tp @s 100 -52 100 0 50
+wait 40
+screenshot water_down
+quit

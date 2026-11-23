@@ -1,0 +1,33 @@
+# Does placed world water survive, and is it visible at all?
+#
+# Both arms of the shader A/B came out identical and waterless, which points at the scene rather than
+# the render path. This isolates that: shoot the pool immediately after filling, again after it has had
+# time to settle, and from inside the volume where water is unmistakable. If the early shot has water
+# and the late one does not, something is draining it (playtest's flooding ships a world-fluid outflow
+# manager and a source-withdrawal handler). If none of them ever show water, the fill is not landing
+# where the camera is looking and the scene is simply wrong.
+world autotest
+wait-level
+wait 100
+cmd gamemode creative
+cmd time set noon
+cmd gamerule doDaylightCycle false
+
+cmd fill 62 -60 62 138 -57 138 minecraft:stone
+wait 10
+cmd fill 64 -59 64 136 -57 136 minecraft:water
+
+# Straight away, before anything has had a chance to drain it.
+cmd tp @s 100 -52 100 0 50
+wait 5
+screenshot persist_immediate
+wait 60
+screenshot persist_after_3s
+wait 200
+screenshot persist_after_13s
+
+# Inside the volume: underwater is unambiguous regardless of surface shading.
+cmd tp @s 100 -58 100 0 0
+wait 40
+screenshot persist_submerged
+quit
