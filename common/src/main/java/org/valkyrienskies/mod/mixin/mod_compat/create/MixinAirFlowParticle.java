@@ -1,8 +1,11 @@
 package org.valkyrienskies.mod.mixin.mod_compat.create;
 
+import org.valkyrienskies.mod.common.world.RayQuery;
 import com.simibubi.create.content.kinetics.fan.AirCurrent;
 import com.simibubi.create.content.kinetics.fan.AirFlowParticle;
 import com.simibubi.create.content.kinetics.fan.IAirCurrentSource;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.Camera;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.SimpleAnimatedParticle;
 import net.minecraft.client.particle.SpriteSet;
@@ -16,6 +19,9 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
@@ -26,6 +32,10 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 @Mixin(AirFlowParticle.class)
 public abstract class MixinAirFlowParticle extends SimpleAnimatedParticle {
 
+    @Unique private ClientShip vs$fanShip;
+    @Unique private Vector3d vs$previousLocal;
+    @Unique private Vector3d vs$currentLocal;
+
     @Shadow
     @Final
     private IAirCurrentSource source;
@@ -34,23 +44,37 @@ public abstract class MixinAirFlowParticle extends SimpleAnimatedParticle {
         super(level, x, y, z, sprites, gravity);
     }
 
-    // Particles are delayed by one tick before movement so adding the ship's delta by 1 tick here.
-    @WrapOperation(
-        method = "<init>",
-        at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/kinetics/fan/AirFlowParticle;setPos(DDD)V")
-    )
-    private void setPos(AirFlowParticle particle, double x, double y, double z, Operation<Void> original) {
-        Ship ship = getShip();
-        if(ship != null) {
-            Vector3d p = new Vector3d(x, y, z);
-            ship.getPrevTickTransform().getWorldToShip().transformPosition(p);
-            ship.getTransform().getShipToWorld().transformPosition(p);
-            original.call(particle, p.x, p.y, p.z);
-            return;
+    @WrapOperation(method = "<init>", at = @At(value = "INVOKE",
+        target = "Lcom/simibubi/create/content/kinetics/fan/AirFlowParticle;setPos(DDD)V"))
+    private void vs$anchorSpawn(AirFlowParticle particle, double x, double y, double z, Operation<Void> original) {
+        Ship sourceShip = getShip();
+        if (sourceShip instanceof ClientShip ship && VSGameUtilsKt.getAllShips(level).getSplitPieces(ship.getId()).isEmpty()) {
+            vs$fanShip = ship;
+            vs$currentLocal = ship.getRenderTransform().getWorldToShip().transformPosition(x, y, z, new Vector3d());
+            vs$previousLocal = new Vector3d(vs$currentLocal);
+            Vector3d tick = ship.getShipToWorld().transformPosition(vs$currentLocal, new Vector3d());
+            original.call(particle, tick.x, tick.y, tick.z);
+        } else if (sourceShip != null) {
+            // Keep the existing split-piece path: there is no unique canonical frame for the fan.
+            Vector3d point = sourceShip.getPrevTickTransform().getWorldToShip().transformPosition(x, y, z, new Vector3d());
+            sourceShip.getShipToWorld().transformPosition(point);
+            original.call(particle, point.x, point.y, point.z);
+        } else {
+            original.call(particle, x, y, z);
         }
-        original.call(particle, x, y, z);
     }
 
+    @Inject(method = "tick", at = @At("HEAD"))
+    private void vs$advanceWithFan(CallbackInfo ci) {
+        if (vs$fanShip == null) return;
+        if (getShip() != vs$fanShip || !VSGameUtilsKt.getAllShips(level).getSplitPieces(vs$fanShip.getId()).isEmpty()) {
+            vs$fanShip = null;
+            return;
+        }
+        vs$previousLocal.set(vs$currentLocal);
+        Vector3d point = vs$fanShip.getShipToWorld().transformPosition(vs$currentLocal, new Vector3d());
+        setPos(point.x, point.y, point.z);
+    }
 
     @Unique
     private Ship getShip() {
@@ -123,6 +147,12 @@ public abstract class MixinAirFlowParticle extends SimpleAnimatedParticle {
     )
     private void moveWithShip(AirFlowParticle particle, double x, double y, double z, Operation<Void> original){
         original.call(particle, x, y, z);
+        if (vs$fanShip != null) {
+            // Create has just moved the particle using this same tick pose. Its local motion and
+            // the ship's motion can now be sampled independently when rendering.
+            vs$fanShip.getWorldToShip().transformPosition(this.x, this.y, this.z, vs$currentLocal);
+            return;
+        }
         Ship ship = getShip();
         if (ship != null) {
             Vector3d p = new Vector3d(this.x, this.y, this.z);
@@ -132,6 +162,36 @@ public abstract class MixinAirFlowParticle extends SimpleAnimatedParticle {
             this.yd = p.y - this.yo;
             this.zd = p.z - this.zo;
             this.setPos(p.x, p.y, p.z);
+        }
+    }
+
+    @Override
+    public AABB getBoundingBox() {
+        AABB tick = super.getBoundingBox();
+        Float t = RayQuery.frameTime();
+        if (vs$fanShip == null || t == null) return tick;
+        Vector3d p = vs$fanShip.getRenderTransform().getShipToWorld().transformPosition(
+            vs$previousLocal.lerp(vs$currentLocal, t, new Vector3d()));
+        return tick.minmax(tick.move(p.x - x, p.y - y, p.z - z).inflate(getQuadSize(t)));
+    }
+
+    @Override
+    public void render(VertexConsumer vertices, Camera camera, float partialTick) {
+        if (vs$fanShip == null || !VSGameUtilsKt.getAllShips(level).getSplitPieces(vs$fanShip.getId()).isEmpty()) {
+            super.render(vertices, camera, partialTick);
+            return;
+        }
+        Vector3d frame = vs$previousLocal.lerp(vs$currentLocal, partialTick, new Vector3d());
+        vs$fanShip.getRenderTransform().getShipToWorld().transformPosition(frame);
+        double px = x, py = y, pz = z, ox = xo, oy = yo, oz = zo;
+        try {
+            x = xo = frame.x;
+            y = yo = frame.y;
+            z = zo = frame.z;
+            super.render(vertices, camera, partialTick);
+        } finally {
+            x = px; y = py; z = pz;
+            xo = ox; yo = oy; zo = oz;
         }
     }
 }
