@@ -25,6 +25,7 @@ object EntityDragger {
         for (entity in entities) {
             val info = (entity as? IEntityDraggingInformationProvider)?.draggingInformation ?: continue
             info.presentedDragShip = null
+            info.presentedPiece = null
             info.yawBeforeClientDrag = null
             info.mountedToEntity = entity.vehicle != null
             if (!isDraggable(entity)) continue
@@ -124,7 +125,10 @@ object EntityDragger {
                         info.supportRotation(ship),
                         entity.yRot.toDouble()
                     )
-                    if (ship is ClientShip) info.yawBeforeClientDrag = entity.yRot.toDouble()
+                    if (ship is ClientShip) {
+                        info.yawBeforeClientDrag = entity.yRot.toDouble()
+                        if (piece != null) info.presentedPiece = EntityDraggingInformation.PieceDrag(previousToLocal, piece, entity.yRot.toDouble(), yaw)
+                    }
                     entity.yRot += yaw.toFloat()
                     entity.yHeadRot += yaw.toFloat()
                     if (entity is LivingEntity) entity.yBodyRot += yaw.toFloat()
@@ -269,10 +273,18 @@ object EntityDragger {
      * Check if the given entity should be dragged. Shipyard entities and ones marked as non-draggable return false.
      */
     @JvmStatic
-    fun isDraggable(entity: Entity): Boolean {
+    fun isDraggable(entity: Entity): Boolean = eligible(entity, false)
+
+    @JvmStatic
+    fun isPresentable(entity: Entity): Boolean = eligible(entity, true)
+
+    internal fun hasWorldSupport(info: EntityDraggingInformation, presentation: Boolean): Boolean =
+        info.supportPiece != null || presentation && info.presentedPiece?.let { it.current.shipId == info.presentedDragShip } == true
+
+    private fun eligible(entity: Entity, presentation: Boolean): Boolean {
         val provider = entity as? IEntityDraggingInformationProvider ?: return false
         if (!provider.`vs$shouldDrag`()) return false
         return !VSEntityManager.isShipyardEntity(entity) ||
-            (provider.draggingInformation.supportPiece != null && !entity.level().isBlockInShipyard(entity.blockPosition()))
+            (hasWorldSupport(provider.draggingInformation, presentation) && !entity.level().isBlockInShipyard(entity.blockPosition()))
     }
 }

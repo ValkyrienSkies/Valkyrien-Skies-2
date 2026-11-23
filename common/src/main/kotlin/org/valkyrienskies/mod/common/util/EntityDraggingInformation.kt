@@ -13,6 +13,19 @@ import org.valkyrienskies.core.api.ships.properties.ShipId
 class EntityDraggingInformation {
     var addedMovementLastTick: Vector3dc = Vector3d()
     var presentedDragShip: ShipId? = null
+    // Completed interval, not current gameplay support. Landing can clear the latter before drawing.
+    data class PieceDrag(val previous: org.joml.Matrix4dc, val current: ShipPhysicalPiece, val beforeYaw: Double, val turn: Double) {
+        fun position(from: Vector3dc, to: Vector3dc, frame: ShipPhysicalPiece, t: Double): Vector3d =
+            ShipDraggingMath.renderPosition(from, to, previous, current.worldToShip, frame.shipToWorld, t)
+
+        fun yaw(frame: ShipPhysicalPiece, t: Double): Double {
+            if (t == 0.0 || t == 1.0) return 0.0
+            val start = previous.invert(org.joml.Matrix4d()).getUnnormalizedRotation(Quaterniond()).normalize()
+            val shown = frame.shipToWorld.getUnnormalizedRotation(Quaterniond()).normalize()
+            return ShipDraggingMath.wrapDegrees(ShipDraggingMath.draggedYaw(start, shown, beforeYaw) - t * turn)
+        }
+    }
+    var presentedPiece: PieceDrag? = null
     var worldMountOffset: WorldMountOffset? = null
     // Heading before drag, not the player's (possibly since mouse-adjusted) current heading.
     var yawBeforeClientDrag: Double? = null

@@ -171,7 +171,7 @@ public abstract class MixinGameRenderer {
         if (shipWorld != null) {
             // Also update entity last tick positions, so that they interpolate correctly
             for (final Entity entity : clientWorld.entitiesForRendering()) {
-                if (vs$renderPositionSnapshots.containsKey(entity) || !EntityDragger.isDraggable(entity)) {
+                if (vs$renderPositionSnapshots.containsKey(entity) || !EntityDragger.isPresentable(entity)) {
                     continue;
                 }
                 // The position we want to render [entity] at for this frame
@@ -214,9 +214,13 @@ public abstract class MixinGameRenderer {
                 if (!entity.isPassenger() && lastShipStoodOn != null) {
                     final ClientShip shipObject =
                         VSGameUtilsKt.getShipObjectWorld(clientWorld).getLoadedShips().getById(lastShipStoodOn);
-                    if (entityDraggingInformation.getSupportPiece() != null) {
-                        entityShouldBeHere = ShipPieceRenderFrames.rider(entityDraggingInformation.getSupportPiece(),
-                            new Vector3d(entity.xo, entity.yo, entity.zo), new Vector3d(entity.getX(), entity.getY(), entity.getZ()), tickDelta);
+                    final var carried = entityDraggingInformation.getPresentedPiece();
+                    if (carried != null) {
+                        final var frame = ShipPieceRenderFrames.rendered(carried.getCurrent());
+                        entityShouldBeHere = carried.position(new Vector3d(entity.xo, entity.yo, entity.zo),
+                            new Vector3d(entity.getX(), entity.getY(), entity.getZ()), frame, tickDelta);
+                        vs$renderPositionSnapshots.computeIfAbsent(entity, EntityRenderPosition::capture)
+                            .applyYaw(entity, (float) carried.yaw(frame, tickDelta));
                     }
                     if (entityShouldBeHere == null && shipObject != null && shipWorld.getAllShips().getSplitPieces(lastShipStoodOn).isEmpty()) {
                         entityShouldBeHere = ShipDraggingMath.renderPosition(
