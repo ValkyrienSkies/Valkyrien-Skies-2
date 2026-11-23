@@ -24,6 +24,8 @@ object EntityDragger {
     fun dragEntitiesWithShips(entities: Iterable<Entity>, preTick: Boolean = false) {
         for (entity in entities) {
             val info = (entity as? IEntityDraggingInformationProvider)?.draggingInformation ?: continue
+            info.presentedDragShip = null
+            info.yawBeforeClientDrag = null
             info.mountedToEntity = entity.vehicle != null
             if (!isDraggable(entity)) continue
             val ship = info.lastShipStoodOn?.let { entity.level().shipObjectWorld.allShips.getById(it) }
@@ -31,6 +33,7 @@ object EntityDragger {
                 if (EntityShipCollisionUtils.isCollidingWithUnloadedShips(entity)) continue
                 if (ship is ClientShip && info.usesShipInterpolation && !entity.isControlledByLocalInstance) {
                     EntityLerper.lerpStep(info, ship, entity)
+                    info.presentedDragShip = ship.id
                     info.finishTick()
                     continue
                 }
@@ -104,10 +107,12 @@ object EntityDragger {
                         info.supportRotation(ship),
                         entity.yRot.toDouble()
                     )
+                    if (ship is ClientShip) info.yawBeforeClientDrag = entity.yRot.toDouble()
                     entity.yRot += yaw.toFloat()
                     entity.yHeadRot += yaw.toFloat()
                     if (entity is LivingEntity) entity.yBodyRot += yaw.toFloat()
                     info.addedYawRotLastTick = yaw
+                    info.presentedDragShip = ship.id
                     if (clipped.distanceSquared(movement) > 1e-12) {
                         entity.hasImpulse = true
                         if (collision?.landedOnWorld == true) {

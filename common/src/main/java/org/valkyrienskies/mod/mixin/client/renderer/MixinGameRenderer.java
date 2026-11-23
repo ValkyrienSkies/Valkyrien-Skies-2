@@ -193,12 +193,8 @@ public abstract class MixinGameRenderer {
 
                 final EntityDraggingInformation entityDraggingInformation =
                     ((IEntityDraggingInformationProvider) entity).getDraggingInformation();
-                final Long lastShipStoodOn = entityDraggingInformation.getLastShipStoodOn();
-                // Then try getting [entityShouldBeHere] from [entityDraggingInformation]
-//                if (!entityDraggingInformation.shouldUseClientPrediction(entity)) {
-//                    continue;
-//                }
-                if (lastShipStoodOn != null && entityDraggingInformation.isEntityBeingDraggedByAShip()) {
+                final Long lastShipStoodOn = entityDraggingInformation.getPresentedDragShip();
+                if (!entity.isPassenger() && lastShipStoodOn != null) {
                     final ClientShip shipObject =
                         VSGameUtilsKt.getShipObjectWorld(clientWorld).getLoadedShips().getById(lastShipStoodOn);
                     if (entityDraggingInformation.getSupportPiece() != null) {
@@ -212,6 +208,14 @@ public abstract class MixinGameRenderer {
                             shipObject.getPrevTickTransform().getWorldToShip(),
                             shipObject.getTransform().getWorldToShip(),
                             shipObject.getRenderTransform().getShipToWorld(), tickDelta);
+                        final boolean relative = entityDraggingInformation.getUsesShipInterpolation() && !entity.isControlledByLocalInstance();
+                        final Double before = entityDraggingInformation.getYawBeforeClientDrag();
+                        if (relative || before != null) {
+                            float yaw = (float) ShipDraggingMath.renderYawCorrection(
+                                shipObject.getPrevTickTransform().getShipToWorldRotation(), shipObject.getTransform().getShipToWorldRotation(),
+                                shipObject.getRenderTransform().getShipToWorldRotation(), before == null ? 0 : before, relative, tickDelta);
+                            vs$renderPositionSnapshots.computeIfAbsent(entity, EntityRenderPosition::capture).applyYaw(entity, yaw);
+                        }
                     }
                 }
 

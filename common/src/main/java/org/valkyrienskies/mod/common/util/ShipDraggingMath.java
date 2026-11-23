@@ -48,6 +48,23 @@ public final class ShipDraggingMath {
         return wrapDegrees(Math.toDegrees(-Math.atan2(forward.x, forward.z)) - worldYawDegrees);
     }
 
+    /** Replace only the interpolated ship-induced part of world yaw. Remote interpolation stores
+     * yaw relative to the ship's heading; the dragger instead projects the carried forward vector. */
+    public static double renderYawCorrection(Quaterniondc previous, Quaterniondc current, Quaterniondc frame,
+        double yawBeforeDrag, boolean relativeHeading, double partialTick) {
+        if (partialTick == 0.0 || partialTick == 1.0) return 0.0;
+        double tickYaw, frameYaw;
+        if (relativeHeading) {
+            double before = shipYaw(previous);
+            tickYaw = wrapDegrees(Math.toDegrees(before - shipYaw(current)));
+            frameYaw = wrapDegrees(Math.toDegrees(before - shipYaw(frame)));
+        } else {
+            tickYaw = draggedYaw(previous, current, yawBeforeDrag);
+            frameYaw = draggedYaw(previous, frame, yawBeforeDrag);
+        }
+        return wrapDegrees(frameYaw - partialTick * tickYaw);
+    }
+
     public static double yawToShip(final Quaterniondc rotation, final double worldYawDegrees) {
         return Math.toRadians(worldYawDegrees) + shipYaw(rotation);
     }

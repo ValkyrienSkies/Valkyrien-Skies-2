@@ -12,6 +12,9 @@ import org.valkyrienskies.core.api.ships.properties.ShipId
  */
 class EntityDraggingInformation {
     var addedMovementLastTick: Vector3dc = Vector3d()
+    var presentedDragShip: ShipId? = null
+    // Heading before drag, not the player's (possibly since mouse-adjusted) current heading.
+    var yawBeforeClientDrag: Double? = null
     var addedYawRotLastTick: Double = 0.0
     var changedShipLastTick = false
     var shouldImpulseMovement = false
