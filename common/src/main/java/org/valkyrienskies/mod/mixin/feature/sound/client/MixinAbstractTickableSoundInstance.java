@@ -56,7 +56,7 @@ public abstract class MixinAbstractTickableSoundInstance extends AbstractSoundIn
             final var physical = pieces.isEmpty() ? null : ShipEffectLocations.nearestBlock(
                 pieces, x, y, z, mc.gameRenderer.getMainCamera().getPosition());
             if (physical != null) newPosition.set(physical);
-            else ship.getRenderTransform().getShipToWorld().transformPosition(newPosition);
+            else ship.getTransform().getShipToWorld().transformPosition(newPosition);
         }
         if (this.position != null) {
             this.velocity = newPosition.sub(this.position, new Vector3d());

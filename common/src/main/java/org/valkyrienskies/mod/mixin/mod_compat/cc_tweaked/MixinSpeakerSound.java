@@ -50,7 +50,7 @@ public abstract class MixinSpeakerSound extends AbstractSoundInstance implements
         final Vector3d newPosition = new Vector3d(this.x, this.y, this.z);
         final ClientShip ship = VSGameUtilsKt.getLoadedShipManagingPos(Minecraft.getInstance().level, this.x, this.y, this.z);
         if (ship != null) {
-            ship.getRenderTransform().getShipToWorld().transformPosition(newPosition);
+            ship.getTransform().getShipToWorld().transformPosition(newPosition);
         }
         if (this.position != null) {
             this.velocity = newPosition.sub(this.position, new Vector3d());
