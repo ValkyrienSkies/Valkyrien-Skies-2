@@ -35,6 +35,7 @@ public class MixinLevel {
         argsOnly = true
     )
     private AABB moveAABB1(final AABB aabb) {
+        if (org.valkyrienskies.mod.common.util.ShipyardEntityQueryContext.isShipSpaceQuery(aabb)) return aabb;
         return VSGameUtilsKt.transformAabbToWorld(Level.class.cast(this), aabb);
     }
 
@@ -44,6 +45,7 @@ public class MixinLevel {
         argsOnly = true
     )
     private AABB moveAABB2(final AABB aabb) {
+        if (org.valkyrienskies.mod.common.util.ShipyardEntityQueryContext.isShipSpaceQuery(aabb)) return aabb;
         return VSGameUtilsKt.transformAabbToWorld(Level.class.cast(this), aabb);
     }
 

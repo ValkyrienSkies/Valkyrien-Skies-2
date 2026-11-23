@@ -13,6 +13,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.impl.hooks.VSEvents.ShipLoadEventClient;
@@ -75,11 +76,22 @@ public abstract class MixinEntitySectionStorage implements OfLevel {
         );
     }
 
+    @ModifyVariable(method = "forEachAccessibleNonEmptySection", at = @At("HEAD"), argsOnly = true)
+    private AbortableIterationConsumer<EntitySection<?>> vs$onlyNativeOwner(
+        AbortableIterationConsumer<EntitySection<?>> consumer, AABB box) {
+        if (!ShipyardEntityQueryContext.isShipSpaceQuery(box)) return consumer;
+        return section -> {
+            var ship = ((OfShip) section).getShip();
+            return ShipyardEntityQueryContext.acceptsSection(box, ship == null ? null : ship.getId())
+                ? consumer.accept(section) : AbortableIterationConsumer.Continuation.CONTINUE;
+        };
+    }
+
     @Inject(method = "forEachAccessibleNonEmptySection", at = @At("HEAD"))
     void shipSections(final AABB aABB, final AbortableIterationConsumer<EntitySection<?>> abortableIterationConsumer,
         final CallbackInfo ci) {
 
-        if (level != null && !loopingShips) {
+        if (level != null && !loopingShips && !ShipyardEntityQueryContext.isShipSpaceQuery(aABB)) {
             loopingShips = true;
             try {
                 VSGameUtilsKt.getShipsIntersecting(level, aABB).forEach(ship -> {
@@ -93,7 +105,7 @@ public abstract class MixinEntitySectionStorage implements OfLevel {
                     // but let's just catch it for now.
 
                     // java.lang.IllegalArgumentException: Start element (9223367638808264704) is larger than end element (-9223372036854775808)
-                    ShipyardEntityQueryContext.pushShipSpaceQuery(transformedAABB);
+                    ShipyardEntityQueryContext.pushShipSpaceQuery(transformedAABB, ship.getId());
                     try {
                         this.forEachAccessibleNonEmptySection(transformedAABB, abortableIterationConsumer);
                     } catch (final IllegalArgumentException ex) {

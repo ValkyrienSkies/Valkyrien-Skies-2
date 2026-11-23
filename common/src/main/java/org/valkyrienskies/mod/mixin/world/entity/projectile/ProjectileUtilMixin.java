@@ -66,11 +66,10 @@ public class ProjectileUtilMixin {
         final Entity entity, final Vec3 vec3, final Vec3 vec32, final AABB aABB, final Predicate<Entity> predicate,
         final double d, final CallbackInfoReturnable<@Nullable EntityHitResult> cir) {
 
-        if (cir.getReturnValue() != null) {
-            return;
-        }
-
-        cir.setReturnValue(RaycastUtilsKt.raytraceEntities(entity.level(), entity, vec3, vec32, aABB, predicate, d));
+        EntityHitResult vanilla = cir.getReturnValue();
+        double limit = vanilla == null ? d : Math.min(d, vanilla.getLocation().distanceToSqr(vec3));
+        EntityHitResult ship = RaycastUtilsKt.raytraceEntities(entity.level(), entity, vec3, vec32, aABB, predicate, limit);
+        if (ship != null && (vanilla == null || ship.getLocation().distanceToSqr(vec3) < limit)) cir.setReturnValue(ship);
     }
 
     // Projectile-style overload (per-target inflate arg). Without this wrap arrows fly
@@ -85,11 +84,14 @@ public class ProjectileUtilMixin {
         final AABB aABB, final Predicate<Entity> predicate, final float f,
         final CallbackInfoReturnable<@Nullable EntityHitResult> cir) {
 
-        if (cir.getReturnValue() != null || !VSGameUtilsKt.getShipsIntersecting(level, aABB).iterator().hasNext()) {
-            return;
-        }
-
-        cir.setReturnValue(RaycastUtilsKt.raytraceEntitiesInflated(level, entity, vec3, vec32, aABB, predicate, f));
+        EntityHitResult ship = RaycastUtilsKt.raytraceEntitiesInflated(level, entity, vec3, vec32, aABB, predicate, f);
+        if (ship == null) return;
+        EntityHitResult vanilla = cir.getReturnValue();
+        // Vanilla's projectile overload discards its contact and returns the entity origin.
+        // Compare the actual clipped surface, not that origin (particularly important for large mobs).
+        double limit = vanilla == null ? Double.MAX_VALUE : vanilla.getEntity().getBoundingBox().inflate(f)
+            .clip(vec3, vec32).map(vec3::distanceToSqr).orElseGet(() -> vec3.distanceToSqr(vanilla.getLocation()));
+        if (vec3.distanceToSqr(ship.getLocation()) < limit) cir.setReturnValue(ship);
     }
 
 }

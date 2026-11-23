@@ -37,6 +37,7 @@ import org.valkyrienskies.mod.common.getRenderShipsIntersecting
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.render.batched.ShipPieceRenderFrames
 import org.valkyrienskies.mod.common.shipObjectWorld
+import org.valkyrienskies.mod.common.util.ShipyardEntityQueryContext
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toMinecraft
 import org.valkyrienskies.mod.util.scale
@@ -164,10 +165,13 @@ fun Level.clipIncludeShips(
     return if (shouldTransformHitPos && closestHit !== vanillaHit) MappedShipHit(closestHitPos, closestHit) else closestHit
 }
 
-internal fun clipToPiece(from: Vec3, to: Vec3, piece: ShipPhysicalPiece): Pair<Vec3, Vec3>? {
+internal data class RetainedRay(val from: Vec3, val to: Vec3, val enters: Boolean, val pointOnly: Boolean)
+
+internal fun retainedRay(from: Vec3, to: Vec3, piece: ShipPhysicalPiece): RetainedRay? {
     val delta = to.subtract(from)
     var first = 0.0
     var last = 1.0
+    var enters = false
     for (plane in piece.clippingPlanes) {
         val start = plane.x() * from.x + plane.y() * from.y + plane.z() * from.z + plane.w()
         val slope = plane.x() * delta.x + plane.y() * delta.y + plane.z() * delta.z
@@ -175,12 +179,17 @@ internal fun clipToPiece(from: Vec3, to: Vec3, piece: ShipPhysicalPiece): Pair<V
             if (start < 0.0) return null
         } else {
             val t = -start / slope
-            if (slope > 0.0) first = maxOf(first, t) else last = minOf(last, t)
-            if (first >= last) return null
+            if (slope > 0.0) {
+                if (t >= first) { first = t; enters = true } // includes inward crossing at t = +/-0
+            } else last = minOf(last, t)
+            if (first > last) return null
         }
     }
-    return from.add(delta.scale(first)) to from.add(delta.scale(last))
+    return RetainedRay(from.add(delta.scale(first)), from.add(delta.scale(last)), enters, first == last)
 }
+
+internal fun clipToPiece(from: Vec3, to: Vec3, piece: ShipPhysicalPiece): Pair<Vec3, Vec3>? =
+    retainedRay(from, to, piece)?.takeUnless { it.pointOnly }?.let { it.from to it.to }
 
 // copy paste of vanilla raycast with the option to specify a custom start/end
 private fun Level.clip(context: ClipContext, realStart: Vec3, realEnd: Vec3): BlockHitResult {
@@ -274,6 +283,8 @@ private fun <T> clip(
     }
 }
 
+class MappedEntityHit(entity: Entity, world: Vec3, val relative: Vec3, val physical: ShipPhysicalPiece?) : EntityHitResult(entity, world)
+
 fun Level.raytraceEntities(
     shooter: Entity,
     origStartVecM: Vec3,
@@ -282,144 +293,37 @@ fun Level.raytraceEntities(
     filter: Predicate<Entity>,
     maxDistance2: Double
 ): EntityHitResult? {
-    var distance2 = maxDistance2
-    var resultEntity: Entity? = null
-    var location: Vec3? = null
-
-    val bounds = origBoundingBoxM.toJOML()
-    val render = RayQuery.isFrameEntityPick() && isClientSide()
-    val ships = if (render && this is ClientLevel) getRenderShipsIntersecting(bounds) else getShipsIntersecting(bounds)
-    if (!ships.iterator().hasNext()) return null
-
-    fun checkEntities(entities: List<Entity>, startVec: Vec3, endVec: Vec3, scale: Double, toWorld: Matrix4dc? = null) =
-        entities.forEach { entity ->
-            val aabb = entity.boundingBox.inflate(entity.pickRadius.toDouble()).scale(scale)
-            val clipO = aabb.clip(startVec, endVec)
-            fun world(point: Vec3) = toWorld?.transformPosition(point.toJOML())?.toMinecraft() ?: point
-
-            if (aabb.contains(startVec)) {
-                if (distance2 < 0.0) return@forEach
-                resultEntity = entity
-                location = world(clipO.orElse(startVec))
-                distance2 = 0.0
-                return@forEach
-            }
-
-            if (!clipO.isPresent) return@forEach
-
-            val clip = world(clipO.get())
-            val d = if (toWorld == null) startVec.distanceToSqr(clip) / (scale * scale) else origStartVecM.distanceToSqr(clip)
-
-            if (d >= distance2 && distance2 != 0.0) return@forEach
-
-            if (entity.rootVehicle === shooter.rootVehicle) {
-                if (distance2 != 0.0) return@forEach
-                resultEntity = entity
-                location = clip
-                return@forEach
-            }
-
-            resultEntity = entity
-            location = clip
-            distance2 = d
-        }
-
-    val entities = getEntities(shooter, origBoundingBoxM, filter) // Returns world and ship-space entities (mixins)
-
-    checkEntities(entities, origStartVecM, origEndVecM, 1.0)
-
-    val origStartVec = origStartVecM.toJOML()
-    val origEndVec = origEndVecM.toJOML()
-
-    val start = Vector3d()
-    val end = Vector3d()
-
-    for (ship in ships) {
-        if (ship is ClientShip && this is ClientLevel) {
-            val pose = if (render) ship.renderTransform else ship.transform
-            fun trace(from: Vec3, to: Vec3, worldToShip: Matrix4dc, shipToWorld: Matrix4dc) {
-                val localBounds = AABBd(bounds).transform(worldToShip).toMinecraft()
-                checkEntities(getEntities(shooter, localBounds, filter),
-                    worldToShip.transformPosition(from.toJOML()).toMinecraft(),
-                    worldToShip.transformPosition(to.toJOML()).toMinecraft(),
-                    1.0 / pose.shipToWorldScaling.x(), shipToWorld)
-            }
-            val pieces = allShips.getSplitPieces(ship.id)
-            if (pieces.isEmpty()) {
-                trace(origStartVecM, origEndVecM, pose.worldToShip, pose.shipToWorld)
-            } else for (physical in pieces) {
-                if (physical.dimensionId != dimensionId) continue
-                val piece = if (render) ShipPieceRenderFrames.rendered(physical) else physical
-                val (from, to) = clipToPiece(origStartVecM, origEndVecM, piece) ?: continue
-                trace(from, to, piece.worldToShip, piece.shipToWorld)
-            }
-        } else {
-            ship.worldToShip.transformPosition(origStartVec, start)
-            ship.worldToShip.transformPosition(origEndVec, end)
-            checkEntities(entities, start.toMinecraft(), end.toMinecraft(), 1.0 / ship.transform.shipToWorldScaling.x())
-        }
-    }
-
-    return if (resultEntity == null) {
-        null
-    } else EntityHitResult(resultEntity, location)
+    return traceShipActors(shooter, origStartVecM, origEndVecM, origBoundingBoxM, filter, maxDistance2, null)
 }
 
-// Sibling of [raytraceEntities] for projectiles: takes an explicit inflate (vanilla
-// default 0.3) instead of [Entity.getPickRadius], which is 0 for most entities and
-// too strict for arrow hits.
-fun Level.raytraceEntitiesInflated(
-    shooter: Entity,
-    origStartVecM: Vec3,
-    origEndVecM: Vec3,
-    origBoundingBoxM: AABB,
-    filter: Predicate<Entity>,
-    inflate: Float
-): EntityHitResult? {
-    var bestDistance2 = Double.MAX_VALUE
-    var resultEntity: Entity? = null
-    var location: Vec3? = null
+/** The projectile overload always uses game geometry and its explicit world-sized padding. */
+fun Level.raytraceEntitiesInflated(shooter: Entity, from: Vec3, to: Vec3, bounds: AABB,
+                                  filter: Predicate<Entity>, inflate: Float): EntityHitResult? =
+    traceShipActors(shooter, from, to, bounds, filter, Double.MAX_VALUE, inflate.toDouble())
 
-    fun checkEntities(entities: List<Entity>, startVec: Vec3, endVec: Vec3, ship: Ship?) =
-        entities.forEach { entity ->
-            val aabb = entity.boundingBox.inflate(inflate.toDouble())
-            val clipO = aabb.clip(startVec, endVec)
-            if (!clipO.isPresent) return@forEach
-            val localClip = clipO.get()
-
-            // For ship-frame checks, the resulting hit location is in ship-local
-            // coords; project back to world before computing distance against the
-            // original world start vec.
-            val worldClip = if (ship == null) {
-                localClip
-            } else {
-                ship.transform.shipToWorld.transformPosition(localClip.toJOML()).toMinecraft()
+private fun Level.traceShipActors(shooter: Entity, from: Vec3, to: Vec3, worldBounds: AABB,
+                                  filter: Predicate<Entity>, limit: Double, projectilePadding: Double?): EntityHitResult? {
+    val render = projectilePadding == null && RayQuery.isFrameEntityPick() && this is ClientLevel
+    val bounds = worldBounds.toJOML()
+    val ships = if (render && this is ClientLevel) getRenderShipsIntersecting(bounds) else getShipsIntersecting(bounds)
+    var best: EntityHitResult? = null
+    var distance = limit
+    for (ship in ships) forEachRayImage(ship, from, to, render) { image ->
+        val localBounds = AABBd(bounds).transform(image.inverse).toMinecraft()
+        ShipyardEntityQueryContext.pushShipSpaceQuery(localBounds, ship.id)
+        val candidates = try { getEntities(shooter, localBounds, filter) } finally { ShipyardEntityQueryContext.popShipSpaceQuery() }
+        for (entity in candidates) {
+            if (projectilePadding == null && shooter.rootVehicle === entity.rootVehicle) continue
+            val local = image.clip(entity.boundingBox, projectilePadding ?: entity.pickRadius.toDouble(), projectilePadding == null) ?: continue
+            val world = image.world(local)
+            val d = from.distanceToSqr(world)
+            if (d < distance) {
+                distance = d
+                best = MappedEntityHit(entity, world, local.subtract(entity.position()), image.physical)
             }
-
-            val d = origStartVecM.distanceToSqr(worldClip)
-            if (d >= bestDistance2) return@forEach
-
-            resultEntity = entity
-            location = worldClip
-            bestDistance2 = d
         }
-
-    val entities = getEntities(shooter, origBoundingBoxM, filter) // mirror returns world + ship entities
-
-    checkEntities(entities, origStartVecM, origEndVecM, null)
-
-    val startJoml = origStartVecM.toJOML()
-    val endJoml = origEndVecM.toJOML()
-    val shipStart = Vector3d()
-    val shipEnd = Vector3d()
-
-    getShipsIntersecting(origBoundingBoxM.toJOML()).forEach { ship ->
-        ship.worldToShip.transformPosition(startJoml, shipStart)
-        ship.worldToShip.transformPosition(endJoml, shipEnd)
-        checkEntities(entities, shipStart.toMinecraft(), shipEnd.toMinecraft(), ship)
     }
-
-    return if (resultEntity == null) null else EntityHitResult(resultEntity, location)
+    return best
 }
 
 fun BlockGetter.vanillaClip(context: ClipContext): BlockHitResult =

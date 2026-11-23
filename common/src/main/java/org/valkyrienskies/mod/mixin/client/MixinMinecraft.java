@@ -1,6 +1,10 @@
 package org.valkyrienskies.mod.mixin.client;
 
 import org.valkyrienskies.mod.common.fluid.ClientFluidTypes;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.EntityHitResult;
+import org.valkyrienskies.mod.common.world.MappedEntityHit;
 import org.valkyrienskies.mod.common.fluid.ExteriorFluidFog;
 import org.valkyrienskies.mod.common.fluid.FluidParcelRenderer;
 import org.valkyrienskies.mod.common.fluid.RetainedFluidRenderer;
@@ -78,6 +82,15 @@ public abstract class MixinMinecraft
     @Override
     public HitResult vs$getOriginalCrosshairTarget() {
         return originalCrosshairTarget;
+    }
+
+    @WrapOperation(method = "startUseItem", at = @At(value = "INVOKE", target =
+        "Lnet/minecraft/client/multiplayer/MultiPlayerGameMode;interactAt(Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/phys/EntityHitResult;Lnet/minecraft/world/InteractionHand;)Lnet/minecraft/world/InteractionResult;"))
+    private InteractionResult vs$interactAt(MultiPlayerGameMode mode, Player player, Entity target, EntityHitResult hit,
+        InteractionHand hand, Operation<InteractionResult> original) {
+        // Vanilla subtracts target.position() to generate the packet. Supply the hit in that same space.
+        if (hit instanceof MappedEntityHit mapped) hit = new EntityHitResult(target, target.position().add(mapped.getRelative()));
+        return original.call(mode, player, target, hit, hand);
     }
 
     // Refresh tick eyes/aim before vanilla computes the no-presentation fallback.
