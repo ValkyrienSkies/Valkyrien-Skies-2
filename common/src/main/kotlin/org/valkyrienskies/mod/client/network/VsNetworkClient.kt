@@ -11,7 +11,8 @@ import org.valkyrienskies.mod.mixin.accessors.network.ConnectionAccessor
 /** Client side of the VS networking platform glue (client-only: references [Minecraft]). */
 object VsNetworkClient {
     @JvmStatic
-    fun attach(minecraft: Minecraft) = vsCore.networkHost.clientAttach(ClientTransport(minecraft), minecraft)
+    fun attach(minecraft: Minecraft, connection: net.minecraft.network.Connection) =
+        vsCore.networkHost.clientAttach(ClientTransport(minecraft, connection), minecraft)
 
     @JvmStatic
     fun detach() {
@@ -29,7 +30,10 @@ object VsNetworkClient {
     @JvmStatic
     fun flush() = vsCore.networkHost.flush(null)
 
-    private class ClientTransport(private val minecraft: Minecraft) : NetworkTransport {
+    private class ClientTransport(
+        private val minecraft: Minecraft,
+        private val connection: net.minecraft.network.Connection,
+    ) : NetworkTransport {
         override val maxPayloadSize: Int get() = VsNetworkPlatform.MAX_TO_SERVER
 
         override fun send(data: ByteBuf) {
@@ -47,5 +51,10 @@ object VsNetworkClient {
         }
 
         override fun isOwnerThread(): Boolean = minecraft.isSameThread
+
+        // The connection this session was attached on (Minecraft.connection may not be set yet at that point).
+        override fun remoteAddress(): java.net.SocketAddress? = connection.remoteAddress
+
+        override fun isLocal(): Boolean = connection.isMemoryConnection
     }
 }

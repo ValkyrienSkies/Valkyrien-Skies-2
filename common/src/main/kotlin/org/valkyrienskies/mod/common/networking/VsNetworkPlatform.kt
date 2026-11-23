@@ -108,5 +108,9 @@ object VsNetworkPlatform {
         }
 
         override fun isOwnerThread(): Boolean = server.isSameThread
+
+        override fun remoteAddress(): java.net.SocketAddress? = connection.remoteAddress
+
+        override fun isLocal(): Boolean = connection.isMemoryConnection
     }
 }
