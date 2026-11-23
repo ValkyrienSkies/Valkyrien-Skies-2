@@ -150,6 +150,7 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
     @Inject(method = "disconnect", at = @At("TAIL"))
     private void afterDisconnect(final CallbackInfo ci) {
         ClientShipMovement.INSTANCE.clear();
+        org.valkyrienskies.mod.client.network.VsNetworkClient.detach();
         getVsCore().getHooks().afterDisconnect();
     }
 

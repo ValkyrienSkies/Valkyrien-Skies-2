@@ -52,6 +52,7 @@ public abstract class MixinPlayerList {
     )
     private void afterPlayerJoin(final Connection netManager, final ServerPlayer player, final CallbackInfo ci) {
         final MinecraftPlayer wrapped = VSGameUtilsKt.getPlayerWrapper(player);
+        org.valkyrienskies.mod.common.networking.VsNetworkPlatform.attachServer(player);
         getVsCore().getHooks().afterClientJoinServer(wrapped);
         if (!KrunchSupport.INSTANCE.isKrunchSupported()) {
             player.sendSystemMessage(

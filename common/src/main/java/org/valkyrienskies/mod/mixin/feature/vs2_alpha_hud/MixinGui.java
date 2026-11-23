@@ -75,8 +75,6 @@ public class MixinGui {
             debugText.add(physicsBackendDebugText);
         }
 
-        debugText.add("Using UDP: " + ValkyrienSkiesMod.getVsCore().getClientUsesUDP());
-
         for (int i = 0; i < debugText.size(); i++) {
             final String string = debugText.get(i);
             if (!Strings.isNullOrEmpty(string)) {

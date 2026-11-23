@@ -36,6 +36,7 @@ public class MixinClientPacketListener {
     )
     private void beforeHandleLogin(final ClientboundLoginPacket packet, final CallbackInfo ci) {
         ((IShipObjectWorldClientCreator) Minecraft.getInstance()).createShipObjectWorldClient();
+        org.valkyrienskies.mod.client.network.VsNetworkClient.attach(Minecraft.getInstance());
     }
 
     /**

@@ -181,6 +181,7 @@ public abstract class MixinMinecraft
             EntityDragger.INSTANCE.dragEntitiesWithShips(level.entitiesForRendering(), false);
             if(player != null && level.isClientSide) ((PlayerKnownShipsDuck)player).vs_flushKnownShips();
         }
+        org.valkyrienskies.mod.client.network.VsNetworkClient.flush();
     }
 
     @Inject(
@@ -196,17 +197,6 @@ public abstract class MixinMinecraft
             }
         }
     }
-
-    /* TODO no longer needed
-    @Inject(
-        method = "setCurrentServer",
-        at = @At("HEAD")
-    )
-    public void preSetCurrentServer(final ServerData serverData, final CallbackInfo ci) {
-        ValkyrienSkiesMod.getVsCore().setClientUsesUDP(false);
-    }
-
-     */
 
     @Override
     public void createShipObjectWorldClient() {
@@ -239,6 +229,7 @@ public abstract class MixinMinecraft
         at = @At("TAIL")
     )
     private void postClearLevel(final CallbackInfo ci) {
+        org.valkyrienskies.mod.client.network.VsNetworkClient.detach();
         ShipPieceRenderFrames.clear();
         FluidParcelRenderer.clear();
         ClientFluidTypes.clear();

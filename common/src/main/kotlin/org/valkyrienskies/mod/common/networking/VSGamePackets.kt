@@ -10,64 +10,49 @@ import org.valkyrienskies.core.api.ships.LoadedServerShip
 import org.valkyrienskies.mod.api.SeatedControllingPlayer
 import org.valkyrienskies.mod.api.shipWorld
 import org.valkyrienskies.mod.client.ClientBlockStateInfo
+import org.valkyrienskies.mod.common.assembly.SeamlessChunksManager
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.entity.handling.VSEntityManager
 import org.valkyrienskies.mod.common.fluid.ClientFluidTypes
 import org.valkyrienskies.mod.common.getLoadedShipManagingPos
-import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.common.vsCore
 import org.valkyrienskies.mod.mixinducks.feature.tickets.PlayerKnownShipsDuck
 
+/**
+ * Registers VS2's network messages ([VsMessages]) and their handlers.
+ *
+ * GAME handlers run on the game thread in arrival order (the same queue as vanilla packets), so they never
+ * re-dispatch with `execute` themselves (that would re-queue them behind later packets).
+ */
 object VSGamePackets {
 
-    fun register() = with(vsCore.simplePacketNetworking) {
-        PacketPlayerDriving::class.register()
-        PacketStopChunkUpdates::class.register()
-        PacketRestartChunkUpdates::class.register()
-        PacketSyncVSEntityTypes::class.register()
-        PacketSyncBlockStateInfo::class.register()
-        PacketEntityShipMotion::class.register()
-        PacketMobShipRotation::class.register()
-        PacketPlayerShipMotion::class.register()
-        PacketChangeKnownShips::class.register()
-        PacketPhysicsDebug::class.register()
-        PacketFluidParcel::class.register()
-        PacketFluidParcelBatch::class.register()
-        PacketGravitronFreeze::class.register()
-    }
+    fun register() = VsMessages.register(vsCore)
 
-    fun registerHandlers() = with(vsCore.simplePacketNetworking) {
-        PacketFluidParcel::class.registerClientHandler { packet ->
-            Minecraft.getInstance().connection?.let {
-                FluidParcelRenderer.enqueue(packet, it)
-            }
+    fun registerHandlers() {
+        VsMessages.FLUID_PARCEL.onReceiveFromServer { packet ->
+            Minecraft.getInstance().connection?.let { FluidParcelRenderer.enqueue(packet, it) }
         }
-        PacketFluidParcelBatch::class.registerClientHandler { batch ->
-            Minecraft.getInstance().connection?.let {
-                FluidParcelRenderer.enqueue(batch.packets(), it)
-            }
+        VsMessages.FLUID_PARCEL_BATCH.onReceiveFromServer { batch ->
+            Minecraft.getInstance().connection?.let { FluidParcelRenderer.enqueue(batch.packets(), it) }
         }
-        PacketGravitronFreeze::class.registerServerHandler { packet, iPlayer ->
+        VsMessages.GRAVITRON_FREEZE.onReceiveFromClient { packet, iPlayer ->
             val player = (iPlayer as MinecraftPlayer).player as ServerPlayer
             if (packet.hand == net.minecraft.world.InteractionHand.MAIN_HAND) {
-                player.server.execute { org.valkyrienskies.mod.common.item.DebugGravitron.freeze(player) }
+                org.valkyrienskies.mod.common.item.DebugGravitron.freeze(player)
             }
         }
-        PacketPhysicsDebug::class.registerClientHandler { packet ->
-            val minecraft = Minecraft.getInstance()
-            val connection = minecraft.connection
-            if (connection != null) {
-                org.valkyrienskies.mod.client.debug.ShipDebugRenderer.enqueue(packet, connection)
+        VsMessages.PHYSICS_DEBUG.onReceiveFromServer { packet ->
+            Minecraft.getInstance().connection?.let {
+                org.valkyrienskies.mod.client.debug.ShipDebugRenderer.enqueue(packet, it)
             }
         }
-        PacketPlayerDriving::class.registerServerHandler { driving, iPlayer ->
+        VsMessages.PLAYER_DRIVING.onReceiveFromClient { driving, iPlayer ->
             val player = (iPlayer as MinecraftPlayer).player as ServerPlayer
-            val seat = player.vehicle as? ShipMountingEntity
-                ?: return@registerServerHandler
+            val seat = player.vehicle as? ShipMountingEntity ?: return@onReceiveFromClient
             if (seat.isController) {
                 val ship = seat.level().getLoadedShipManagingPos(seat.blockPosition()) as? LoadedServerShip
-                    ?: return@registerServerHandler
+                    ?: return@onReceiveFromClient
 
                 val attachment: SeatedControllingPlayer = ship.getAttachment<SeatedControllingPlayer>()
                     ?: SeatedControllingPlayer(seat.direction.opposite).apply { ship.setAttachment(this) }
@@ -81,7 +66,7 @@ object VSGamePackets {
         }
 
         // Syncs the entity handlers to the client
-        PacketSyncVSEntityTypes::class.registerClientHandler { syncEntities ->
+        VsMessages.SYNC_ENTITY_TYPES.onReceiveFromServer { syncEntities ->
             syncEntities.entity2Handler.forEach { (id, handler) ->
                 VSEntityManager.pair(
                     BuiltInRegistries.ENTITY_TYPE.byId(id),
@@ -92,28 +77,15 @@ object VSGamePackets {
         }
 
         // sync mass/friction/elasticity to the client
-        PacketSyncBlockStateInfo::class.registerClientHandler { syncBsi ->
-            ClientFluidTypes.replace(syncBsi.liquidState2Fluid)
-            if (syncBsi.blockState2VS.isEmpty()) {
-                ClientBlockStateInfo.disable()
-            } else {
-                ClientBlockStateInfo.clientHasMassInfo = true
-                syncBsi.blockState2VS.forEach { (id, state) ->
-                    ClientBlockStateInfo.registerBlockInfo(ResourceLocation.of(id, ':'), state)
-                }
-            }
+        VsMessages.SYNC_BLOCK_STATE_INFO.onReceiveFromServer(::applyBlockStateInfo)
+
+        VsMessages.ENTITY_SHIP_MOTION.onReceiveFromServer { motion -> ClientShipMovement.receive(motion) }
+
+        VsMessages.PLAYER_SHIP_MOTION.onReceiveFromClient { motion, iPlayer ->
+            ServerShipMovement.handle((iPlayer as MinecraftPlayer).player as ServerPlayer, motion)
         }
 
-        PacketEntityShipMotion::class.registerClientHandler { motion ->
-            ClientShipMovement.enqueue(Minecraft.getInstance(), motion)
-        }
-
-        PacketPlayerShipMotion::class.registerServerHandler { motion, iPlayer ->
-            val player = (iPlayer as MinecraftPlayer).player as ServerPlayer
-            ServerShipMovement.enqueue(player, motion)
-        }
-
-        PacketChangeKnownShips::class.registerServerHandler { ships, iPlayer ->
+        VsMessages.CHANGE_KNOWN_SHIPS.onReceiveFromClient { ships, iPlayer ->
             val player = (iPlayer as MinecraftPlayer).player as PlayerKnownShipsDuck
             for (shipID in ships.shipIDs) {
                 if (!ships.add || iPlayer.player.level().shipWorld?.loadedShips?.contains(shipID) == true) {
@@ -123,6 +95,24 @@ object VSGamePackets {
                         player.vs_removeKnownShip(shipID)
                     }
                 }
+            }
+        }
+
+        // Seamless chunk copying: one handler for the whole game, forwarding to the current connection's manager.
+        VsMessages.STOP_CHUNK_UPDATES.onReceiveFromServer { SeamlessChunksManager.get()?.onStopUpdates(it) }
+        VsMessages.RESTART_CHUNK_UPDATES.onReceiveFromServer { SeamlessChunksManager.get()?.onRestartUpdates(it) }
+    }
+
+    /** Applies a block state info sync on the client. */
+    @JvmStatic
+    fun applyBlockStateInfo(syncBsi: PacketSyncBlockStateInfo) {
+        ClientFluidTypes.replace(syncBsi.liquidState2Fluid)
+        if (syncBsi.blockState2VS.isEmpty()) {
+            ClientBlockStateInfo.disable()
+        } else {
+            ClientBlockStateInfo.clientHasMassInfo = true
+            syncBsi.blockState2VS.forEach { (id, state) ->
+                ClientBlockStateInfo.registerBlockInfo(ResourceLocation.of(id, ':'), state)
             }
         }
     }

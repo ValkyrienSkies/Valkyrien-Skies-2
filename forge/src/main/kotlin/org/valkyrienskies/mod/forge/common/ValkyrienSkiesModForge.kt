@@ -141,6 +141,7 @@ class ValkyrienSkiesModForge {
             registerConfig(ModConfig.Type.SERVER, VSConfigUpdater.CORE_SERVER_SPEC, "valkyrienskies/vs-core-server.toml")
             registerConfig(ModConfig.Type.COMMON, VSConfigUpdater.COMMON_SPEC, "valkyrienskies/valkyrienskies-common.toml")
             registerConfig(ModConfig.Type.CLIENT, VSConfigUpdater.CLIENT_SPEC, "valkyrienskies/valkyrienskies-client.toml")
+            registerConfig(ModConfig.Type.CLIENT, VSConfigUpdater.CORE_CLIENT_SPEC, "valkyrienskies/vs-core-client.toml")
         }
 
         modBus.addListener(::onConfigLoad)

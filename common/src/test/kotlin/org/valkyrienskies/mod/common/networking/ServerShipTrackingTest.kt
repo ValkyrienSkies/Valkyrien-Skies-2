@@ -20,6 +20,7 @@ import sun.misc.Unsafe
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.internal.VsiCore
+import org.valkyrienskies.core.internal.network.VsiNetworkMessageType
 import org.valkyrienskies.core.internal.world.VsiServerShipWorld
 import org.valkyrienskies.mod.common.getShipMountedToData
 import org.valkyrienskies.mod.common.shipObjectWorld
@@ -80,7 +81,12 @@ class ServerShipTrackingTest {
         every { (tracked as TrackedEntityAccessor).seenBy } returns setOf(connection)
         every { (player as PlayerDuck).vs_getPlayer() } returns wrapper
         val sent = mutableListOf<PacketEntityShipMotion>()
+        val inOrder = mutableListOf<PacketEntityShipMotion>()
         every { core.simplePacketNetworking.sendToClients(capture(sent), wrapper) } just Runs
+        val motion = mockk<VsiNetworkMessageType<PacketEntityShipMotion>>()
+        mockkObject(VsMessages)
+        every { VsMessages.ENTITY_SHIP_MOTION } returns motion
+        every { motion.sendToClientInOrder(wrapper, any()) } answers { secondArg<PacketEntityShipMotion>().let { sent += it; inOrder += it } }
         val tracker = MixinServerEntity()
         val codec = VecDeltaCodec()
         fun set(name: String, value: Any) {
@@ -102,6 +108,7 @@ class ServerShipTrackingTest {
         info.lastShipStoodOn = null
         send(4)
         assertEquals(listOf(2L, 2L, -1L), sent.map { it.shipID })
+        assertEquals(listOf(2L, -1L), inOrder.map { it.shipID }, "ship changes go in order with vanilla packets")
         assertEquals(15, sent[1].ticksSinceContact)
         assertEquals(100.0, sent.last().worldX)
         assertEquals(Vec3(100.0, 0.0, 0.0), codec.decode(0, 0, 0))
@@ -131,8 +138,8 @@ class ServerShipTrackingTest {
         }
         val packet = PacketEntityShipMotion(5, 2L, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
             0.0, 0.0, false, 0.0, 0.0, 0.0, 0.0, 0)
-        MixinServerEntity::class.java.getDeclaredMethod("vs\$broadcast", PacketEntityShipMotion::class.java)
-            .apply { isAccessible = true }.invoke(tracker, packet)
+        MixinServerEntity::class.java.getDeclaredMethod("vs\$broadcast", PacketEntityShipMotion::class.java, Boolean::class.java)
+            .apply { isAccessible = true }.invoke(tracker, packet, false)
         verify(exactly = 1) { core.simplePacketNetworking.sendToClients(packet, wrapper) }
         verify(exactly = 0) { player.shouldRender(any<Double>(), any<Double>(), any<Double>()) }
     }

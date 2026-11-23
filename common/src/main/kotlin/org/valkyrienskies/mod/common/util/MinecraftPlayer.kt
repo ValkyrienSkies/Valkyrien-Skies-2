@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.common.util
 
+import net.minecraft.Util
 import net.minecraft.world.entity.player.Player
 import org.joml.Vector3d
 import org.valkyrienskies.core.api.ships.properties.ShipId
@@ -14,13 +15,20 @@ import java.util.UUID
 
 /**
  * We use this wrapper around [PlayerEntity] to create [VsiPlayer] objects used by vs-core.
+ *
+ * A server player keeps one wrapper for its whole connection: when Minecraft replaces the entity (respawn, leaving the
+ * End), the new entity takes the wrapper over through [rebind], so vs-core's ship tracking and network session stay with
+ * the connection and see the current entity. Wrappers compare by identity.
  */
 class MinecraftPlayer(playerObject: Player) : VsiPlayer {
 
-    override val uuid: UUID = playerObject.uuid
+    // Read from the entity: wrappers are created before Player's constructor sets the profile UUID.
+    override val uuid: UUID get() = playerEntityReference.get()?.uuid ?: Util.NIL_UUID
 
     // Hold a weak reference to avoid memory leaks
-    val playerEntityReference: WeakReference<Player> = WeakReference(playerObject)
+    @Volatile
+    var playerEntityReference: WeakReference<Player> = WeakReference(playerObject)
+        private set
 
     val player: Player get() = playerEntityReference.get()!!
 
@@ -50,17 +58,8 @@ class MinecraftPlayer(playerObject: Player) : VsiPlayer {
         )
     }
 
-    override fun hashCode(): Int {
-        return uuid.hashCode()
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if (super.equals(other)) {
-            return true
-        }
-        if (other is MinecraftPlayer) {
-            return uuid == other.uuid
-        }
-        return false
+    /** Points this wrapper at [replacement], the entity that took over this player's connection. */
+    fun rebind(replacement: Player) {
+        playerEntityReference = WeakReference(replacement)
     }
 }

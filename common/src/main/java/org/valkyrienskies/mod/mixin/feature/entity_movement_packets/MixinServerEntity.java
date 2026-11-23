@@ -27,6 +27,7 @@ import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.entity.ShipMountedToData;
 import org.valkyrienskies.mod.common.networking.PacketEntityShipMotion;
+import org.valkyrienskies.mod.common.networking.VsMessages;
 import org.valkyrienskies.mod.common.util.EntityDragger;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.EntityLerper;
@@ -50,8 +51,11 @@ public class MixinServerEntity {
         vs$sentShipMotion = false;
         final ServerShip ship = vs$currentShip();
         final Long shipId = ship == null ? null : ship.getId();
-        if (!Objects.equals(vs$lastShipId, shipId) || ship != null && tickCount % updateInterval == 0) {
-            vs$broadcast(vs$motion(ship));
+        final boolean shipChanged = !Objects.equals(vs$lastShipId, shipId);
+        if (shipChanged || ship != null && tickCount % updateInterval == 0) {
+            // A ship change (also to none) changes how the vanilla movement packets after it are read: it goes in
+            // order with them.
+            vs$broadcast(vs$motion(ship), shipChanged);
             vs$sentShipMotion = true;
             if (ship == null) positionCodec.setBase(entity.trackingPosition());
             vs$lastShipId = shipId;
@@ -61,7 +65,7 @@ public class MixinServerEntity {
     @Inject(method = "addPairing", at = @At("TAIL"))
     private void vs$sendInitialAttachment(ServerPlayer player, CallbackInfo ci) {
         final ServerShip ship = vs$currentShip();
-        if (ship != null) vs$send(vs$motion(ship), player);
+        if (ship != null) vs$send(vs$motion(ship), player, true);
     }
 
     @WrapOperation(method = "sendChanges", at = @At(value = "INVOKE",
@@ -72,7 +76,7 @@ public class MixinServerEntity {
             final ServerShip ship = vs$currentShip();
             if (ship != null) {
                 if (!vs$sentShipMotion) {
-                    vs$broadcast(vs$motion(ship));
+                    vs$broadcast(vs$motion(ship), false);
                     vs$sentShipMotion = true;
                 }
                 return;
@@ -119,16 +123,20 @@ public class MixinServerEntity {
     }
 
     @Unique
-    private void vs$broadcast(PacketEntityShipMotion packet) {
+    private void vs$broadcast(PacketEntityShipMotion packet, boolean inOrder) {
         final Object tracked = ((ChunkMapAccessor) level.getChunkSource().chunkMap).getEntityMap().get(entity.getId());
         if (tracked instanceof TrackedEntityAccessor accessor) {
-            for (ServerPlayerConnection connection : accessor.getSeenBy()) vs$send(packet, connection.getPlayer());
+            for (ServerPlayerConnection connection : accessor.getSeenBy()) vs$send(packet, connection.getPlayer(), inOrder);
         }
     }
 
     @Unique
-    private void vs$send(PacketEntityShipMotion packet, ServerPlayer player) {
-        VSGameUtilsKt.getVsCore().getSimplePacketNetworking().sendToClients(packet,
-            ((PlayerDuck) player).vs_getPlayer());
+    private void vs$send(PacketEntityShipMotion packet, ServerPlayer player, boolean inOrder) {
+        if (inOrder) {
+            VsMessages.INSTANCE.getENTITY_SHIP_MOTION().sendToClientInOrder(((PlayerDuck) player).vs_getPlayer(), packet);
+        } else {
+            VSGameUtilsKt.getVsCore().getSimplePacketNetworking().sendToClients(packet,
+                ((PlayerDuck) player).vs_getPlayer());
+        }
     }
 }

@@ -49,17 +49,6 @@ class SeamlessChunksManager(private val listener: ClientPacketListener) {
     private var dispatching = false
 
     init {
-        with(vsCore.simplePacketNetworking) {
-            PacketStopChunkUpdates::class.registerClientHandler { (chunks) ->
-                chunks.forEach { stalledChunks.add(it.toMinecraft().toLong()) }
-            }
-            PacketRestartChunkUpdates::class.registerClientHandler { packet ->
-                Minecraft.getInstance().execute {
-                    onRestartUpdates(packet)
-                }
-            }
-        }
-
         vsApi.shipLoadEventClient.on { ev ->
             onShipLoad(ev.ship)
         }
@@ -109,7 +98,13 @@ class SeamlessChunksManager(private val listener: ClientPacketListener) {
         shipQueuedUpdates.remove(ship.chunkClaim)
     }
 
-    private fun onRestartUpdates(packet: PacketRestartChunkUpdates) {
+    /** Called on the client game thread, in arrival order relative to the chunk packets it guards. */
+    fun onStopUpdates(packet: PacketStopChunkUpdates) {
+        packet.chunks.forEach { stalledChunks.add(it.toMinecraft().toLong()) }
+    }
+
+    /** Called on the client game thread. */
+    fun onRestartUpdates(packet: PacketRestartChunkUpdates) {
         val (chunks) = packet
 
         chunks.forEach { p ->

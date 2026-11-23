@@ -130,6 +130,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
 
     @Inject(at = @At("TAIL"), method = "stopServer")
     private void afterStopServer(final CallbackInfo ci) {
+        org.valkyrienskies.mod.common.networking.VsNetworkPlatform.detachAllServer();
         org.valkyrienskies.mod.common.debug.ShipDebugService.clear();
         org.valkyrienskies.mod.common.hooks.VSGameEvents.INSTANCE.getServerStopped().emit(kotlin.Unit.INSTANCE);
         org.valkyrienskies.mod.common.util.ShipShadows.clear();
@@ -215,6 +216,14 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
                 962.0
             );
         }
+    }
+
+    @Inject(
+        method = "tickServer",
+        at = @At("TAIL")
+    )
+    private void vs$flushNetworkAfterTick(final CallbackInfo ci) {
+        org.valkyrienskies.mod.common.networking.VsNetworkPlatform.flushAllServer();
     }
 
     @Inject(

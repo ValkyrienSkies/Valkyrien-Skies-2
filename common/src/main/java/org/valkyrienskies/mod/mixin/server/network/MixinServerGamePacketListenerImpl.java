@@ -192,6 +192,7 @@ public abstract class MixinServerGamePacketListenerImpl implements ShipMovementL
         at = @At("HEAD")
     )
     void onDisconnect(final Component reason, final CallbackInfo ci) {
+        org.valkyrienskies.mod.common.networking.VsNetworkPlatform.detachServer(this.player);
         final VsiServerShipWorld world = VSGameUtilsKt.getShipObjectWorld(this.server);
         if (world != null) {
             world.onDisconnect(VSGameUtilsKt.getPlayerWrapper(this.player));

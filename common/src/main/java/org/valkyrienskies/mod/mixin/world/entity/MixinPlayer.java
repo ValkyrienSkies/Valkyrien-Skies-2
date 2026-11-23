@@ -10,11 +10,18 @@ import org.valkyrienskies.mod.mixinducks.world.entity.PlayerDuck;
 public class MixinPlayer implements PlayerDuck {
 
     @Unique
-    private final MinecraftPlayer vsPlayer = new MinecraftPlayer(Player.class.cast(this));
+    private MinecraftPlayer vsPlayer = new MinecraftPlayer(Player.class.cast(this));
 
     @Override
     public MinecraftPlayer vs_getPlayer() {
         return vsPlayer;
+    }
+
+    @Override
+    public void vs_takeOverPlayer(final Player previous) {
+        final MinecraftPlayer wrapper = ((PlayerDuck) previous).vs_getPlayer();
+        wrapper.rebind(Player.class.cast(this));
+        vsPlayer = wrapper;
     }
 
 }

@@ -30,6 +30,7 @@ import org.valkyrienskies.mod.common.command.commands.SplittingCommand
 import org.valkyrienskies.mod.common.command.commands.SchematicCommand
 import org.valkyrienskies.mod.common.command.commands.ShootCommand
 import org.valkyrienskies.mod.common.command.commands.PerfTestCommand
+import org.valkyrienskies.mod.common.command.commands.NetStatsCommand
 import org.valkyrienskies.mod.common.command.commands.StaticCommand
 import org.valkyrienskies.mod.common.command.commands.TeleportCommand
 import org.valkyrienskies.mod.common.shipObjectWorld
@@ -60,6 +61,7 @@ object VSCommands {
         ShootCommand.register(vs)
         GravityCommand.register(vs)
         PerfTestCommand.register(vs)
+        NetStatsCommand.register(vs)
         StaticCommand.register(vs)
         TeleportCommand.register(vs)
 
