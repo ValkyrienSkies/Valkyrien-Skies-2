@@ -14,10 +14,9 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
-// Bee.pathfindRandomlyTowards uses Vec3.atBottomCenterOf(target) and
-// blockPosition().distManhattan(target) to steer; for ship-mounted hives/flowers the
-// shipyard target leaves the steered direction pointed ~10⁷ blocks away and the bee
-// never moves. Project both reads through the owning ship's shipToWorld.
+// Bee.pathfindRandomlyTowards steers toward Vec3.atBottomCenterOf(target); for ship-mounted
+// hives/flowers the shipyard target points the direction ~10⁷ blocks away and the bee never
+// moves. Project it through the owning ship's shipToWorld.
 @Mixin(Bee.class)
 public abstract class MixinBeePathfindRandomlyTowards {
 
@@ -47,31 +46,6 @@ public abstract class MixinBeePathfindRandomlyTowards {
             }
         }
         return original.call(pos);
-    }
-
-    @WrapOperation(
-        method = "pathfindRandomlyTowards",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/core/BlockPos;distManhattan(Lnet/minecraft/core/Vec3i;)I"
-        )
-    )
-    private int vs$distManhattanProjected(
-        final BlockPos receiver, final Vec3i other, final Operation<Integer> original
-    ) {
-        // receiver is the bee's own blockPosition (world); other is the target (shipyard
-        // for ship targets) — project so the distance is in world space.
-        if (other instanceof BlockPos bp) {
-            final Ship ship = vs$shipFor(bp);
-            if (ship != null) {
-                final Vector3d world = ship.getTransform().getShipToWorld().transformPosition(
-                    VS$IN.get().set(bp.getX() + 0.5, bp.getY() + 0.5, bp.getZ() + 0.5),
-                    VS$OUT.get()
-                );
-                return original.call(receiver, BlockPos.containing(world.x, world.y, world.z));
-            }
-        }
-        return original.call(receiver, other);
     }
 
     @Unique

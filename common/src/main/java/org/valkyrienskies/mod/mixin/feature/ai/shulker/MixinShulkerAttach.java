@@ -18,9 +18,8 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.util.ShipAwareCollisionUtil;
 
-// Make Shulker attach/teleport ship-aware: world-block reads in canStayAt/isPositionBlocked/teleportSomewhere project into each candidate ship; the noCollision face-validation in canStayAt/teleportSomewhere routes through ShipAwareCollisionUtil so the bbox is rejected against ship geometry too.
+// Make Shulker attach/teleport ship-aware: world-block reads in canStayAt/isPositionBlocked/teleportSomewhere project into each candidate ship.
 @Mixin(Shulker.class)
 public abstract class MixinShulkerAttach {
 
@@ -83,20 +82,6 @@ public abstract class MixinShulkerAttach {
             if (!original.call(level, shipLocal)) return false;
         }
         return true;
-    }
-
-    @WrapOperation(
-        method = {"canStayAt", "teleportSomewhere"},
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/world/level/Level;noCollision(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/phys/AABB;)Z"
-        )
-    )
-    private boolean vs$noCollisionIncludingShips(
-        final Level level, final Entity entity, final AABB aabb,
-        final Operation<Boolean> original
-    ) {
-        return ShipAwareCollisionUtil.noCollisionIncludingShips(level, entity, aabb);
     }
 
     // Dragger first (precise authority for "currently attached"), then AABB-intersect scan (covers teleport candidates near a ship the shulker isn't currently attached to).

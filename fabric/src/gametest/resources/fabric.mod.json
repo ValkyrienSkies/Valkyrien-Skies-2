@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "valkyrienskies-gametest",
+  "version": "1.0.0",
+  "name": "Valkyrien Skies game tests",
+  "description": "Dev-only game tests for Valkyrien Skies; never shipped.",
+  "environment": "*",
+  "entrypoints": {
+    "fabric-gametest": [
+      "org.valkyrienskies.mod.gametest.ShipDistanceGameTests",
+      "org.valkyrienskies.mod.gametest.ShipLevelQueryGameTests",
+      "org.valkyrienskies.mod.gametest.ShipBlockLookupGameTests",
+      "org.valkyrienskies.mod.gametest.ShipInteractionGameTests",
+      "org.valkyrienskies.mod.gametest.ShipHitLocationGameTests",
+      "org.valkyrienskies.mod.gametest.ShipTransformGameTests",
+      "org.valkyrienskies.mod.gametest.ShipVillagerGameTests",
+      "org.valkyrienskies.mod.gametest.ShipMobGameTests",
+      "org.valkyrienskies.mod.gametest.ShipRandomMobGameTests",
+      "org.valkyrienskies.mod.gametest.CreateShipGameTests",
+      "org.valkyrienskies.mod.gametest.CreateLogisticsShipGameTests",
+      "org.valkyrienskies.mod.fabric.gametest.FabricShipGameTests"
+    ],
+    "client": [
+      "org.valkyrienskies.mod.gametest.client.FabricClientTestHook"
+    ]
+  },
+  "depends": {
+    "valkyrienskies": "*",
+    "fabric-api": "*",
+    "fabric-language-kotlin": "*"
+  }
+}

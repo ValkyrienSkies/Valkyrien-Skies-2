@@ -5,7 +5,6 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Position;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BellBlockEntity;
@@ -16,10 +15,9 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
-// BellBlockEntity.updateEntities's 48-inflated entity search and per-entity 32-block
-// closerToCenterThan check both use the bell's BlockPos, which lives at shipyard coords
-// for a ship-mounted bell — the AABB scans empty space and the proximity check always
-// rejects. Project both reads through the owning ship's shipToWorld.
+// BellBlockEntity.updateEntities's 48-inflated entity search uses the bell's BlockPos, which lives at
+// shipyard coords for a ship-mounted bell, so the AABB scans empty space. Project it through the owning
+// ship's shipToWorld.
 @Mixin(BellBlockEntity.class)
 public abstract class MixinBellBlockEntity {
 
@@ -58,31 +56,4 @@ public abstract class MixinBellBlockEntity {
         return union;
     }
 
-    @WrapOperation(
-        method = "updateEntities",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/core/BlockPos;closerToCenterThan(Lnet/minecraft/core/Position;D)Z"
-        )
-    )
-    private boolean vs$projectBellPosForProximity(
-        final BlockPos instance, final Position position, final double dist,
-        final Operation<Boolean> original
-    ) {
-        final Level level = ((BellBlockEntity) (Object) this).getLevel();
-        if (level == null) return original.call(instance, position, dist);
-        final Ship ship = VSGameUtilsKt.getShipManagingPos(level, instance);
-        if (ship == null) return original.call(instance, position, dist);
-
-        // Project cell center (not corner — toWorldCoordinates(level, BlockPos) projects
-        // bellPos.toJOMLD(), which is the integer corner and drifts up to ~0.5+ blocks per
-        // axis on rotated ships against a 32-block proximity radius).
-        final Vector3d worldCenter = ship.getTransform().getShipToWorld().transformPosition(
-            new Vector3d(instance.getX() + 0.5, instance.getY() + 0.5, instance.getZ() + 0.5),
-            new Vector3d()
-        );
-        return original.call(
-            BlockPos.containing(worldCenter.x, worldCenter.y, worldCenter.z), position, dist
-        );
-    }
 }

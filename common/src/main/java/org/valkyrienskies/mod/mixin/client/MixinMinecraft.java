@@ -1,5 +1,9 @@
 package org.valkyrienskies.mod.mixin.client;
 
+import net.minecraft.client.multiplayer.MultiPlayerGameMode;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.phys.BlockHitResult;
 import org.valkyrienskies.mod.common.fluid.ClientFluidTypes;
 import org.valkyrienskies.mod.common.fluid.ExteriorFluidFog;
 import org.valkyrienskies.mod.common.fluid.FluidParcelRenderer;
@@ -10,13 +14,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import org.valkyrienskies.mod.common.render.batched.ShipPieceRenderFrames;
 import net.minecraft.client.multiplayer.ClientPacketListener;
-import net.minecraft.client.multiplayer.MultiPlayerGameMode;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.server.IntegratedServer;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
-import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.HitResult;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -64,19 +63,6 @@ public abstract class MixinMinecraft
 
     @Shadow
     public ClientLevel level;
-
-    @Unique
-    private HitResult originalCrosshairTarget;
-
-    @Override
-    public void vs$setOriginalCrosshairTarget(final HitResult originalCrosshairTarget) {
-        this.originalCrosshairTarget = originalCrosshairTarget;
-    }
-
-    @Override
-    public HitResult vs$getOriginalCrosshairTarget() {
-        return originalCrosshairTarget;
-    }
 
     @Unique
     private VsiClientShipWorld shipObjectWorld = null;

@@ -8,16 +8,13 @@ import net.minecraft.world.entity.boss.wither.WitherBoss;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
-import org.joml.Vector3d;
-import org.joml.primitives.AABBd;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.valkyrienskies.core.api.ships.Ship;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.util.ShipBlockQueries;
 
 // WitherBoss's 3x4x3 destroy loop only fires when destroyBlocksTick decrements to 0, and that's only set to 20 by hurt() — most reliably from Entity.isInWall suffocation. For ship walls, isInWall reads the WORLD cell at the wither's eye (air at the apparent ship location), so the wither never registers as suffocating in a ship wall and never triggers destruction. Same per-cell-clear ThreadLocal pattern as MixinEnderDragonCheckWalls.
 @Mixin(WitherBoss.class)
@@ -26,12 +23,6 @@ public abstract class MixinWitherBossDestroyShipBlocks {
     @Shadow
     private int destroyBlocksTick;
 
-    @Unique
-    private static final ThreadLocal<Vector3d> VS$CENTER = ThreadLocal.withInitial(Vector3d::new);
-    @Unique
-    private static final ThreadLocal<Vector3d> VS$LOCAL = ThreadLocal.withInitial(Vector3d::new);
-    @Unique
-    private static final ThreadLocal<AABBd> VS$PROBE = ThreadLocal.withInitial(AABBd::new);
     @Unique
     private static final ThreadLocal<BlockPos> vs$shipLocalPosForDestroy = new ThreadLocal<>();
 
@@ -64,16 +55,7 @@ public abstract class MixinWitherBossDestroyShipBlocks {
 
     @Unique
     private static boolean vs$shipHasDestructibleAt(final Level level, final int wx, final int wy, final int wz) {
-        final Vector3d worldCenter = VS$CENTER.get().set(wx + 0.5, wy + 0.5, wz + 0.5);
-        final AABBd probe = VS$PROBE.get().setMin(wx, wy, wz).setMax(wx + 1.0, wy + 1.0, wz + 1.0);
-        for (final Ship ship : VSGameUtilsKt.getShipsIntersecting(level, probe)) {
-            final Vector3d shipLocal = ship.getTransform().getWorldToShip().transformPosition(
-                worldCenter, VS$LOCAL.get()
-            );
-            final BlockPos shipLocalPos = BlockPos.containing(shipLocal.x, shipLocal.y, shipLocal.z);
-            if (WitherBoss.canDestroy(level.getBlockState(shipLocalPos))) return true;
-        }
-        return false;
+        return ShipBlockQueries.findShipBlockPos(level, new BlockPos(wx, wy, wz), WitherBoss::canDestroy) != null;
     }
 
     @WrapOperation(
@@ -89,21 +71,10 @@ public abstract class MixinWitherBossDestroyShipBlocks {
         vs$shipLocalPosForDestroy.remove();
         final BlockState worldState = original.call(instance, worldPos);
         if (WitherBoss.canDestroy(worldState)) return worldState;
-        final Vector3d worldCenter = VS$CENTER.get().set(
-            worldPos.getX() + 0.5, worldPos.getY() + 0.5, worldPos.getZ() + 0.5);
-        final AABBd probe = VS$PROBE.get()
-            .setMin(worldPos.getX(), worldPos.getY(), worldPos.getZ())
-            .setMax(worldPos.getX() + 1.0, worldPos.getY() + 1.0, worldPos.getZ() + 1.0);
-        for (final Ship ship : VSGameUtilsKt.getShipsIntersecting(instance, probe)) {
-            final Vector3d shipLocal = ship.getTransform().getWorldToShip().transformPosition(
-                worldCenter, VS$LOCAL.get()
-            );
-            final BlockPos shipLocalPos = BlockPos.containing(shipLocal.x, shipLocal.y, shipLocal.z);
-            final BlockState shipState = instance.getBlockState(shipLocalPos);
-            if (WitherBoss.canDestroy(shipState)) {
-                vs$shipLocalPosForDestroy.set(shipLocalPos);
-                return shipState;
-            }
+        final BlockPos shipLocalPos = ShipBlockQueries.findShipBlockPos(instance, worldPos, WitherBoss::canDestroy);
+        if (shipLocalPos != null) {
+            vs$shipLocalPosForDestroy.set(shipLocalPos);
+            return instance.getBlockState(shipLocalPos);
         }
         return worldState;
     }

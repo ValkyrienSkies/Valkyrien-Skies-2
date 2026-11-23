@@ -7,7 +7,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import org.valkyrienskies.mod.common.util.ShipAwareCollisionUtil;
 
 @Mixin(Mob.class)
 public abstract class MixinMobSpawnObstruction {
@@ -19,7 +18,7 @@ public abstract class MixinMobSpawnObstruction {
     ) {
         if (!cir.getReturnValueZ() || !(level instanceof Level fullLevel)) return;
         final Mob self = (Mob) (Object) this;
-        if (!ShipAwareCollisionUtil.noCollisionIncludingShips(fullLevel, self, self.getBoundingBox())) {
+        if (!fullLevel.noCollision(self, self.getBoundingBox())) {
             cir.setReturnValue(false);
         }
     }

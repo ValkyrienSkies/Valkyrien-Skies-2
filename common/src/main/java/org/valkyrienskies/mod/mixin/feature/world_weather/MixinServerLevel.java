@@ -16,6 +16,7 @@ import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.Heightmap.Types;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.CompatUtil;
@@ -72,12 +73,19 @@ public abstract class MixinServerLevel {
 
     @WrapOperation(method = "tickChunk", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerLevel;getBiome(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/core/Holder;"))
     private Holder<Biome> useBiomeAtWorldPos(ServerLevel level, BlockPos pos, Operation<Holder<Biome>> original, @Share("ship") LocalRef<Ship> shipRef) {
-        return original.call(level, BlockPos.containing(CompatUtil.INSTANCE.toSameSpaceAs(level, pos.getCenter(), (Ship)null, shipRef.get())));
+        return original.call(level, vs$toWorld(level, pos, shipRef.get()));
     }
 
     @WrapOperation(method = "tickChunk", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/biome/Biome;getPrecipitationAt(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/biome/Biome$Precipitation;"))
     private Precipitation usePrecipitationAtWorldPos(Biome instance, BlockPos pos, Operation<Precipitation> original, @Share("ship") LocalRef<Ship> shipRef) {
         ServerLevel level = ServerLevel.class.cast(this);
-        return original.call(instance, BlockPos.containing(CompatUtil.INSTANCE.toSameSpaceAs(level, pos.getCenter(), (Ship)null, shipRef.get())));
+        return original.call(instance, vs$toWorld(level, pos, shipRef.get()));
+    }
+
+    // occlude's world-space sentinel for an occluded ship block stays as it is.
+    @Unique
+    private static BlockPos vs$toWorld(final ServerLevel level, final BlockPos pos, final Ship ship) {
+        if (ship == null || !VSGameUtilsKt.isBlockInShipyard(level, pos)) return pos;
+        return BlockPos.containing(CompatUtil.INSTANCE.toSameSpaceAs(level, pos.getCenter(), (Ship) null, ship));
     }
 }

@@ -199,6 +199,11 @@ object VSGameConfig {
             var shipShadows = true
         }
 
+        @ConfigEntry(
+            description = "Logs (once per call site) distance checks between ship and world coordinates that couldn't be transformed because the level was unknown"
+        )
+        var logUnresolvedShipDistanceChecks = false
+
         @ConfigCategory(title = "Create")
         val Create = CREATE()
 

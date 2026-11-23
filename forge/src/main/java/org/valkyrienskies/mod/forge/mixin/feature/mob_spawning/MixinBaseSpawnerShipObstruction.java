@@ -10,7 +10,6 @@ import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.SpawnData;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.valkyrienskies.mod.common.util.ShipAwareCollisionUtil;
 
 @Mixin(BaseSpawner.class)
 public abstract class MixinBaseSpawnerShipObstruction {
@@ -28,6 +27,6 @@ public abstract class MixinBaseSpawnerShipObstruction {
     ) {
         if (!original.call(mob, accessor, type, data, spawner)) return false;
         if (!(accessor instanceof Level fullLevel)) return true;
-        return ShipAwareCollisionUtil.noCollisionIncludingShips(fullLevel, mob, mob.getBoundingBox());
+        return fullLevel.noCollision(mob, mob.getBoundingBox());
     }
 }

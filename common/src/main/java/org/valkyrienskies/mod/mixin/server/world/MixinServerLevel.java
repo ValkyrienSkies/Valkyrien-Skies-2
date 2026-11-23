@@ -2,8 +2,6 @@ package org.valkyrienskies.mod.mixin.server.world;
 
 import static org.valkyrienskies.mod.common.ValkyrienSkiesMod.getVsCore;
 
-import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
-import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
@@ -16,7 +14,6 @@ import java.util.Optional;
 import java.util.function.BooleanSupplier;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.BlockPos.MutableBlockPos;
-import net.minecraft.core.Position;
 import net.minecraft.core.SectionPos;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ChunkHolder;
@@ -28,10 +25,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
-import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Vector3d;
 import org.joml.Vector3i;
 import org.joml.Vector3ic;
 import org.joml.primitives.AABBic;
@@ -56,7 +51,6 @@ import org.valkyrienskies.mod.common.VS2ChunkAllocator;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.BlockStateInfo;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.ShipEffectLocations;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.assembly.ShipWelder;
 import org.valkyrienskies.mod.common.block.WingBlock;
@@ -66,7 +60,6 @@ import org.valkyrienskies.mod.common.util.DragInfoReporter;
 import org.valkyrienskies.mod.common.util.FractureEventHandler;
 import org.valkyrienskies.mod.common.util.ImpactFractureHandler;
 import org.valkyrienskies.mod.common.util.VSServerLevel;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.mixin.accessors.server.level.ChunkMapAccessor;
 import org.valkyrienskies.mod.mixin.accessors.server.level.DistanceManagerAccessor;
 import org.valkyrienskies.mod.mixinducks.world.OfLevel;
@@ -183,43 +176,6 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                 cir.setReturnValue(true);
             }
         }
-    }
-
-    /**
-     * Include ships in particle distance check. Seems to only be used by /particle
-     */
-    @WrapOperation(
-        method = "sendParticles(Lnet/minecraft/server/level/ServerPlayer;ZDDDLnet/minecraft/network/protocol/Packet;)Z",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/core/BlockPos;closerToCenterThan(Lnet/minecraft/core/Position;D)Z"
-        )
-    )
-    private boolean includeShipsInParticleDistanceCheck(
-        final BlockPos player, final Position particle, final double distance,
-        final Operation<Boolean> closerToCenterThan) {
-
-        final ServerLevel self = ServerLevel.class.cast(this);
-        final LoadedServerShip ship = VSGameUtilsKt.getLoadedShipManagingPos(
-            self, BlockPos.containing(particle));
-
-        if (ship == null) {
-            // vanilla behaviour
-            return closerToCenterThan.call(player, particle, distance);
-        }
-
-        final var pieces = VSGameUtilsKt.getAllShips(self).getSplitPieces(ship.getId());
-        if (!pieces.isEmpty()) {
-            final var observer = Vec3.atCenterOf(player);
-            final var piece = ShipEffectLocations.point(pieces, particle.x(), particle.y(), particle.z(), observer);
-            if (piece == null) return false;
-            final var pos = piece.getShipToWorld().transformPosition(VectorConversionsMCKt.toJOML(particle));
-            return observer.distanceToSqr(pos.x, pos.y, pos.z) < distance * distance;
-        }
-        // in-world position
-        final Vector3d posInWorld = ship.getShipToWorld().transformPosition(VectorConversionsMCKt.toJOML(particle));
-
-        return posInWorld.distanceSquared(player.getX(), player.getY(), player.getZ()) < distance * distance;
     }
 
     @Unique

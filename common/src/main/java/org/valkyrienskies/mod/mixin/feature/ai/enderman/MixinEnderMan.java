@@ -10,7 +10,6 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.monster.EnderMan;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.levelgen.Heightmap;
 import org.joml.Vector3d;
 import org.joml.primitives.AABBd;
 import org.spongepowered.asm.mixin.Mixin;
@@ -18,30 +17,16 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.gen.Invoker;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.core.api.ships.Ship;
-import org.valkyrienskies.mod.common.CompatUtil;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.util.ShipBlockQueries;
 
 // Ship-aware enderman patches:
 //   - vs$readBlockStateForTeleport: teleport(DDD) walk-down sees ship decks as solid landings.
-//   - vs$canSeeSkyIncludingShips: daylight gate considers ship hulls overhead as shelter.
 //   - vs$retryTeleportPerNearbyShip: indirect-damage hurt() retries once per nearby ship.
 //   - vs$daylightEscapeSampleShipFrames: daylight escape projects vanilla's ±32 random
 //     sample into each nearby ship's local frame so ship interiors are reachable.
 @Mixin(EnderMan.class)
 public abstract class MixinEnderMan {
-
-    // Hot-path scratches: vs$shipBlockAt is invoked per cell of the teleport(DDD) walk-down,
-    // which itself runs from up to 64 teleport() attempts on direct damage. Keep ThreadLocals
-    // ONLY here — the daylight-escape and retry-per-ship wraps call into teleport(DDD)
-    // recursively, so any ThreadLocal they shared with vs$shipBlockAt would be clobbered
-    // mid-iteration. Those wraps are rare enough (per-tick or per-damage-event) that fresh
-    // allocations are fine.
-    @Unique
-    private static final ThreadLocal<Vector3d> VS$CENTER = ThreadLocal.withInitial(Vector3d::new);
-    @Unique
-    private static final ThreadLocal<Vector3d> VS$LOCAL = ThreadLocal.withInitial(Vector3d::new);
-    @Unique
-    private static final ThreadLocal<AABBd> VS$PROBE = ThreadLocal.withInitial(AABBd::new);
 
     @Invoker("teleport")
     abstract boolean vs$invokeTeleport(double x, double y, double z);
@@ -60,29 +45,8 @@ public abstract class MixinEnderMan {
     ) {
         final BlockState worldState = original.call(instance, pos);
         if (worldState.blocksMotion()) return worldState;
-        final BlockState shipState = vs$shipBlockAt(instance, pos);
+        final BlockState shipState = ShipBlockQueries.findShipBlock(instance, pos, BlockState::blocksMotion);
         return shipState != null ? shipState : worldState;
-    }
-
-    // canSeeSky only consults the world heightmap, so an enderman under a ship hull thinks
-    // it's in open daylight. Short-circuit when world is already occluded; otherwise check
-    // for any motion-blocking block above the entity in the ship-included heightmap.
-    @WrapOperation(
-        method = "customServerAiStep",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/world/level/Level;canSeeSky(Lnet/minecraft/core/BlockPos;)Z"
-        )
-    )
-    private boolean vs$canSeeSkyIncludingShips(
-        final Level instance, final BlockPos pos, final Operation<Boolean> original
-    ) {
-        if (!original.call(instance, pos)) return false;
-        final BlockPos heightInclShips =
-            CompatUtil.INSTANCE.getWorldHeightmapPosIncludingShips(instance, Heightmap.Types.MOTION_BLOCKING, pos);
-        // pos.Y + 1 (not pos.Y) because float error around standing-on-deck can push
-        // blockPos.Y one cell below the deck top.
-        return pos.getY() + 1 >= heightInclShips.getY();
     }
 
     // Indirect-damage path: vanilla makes a single teleport() attempt and frequently lands
@@ -159,25 +123,5 @@ public abstract class MixinEnderMan {
             count++;
         }
         return count;
-    }
-
-    @Unique
-    private static BlockState vs$shipBlockAt(final Level level, final BlockPos worldPos) {
-        final double cx = worldPos.getX() + 0.5;
-        final double cy = worldPos.getY() + 0.5;
-        final double cz = worldPos.getZ() + 0.5;
-        final Vector3d worldCenter = VS$CENTER.get().set(cx, cy, cz);
-        final AABBd probe = VS$PROBE.get()
-            .setMin(cx - 0.5, cy - 0.5, cz - 0.5)
-            .setMax(cx + 0.5, cy + 0.5, cz + 0.5);
-        final Vector3d shipLocal = VS$LOCAL.get();
-        for (final Ship ship : VSGameUtilsKt.getShipsIntersecting(level, probe)) {
-            if (!ship.getWorldAABB().containsPoint(worldCenter)) continue;
-            ship.getTransform().getWorldToShip().transformPosition(worldCenter, shipLocal);
-            final BlockPos shipLocalPos = BlockPos.containing(shipLocal.x, shipLocal.y, shipLocal.z);
-            final BlockState shipState = level.getBlockState(shipLocalPos);
-            if (shipState.blocksMotion()) return shipState;
-        }
-        return null;
     }
 }

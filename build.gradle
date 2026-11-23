@@ -123,9 +123,8 @@ subprojects {
             maven {
                 name = 'Kotlin for Forge'
                 url = 'https://thedarkcolour.github.io/KotlinForForge/'
-                content {
-                    includeGroup("thedarkcolor")
-                }
+                // GitHub Pages answers unknown paths with 503, which Gradle treats as fatal instead of trying the next repo.
+                content { includeGroup "thedarkcolour" }
             }
             maven {
                 name = 'tterrag maven'

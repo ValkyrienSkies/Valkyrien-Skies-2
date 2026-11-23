@@ -12,6 +12,7 @@ import net.minecraft.world.phys.HitResult
 import net.minecraft.world.phys.Vec3
 import org.joml.Vector3d
 import org.joml.Vector3dc
+import org.joml.primitives.AABBd
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.mod.common.world.clipIncludeShips
 import org.valkyrienskies.mod.common.util.toJOML
@@ -32,8 +33,8 @@ object CompatUtil {
         val result = Vector3d(position)
         val ship = sourceShip ?: level?.getShipManagingPos(result)
         if (ship != targetShip) {
-            ship?.shipToWorld?.transformPosition(result)
-            targetShip?.worldToShip?.transformPosition(result)
+            if (ship != null && !alreadyInWorld(result.x, result.y, result.z)) ship.shipToWorld.transformPosition(result)
+            if (targetShip != null && !alreadyInShipyard(result.x, result.y, result.z)) targetShip.worldToShip.transformPosition(result)
         }
         return result
     }
@@ -100,6 +101,15 @@ object CompatUtil {
     fun toSameSpaceAs(level: Level?, px: Double, py: Double, pz: Double, target: BlockPos): Vec3 {
         return toSameSpaceAs(level, Vector3d(px, py, pz), level.getShipManagingPos(target))
             .toMinecraft()
+    }
+
+    /** True unless a ship block sits above [pos]'s column (for canSeeSky). */
+    fun noShipRoofAbove(level: Level, pos: BlockPos): Boolean {
+        val top = level.maxBuildHeight.toDouble()
+        if (pos.y >= top) return true
+        val column = AABBd(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble(), pos.x + 1.0, top, pos.z + 1.0)
+        if (level.getShipsIntersecting(column).none()) return true
+        return pos.y + 1 >= getWorldHeightmapPosIncludingShips(level, Types.MOTION_BLOCKING, pos).y
     }
 
     /**

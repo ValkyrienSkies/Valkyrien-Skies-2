@@ -35,7 +35,7 @@ import org.valkyrienskies.mod.mixin.accessors.world.level.NaturalSpawnerSpawnSta
  * vertical column, runs vanilla's `spawnCategoryForPosition` flow in the ship's local cells
  * with biome / structure / difficulty drawn from the ship's world-rendered pos (shipyard
  * chunks aren't in the ticket pipeline; vanilla's `getMobsAt` crashes there). Mob caps are
- * shared with vanilla via `SpawnState`; biome reads project via `ShipSpawnFinalizeContext`.
+ * shared with vanilla via `SpawnState`; biome reads at shipyard positions resolve to the world biome (`MixinBiomeManager`).
  */
 object ShipNaturalSpawner {
 
@@ -158,81 +158,75 @@ object ShipNaturalSpawner {
         val invoker = spawnState as NaturalSpawnerSpawnStateInvoker
         var totalSpawned = 0
 
-        // Push ship context so vanilla's biome reads project to the ship's world-rendered biome.
-        ShipSpawnFinalizeContext.push(ship)
-        try {
-            for (attempt in 0 until 3) {
-                var spawnX = initialPos.x
-                var spawnZ = initialPos.z
-                var spawnerData: MobSpawnSettings.SpawnerData? = null
-                var spawnGroupData: SpawnGroupData? = null
-                var groupSize = Mth.ceil(random.nextFloat() * 4.0f)
-                var spawnedInGroup = 0
+        for (attempt in 0 until 3) {
+            var spawnX = initialPos.x
+            var spawnZ = initialPos.z
+            var spawnerData: MobSpawnSettings.SpawnerData? = null
+            var spawnGroupData: SpawnGroupData? = null
+            var groupSize = Mth.ceil(random.nextFloat() * 4.0f)
+            var spawnedInGroup = 0
 
-                var j = 0
-                groupLoop@ while (j < groupSize) {
-                    j++
-                    spawnX += random.nextInt(6) - random.nextInt(6)
-                    spawnZ += random.nextInt(6) - random.nextInt(6)
+            var j = 0
+            groupLoop@ while (j < groupSize) {
+                j++
+                spawnX += random.nextInt(6) - random.nextInt(6)
+                spawnZ += random.nextInt(6) - random.nextInt(6)
 
-                    if (spawnX < shipAABB.minX() || spawnX > shipAABB.maxX()
-                        || spawnZ < shipAABB.minZ() || spawnZ > shipAABB.maxZ()
-                    ) continue@groupLoop
-                    if (level.chunkSource.getChunkNow(spawnX shr 4, spawnZ shr 4) == null) continue@groupLoop
+                if (spawnX < shipAABB.minX() || spawnX > shipAABB.maxX()
+                    || spawnZ < shipAABB.minZ() || spawnZ > shipAABB.maxZ()
+                ) continue@groupLoop
+                if (level.chunkSource.getChunkNow(spawnX shr 4, spawnZ shr 4) == null) continue@groupLoop
 
-                    mutable.set(spawnX, pickedY, spawnZ)
+                mutable.set(spawnX, pickedY, spawnZ)
 
-                    val cx = spawnX + 0.5
-                    val cy = pickedY.toDouble()
-                    val cz = spawnZ + 0.5
+                val cx = spawnX + 0.5
+                val cy = pickedY.toDouble()
+                val cz = spawnZ + 0.5
 
-                    // Project shipyard pos -> world for structure resolution AND difficulty
-                    // (so DifficultyInstance reflects the ship's render location, not shipyard-zero inhabited time).
-                    val rendered = ship.transform.shipToWorld.transformPosition(cx, cy, cz, Vector3d())
-                    val worldPos = BlockPos.containing(rendered.x, rendered.y, rendered.z)
+                // Project shipyard pos -> world for structure resolution AND difficulty
+                // (so DifficultyInstance reflects the ship's render location, not shipyard-zero inhabited time).
+                val rendered = ship.transform.shipToWorld.transformPosition(cx, cy, cz, Vector3d())
+                val worldPos = BlockPos.containing(rendered.x, rendered.y, rendered.z)
 
-                    val player = level.getNearestPlayer(cx, cy, cz, -1.0, false) ?: continue@groupLoop
-                    val playerDistSqr = player.distanceToSqr(cx, cy, cz)
+                val player = level.getNearestPlayer(cx, cy, cz, -1.0, false) ?: continue@groupLoop
+                val playerDistSqr = player.distanceToSqr(cx, cy, cz)
 
-                    if (!isRightDistanceShipAware(level, ship, mutable, playerDistSqr)) continue@groupLoop
+                if (!isRightDistanceShipAware(level, ship, mutable, playerDistSqr)) continue@groupLoop
 
-                    if (spawnerData == null) {
-                        val biome = level.getBiome(mutable)
-                        val data = pickRandomSpawnMobAtShipAware(
-                            level, structureManager, generator, category, biome, worldPos, random
-                        ) ?: break@groupLoop
-                        spawnerData = data
-                        groupSize = spawnerData.minCount +
-                            random.nextInt(1 + spawnerData.maxCount - spawnerData.minCount)
-                    }
-
-                    if (!isValidSpawnPositionForTypeShipAware(level, spawnerData, mutable, playerDistSqr)) continue@groupLoop
-
-                    if (!invoker.`vs$canSpawn`(spawnerData.type, mutable, chunk)) continue@groupLoop
-
-                    val mob = NaturalSpawnerInvoker.`vs$getMobForSpawn`(level, spawnerData.type) ?: return
-                    mob.moveTo(cx, cy, cz, random.nextFloat() * 360.0f, 0.0f)
-
-                    if (!NaturalSpawnerInvoker.`vs$isValidPositionForMob`(level, mob, playerDistSqr)) {
-                        mob.discard()
-                        continue@groupLoop
-                    }
-
-                    spawnGroupData = mob.finalizeSpawn(
-                        level, level.getCurrentDifficultyAt(worldPos),
-                        MobSpawnType.NATURAL, spawnGroupData, null
-                    )
-                    spawnedInGroup++
-                    totalSpawned++
-                    level.addFreshEntityWithPassengers(mob)
-                    invoker.`vs$afterSpawn`(mob, chunk)
-
-                    if (totalSpawned >= mob.maxSpawnClusterSize) return
-                    if (mob.isMaxGroupSizeReached(spawnedInGroup)) break@groupLoop
+                if (spawnerData == null) {
+                    val biome = level.getBiome(mutable)
+                    val data = pickRandomSpawnMobAtShipAware(
+                        level, structureManager, generator, category, biome, worldPos, random
+                    ) ?: break@groupLoop
+                    spawnerData = data
+                    groupSize = spawnerData.minCount +
+                        random.nextInt(1 + spawnerData.maxCount - spawnerData.minCount)
                 }
+
+                if (!isValidSpawnPositionForTypeShipAware(level, spawnerData, mutable, playerDistSqr)) continue@groupLoop
+
+                if (!invoker.`vs$canSpawn`(spawnerData.type, mutable, chunk)) continue@groupLoop
+
+                val mob = NaturalSpawnerInvoker.`vs$getMobForSpawn`(level, spawnerData.type) ?: return
+                mob.moveTo(cx, cy, cz, random.nextFloat() * 360.0f, 0.0f)
+
+                if (!NaturalSpawnerInvoker.`vs$isValidPositionForMob`(level, mob, playerDistSqr)) {
+                    mob.discard()
+                    continue@groupLoop
+                }
+
+                spawnGroupData = mob.finalizeSpawn(
+                    level, level.getCurrentDifficultyAt(worldPos),
+                    MobSpawnType.NATURAL, spawnGroupData, null
+                )
+                spawnedInGroup++
+                totalSpawned++
+                level.addFreshEntityWithPassengers(mob)
+                invoker.`vs$afterSpawn`(mob, chunk)
+
+                if (totalSpawned >= mob.maxSpawnClusterSize) return
+                if (mob.isMaxGroupSizeReached(spawnedInGroup)) break@groupLoop
             }
-        } finally {
-            ShipSpawnFinalizeContext.pop()
         }
     }
 

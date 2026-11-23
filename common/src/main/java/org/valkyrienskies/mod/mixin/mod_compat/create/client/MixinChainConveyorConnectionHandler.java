@@ -22,7 +22,7 @@ public abstract class MixinChainConveyorConnectionHandler {
     )
     private static void cancelDrawIfTooFar(CallbackInfo ci, @Local Level level, @Local BlockPos pos) {
         if (VSGameUtilsKt.getShipManagingPos(level, firstPos) != VSGameUtilsKt.getShipManagingPos(level, pos)) {
-            // Cannot connect chain conveyors between ships, do not render anything.
+            // The preview line between two frames would be drawn in mixed coordinates; skip it.
             ci.cancel();
         }
     }
