@@ -12,6 +12,7 @@ import net.minecraft.world.phys.HitResult
 import net.minecraft.world.phys.Vec3
 import org.joml.Vector3d
 import org.joml.Vector3dc
+import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.mod.common.world.clipIncludeShips
 import org.valkyrienskies.mod.common.util.toJOML
@@ -22,6 +23,19 @@ object CompatUtil {
     // Same method is repeated several times with different argument types, as nearly all of our compat code is in Java
     // which lacks type conversion sugar of Kotlin. This makes for cleaner code in mixins themselves because we avoid
     // many usages of VectorConversionUtilsKt just to deal with JOML types used in VS.
+
+    /** Presentation only: convert via world space using both ships' poses for this frame. */
+    fun toRenderSpaceOf(level: Level?, position: Vec3, targetShip: Ship?): Vec3 {
+        val source = level.getShipManagingPos(position)
+        if (source == targetShip) return position
+        val result = position.toJOML()
+        ((source as? ClientShip)?.renderTransform ?: source?.transform)?.shipToWorld?.transformPosition(result)
+        ((targetShip as? ClientShip)?.renderTransform ?: targetShip?.transform)?.worldToShip?.transformPosition(result)
+        return result.toMinecraft()
+    }
+
+    fun toRenderSpaceOf(level: Level?, position: Vec3, target: BlockPos): Vec3 =
+        toRenderSpaceOf(level, position, level.getShipManagingPos(target))
 
     /**
      * Transform an arbitrary position to shipspace of a set ship.

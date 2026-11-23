@@ -4,6 +4,7 @@ import com.github.legoatoom.connectiblechains.client.render.entity.ChainKnotEnti
 import com.github.legoatoom.connectiblechains.client.render.entity.state.ChainKnotEntityRenderState;
 import com.github.legoatoom.connectiblechains.client.render.entity.state.ChainKnotEntityRenderState.ChainData;
 import com.github.legoatoom.connectiblechains.entity.ChainKnotEntity;
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
@@ -57,6 +58,13 @@ public abstract class MixinChainKnotEntityRenderer {
         return frustum.isVisible(VSGameUtilsKt.transformRenderAABBToWorld(((ClientLevel) chainHolder.level()), chainHolder.position(), aabb));
     }
 
+    @ModifyExpressionValue(method = "renderChainLink", require = 0, at = @At(value = "FIELD",
+        target = "Lcom/github/legoatoom/connectiblechains/client/render/entity/state/ChainKnotEntityRenderState$ChainData;useBaked:Z", remap = false))
+    private boolean vs$bakeOnlyStaticEndpoints(boolean baked, @Local(argsOnly = true) ChainData chain) {
+        return baked && VSGameUtilsKt.getLoadedShipManagingPos(valkyrienskies$level, chain.startPos) == null
+            && VSGameUtilsKt.getLoadedShipManagingPos(valkyrienskies$level, chain.endPos) == null;
+    }
+
     @Inject(
         method = "renderChainLink",
         at = @At(
@@ -76,8 +84,8 @@ public abstract class MixinChainKnotEntityRenderer {
             // Both positions are transformed to worldspace. This makes proper vertical dripping trivial and allows
             // using the same code for ship-to-ship, ship-to-player, ship-to-world connections.
             // This conflicts with rotation of rendered shipyard entities, but we take care of that later.
-            Vec3 newSrcPos = CompatUtil.INSTANCE.toSameSpaceAs(valkyrienskies$level, srcPos.get(), (Ship)null);
-            Vec3 newDestPos = CompatUtil.INSTANCE.toSameSpaceAs(valkyrienskies$level, destPos.get(), (Ship)null);
+            Vec3 newSrcPos = CompatUtil.INSTANCE.toRenderSpaceOf(valkyrienskies$level, srcPos.get(), (Ship)null);
+            Vec3 newDestPos = CompatUtil.INSTANCE.toRenderSpaceOf(valkyrienskies$level, destPos.get(), (Ship)null);
             srcPos.set(newSrcPos);
             if (srcShip != null) {
                 Vector3dc scale = srcShip.getRenderTransform().getScaling();

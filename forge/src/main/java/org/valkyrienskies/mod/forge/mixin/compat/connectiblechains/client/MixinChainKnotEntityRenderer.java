@@ -27,22 +27,23 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(value = ChainKnotEntityRenderer.class, remap = false)
 public abstract class MixinChainKnotEntityRenderer {
-    @Inject(
+    @WrapOperation(
         method = "renderChainLink",
         at = @At(
-            value = "NEW",
-            target = "org/joml/Vector3f" // After all the offset calculations, just before the mod starts doing math on these positions
+            value = "INVOKE",
+            target = "Lcom/lilypuree/connectiblechains/util/Helper;getChainOffset(Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;)Lorg/joml/Vector3f;"
         ))
-    private void adjustPositions(ChainLink link, float tickDelta, PoseStack matrices, MultiBufferSource vertexConsumerProvider, CallbackInfo ci,
-        @Local(ordinal = 3) LocalRef<Vec3> srcPos, @Local(ordinal = 4) LocalRef<Vec3> destPos) {
+    private org.joml.Vector3f adjustPositions(Vec3 from, Vec3 to, Operation<org.joml.Vector3f> offset,
+        @Local(argsOnly = true) ChainLink link, @Local(argsOnly = true) PoseStack matrices,
+        @Local(ordinal = 0) LocalRef<Vec3> srcPos, @Local(ordinal = 1) LocalRef<Vec3> destPos) {
         ClientShip srcShip = (ClientShip)VSGameUtilsKt.getShipManaging(link.primary);
         ClientShip destShip = (ClientShip)VSGameUtilsKt.getShipManaging(link.secondary);
         if (srcShip != null || destShip != null) {
             // Both positions are transformed to worldspace. This makes proper vertical dripping trivial and allows
             // using the same code for ship-to-ship, ship-to-player, ship-to-world connections.
             // This conflicts with rotation of rendered shipyard entities, but we take care of that later.
-            Vec3 newSrcPos = CompatUtil.INSTANCE.toSameSpaceAs(link.primary.level(), srcPos.get(), (Ship)null);
-            Vec3 newDestPos = CompatUtil.INSTANCE.toSameSpaceAs(link.secondary.level(), destPos.get(), (Ship)null);
+            Vec3 newSrcPos = CompatUtil.INSTANCE.toRenderSpaceOf(link.primary.level(), srcPos.get(), (Ship)null);
+            Vec3 newDestPos = CompatUtil.INSTANCE.toRenderSpaceOf(link.secondary.level(), destPos.get(), (Ship)null);
             srcPos.set(newSrcPos);
             if (srcShip != null) {
                 Vector3dc scale = srcShip.getRenderTransform().getScaling();
@@ -58,6 +59,7 @@ public abstract class MixinChainKnotEntityRenderer {
                 destPos.set(newDestPos);
             }
         }
+        return offset.call(srcPos.get(), destPos.get());
     }
 
     @WrapOperation(
@@ -85,7 +87,7 @@ public abstract class MixinChainKnotEntityRenderer {
      */
     @ModifyConstant(
         method = "renderChainLink",
-        constant = @Constant(classValue = HangingEntity.class)
+        constant = @Constant(classValue = HangingEntity.class, ordinal = 1)
     )
     // According to Minecraft Development plugin for Idea, this is wrong. The signature it suggests is actually incorrect.
     // I have no idea what the leading Object is for, but the expected signature has it listed;
