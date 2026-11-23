@@ -15,16 +15,20 @@ import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
  */
 public class ValkyrienForgeMixinConfigPlugin implements IMixinConfigPlugin {
 
+    private boolean createLoaded;
+    private boolean glueHooksEnabled;
     static boolean is607orAbove = false;
 
     @Override
     public void onLoad(final String s) {
 
-        if (LoadingModList.get().getModFileById("create") != null) {
+        createLoaded = LoadingModList.get().getModFileById("create") != null;
+        if (createLoaded) {
             final DefaultArtifactVersion createVersion =
                 new DefaultArtifactVersion(LoadingModList.get().getModFileById("create").versionString());
             final DefaultArtifactVersion createNewer = new DefaultArtifactVersion("6.0.7");
 
+            glueHooksEnabled = org.valkyrienskies.mod.compat.create.GlueHookVersions.enabled(createVersion.toString(), false);
             is607orAbove = createVersion.compareTo(createNewer) >= 0;
         }
 
@@ -53,16 +57,12 @@ public class ValkyrienForgeMixinConfigPlugin implements IMixinConfigPlugin {
             return LoadingModList.get().getModFileById("embeddium") != null;
         }
 
-        // Create changed on 6.0.7 so we have some duplicate mixins
-        // This only applies on forge, because fabric create is only 6.0.7+
-        if (LoadingModList.get().getModFileById("create") != null) {
-            if (mixinClassName.contains("MixinSuperGlueSelectionHandler67")) {
-                return is607orAbove;
-            }
-            if (mixinClassName.contains("MixinSuperGlueSelectionHandler66")) {
-                return !is607orAbove;
-            }
+        if (mixinClassName.endsWith(".MixinSuperGlueSelectionHandler67")) return glueHooksEnabled && is607orAbove;
+        if (mixinClassName.endsWith(".MixinSuperGlueSelectionHandler66")) return glueHooksEnabled && !is607orAbove;
+        if (mixinClassName.endsWith(".MixinSuperGlueSelectionRay67")) return createLoaded && !glueHooksEnabled && is607orAbove;
+        if (mixinClassName.endsWith(".MixinSuperGlueSelectionRay66")) return createLoaded && !glueHooksEnabled && !is607orAbove;
 
+        if (LoadingModList.get().getModFileById("create") != null) {
             if (mixinClassName.contains("MixinBlockEntityRenderHelper67")) {
                 return is607orAbove;
             }

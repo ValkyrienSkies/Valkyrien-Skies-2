@@ -12,6 +12,8 @@
     "compat.create.client.MixinBlockEntityRenderHelper67",
     "compat.create.client.MixinSuperGlueSelectionHandler66",
     "compat.create.client.MixinSuperGlueSelectionHandler67",
+    "compat.create.client.MixinSuperGlueSelectionRay66",
+    "compat.create.client.MixinSuperGlueSelectionRay67",
     "compat.create_stuff_additions.MixinGrapplinWhiskChainsLineProcedure",
     "compat.create_stuff_additions.MixinGrapplinWhiskItemInHandTickProcedure",
     "compat.immersivengineering.MixinBlockEntityInventory",

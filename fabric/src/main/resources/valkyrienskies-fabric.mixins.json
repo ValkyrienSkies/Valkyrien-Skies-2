@@ -32,6 +32,7 @@
     "compat.create.client.MixinContraptionHandlerClient",
     "compat.create.client.MixinCullingBlockEntityIterator",
     "compat.create.client.MixinSuperGlueSelectionHandler",
+    "compat.create.client.MixinSuperGlueSelectionRay",
     "compat.emf.MixinEMFAnimationEntityContext",
     "compat.sodium.MixinBlockRenderer",
     "compat.sodium.MixinFluidRenderer",

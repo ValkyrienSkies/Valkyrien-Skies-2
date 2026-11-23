@@ -30,6 +30,12 @@ public class ValkyrienSkiesFabricMixinPlugin implements IMixinConfigPlugin {
 
     @Override
     public boolean shouldApplyMixin(final String s, final String mixinClassName) {
+        final boolean splitPieceGlue = mixinClassName.endsWith(".MixinSuperGlueSelectionHandler");
+        if (splitPieceGlue || mixinClassName.endsWith(".MixinSuperGlueSelectionRay")) {
+            return net.fabricmc.loader.api.FabricLoader.getInstance().getModContainer("create")
+                .map(mod -> org.valkyrienskies.mod.compat.create.GlueHookVersions.enabled(mod.getMetadata().getVersion().getFriendlyString(), true) == splitPieceGlue)
+                .orElse(false);
+        }
         final boolean isMixinBoosterLoaded = classExists("io.github.steelwoolmc.mixintransmog.MixinModlauncherRemapper");
 
         if (mixinClassName.contains("org.valkyrienskies.mod.fabric.mixin.compat.old_create")) {

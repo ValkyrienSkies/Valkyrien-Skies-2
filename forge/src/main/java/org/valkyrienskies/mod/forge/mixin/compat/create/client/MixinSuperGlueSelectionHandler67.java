@@ -1,24 +1,16 @@
 package org.valkyrienskies.mod.forge.mixin.compat.create.client;
 
-import com.simibubi.create.foundation.utility.RaycastHelper;
-import java.util.Iterator;
-import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.world.entity.player.Player;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import net.minecraft.client.Minecraft;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.common.ForgeMod;
-import org.joml.Matrix4dc;
-import org.joml.Quaterniond;
-import org.joml.Vector3d;
-import org.joml.primitives.AABBic;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
-import org.valkyrienskies.core.api.ships.ClientShip;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
+import org.valkyrienskies.mod.common.VSClientGameUtils;
+import java.util.Optional;
 
 /**
  * This mixin is for Create 6.0.7+
@@ -28,52 +20,18 @@ import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 @Pseudo
 @Mixin(targets = "com.simibubi.create.content.contraptions.glue.SuperGlueSelectionHandler")
 public abstract class MixinSuperGlueSelectionHandler67 {
-    @Unique
-    private Vec3 newTarget;
-
-    @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/player/LocalPlayer;getEyePosition()Lnet/minecraft/world/phys/Vec3;"))
-    private Vec3 redirectGetTraceOrigin(LocalPlayer playerIn) {
-        double range = playerIn.getAttribute(ForgeMod.ENTITY_REACH.get()).getValue() + 1;
-        Vec3 origin = playerIn.getEyePosition();
-        Vec3 target = RaycastHelper.getTraceTarget(playerIn, range, origin);
-
-
-        AABB searchAABB = new AABB(origin, target).inflate(0.25, 2, 0.25);
-        final Iterator<ClientShip> ships = VSGameUtilsKt.getRenderShipsIntersecting(playerIn.clientLevel, VectorConversionsMCKt.toJOML(searchAABB)).iterator();
-
-        if (ships.hasNext()) {
-            ClientShip ship = ships.next();
-
-            Matrix4dc world2Ship = ship.getRenderTransform().getWorldToShip();
-            AABBic shAABBi = ship.getShipAABB();
-
-            // Hopefully fixes https://github.com/ValkyrienSkies/Valkyrien-Skies-2/issues/1341
-            // Presumably the AABB is null while the ship is still loading
-            // This fix is also applied on the fabric version of this class
-            if (shAABBi != null) {
-                AABB shipAABB = new AABB(shAABBi.minX(), shAABBi.minY(), shAABBi.minZ(), shAABBi.maxX(), shAABBi.maxY(), shAABBi.maxZ());
-
-
-                origin = VectorConversionsMCKt.toMinecraft(world2Ship.transformPosition(VectorConversionsMCKt.toJOML(origin)));
-                target = VectorConversionsMCKt.toMinecraft(world2Ship.transformPosition(VectorConversionsMCKt.toJOML(target)));
-
-                Quaterniond tempQuat = new Quaterniond();
-                if (playerIn.getVehicle() != null && playerIn.getVehicle().getBoundingBox().intersects(shipAABB.inflate(20))) {
-                    world2Ship.getNormalizedRotation(tempQuat);
-                    tempQuat.invert();
-                    Vector3d offset = VectorConversionsMCKt.toJOML(target.subtract(origin));
-                    tempQuat.transform(offset);
-                    target = origin.add(VectorConversionsMCKt.toMinecraft(offset));
-                }
-            }
-        }
-
-        newTarget = target;
-        return origin;
+    @WrapOperation(method = "tick", require = 1, at = @At(value = "INVOKE", target =
+        "Lnet/minecraft/client/multiplayer/ClientLevel;getEntitiesOfClass(Ljava/lang/Class;Lnet/minecraft/world/phys/AABB;)Ljava/util/List;"))
+    private <E extends net.minecraft.world.entity.Entity> java.util.List<E> vs$glueAtSplitImages(
+        net.minecraft.client.multiplayer.ClientLevel level, Class<E> type, AABB box, Operation<java.util.List<E>> query) {
+        return VSClientGameUtils.glueCandidates(level, type, box, query.call(level, type, box));
     }
 
-    @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/foundation/utility/RaycastHelper;getTraceTarget(Lnet/minecraft/world/entity/player/Player;DLnet/minecraft/world/phys/Vec3;)Lnet/minecraft/world/phys/Vec3;"), remap = false)
-    private Vec3 redirectGetTraceTarget(final Player playerIn, final double range, final Vec3 origin) {
-        return newTarget;
+    @WrapOperation(method = "tick", require = 1, at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/world/phys/AABB;clip(Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;)Ljava/util/Optional;"))
+    private Optional<Vec3> vs$clipCandidate(AABB box, Vec3 from, Vec3 to, Operation<Optional<Vec3>> original) {
+        final var level = Minecraft.getInstance().level;
+        final var ship = VSGameUtilsKt.getLoadedShipManagingPos(level, box.getCenter());
+        return ship == null ? original.call(box, from, to) : VSClientGameUtils.clipGlueCandidate(level, ship, box, from, to);
     }
 }

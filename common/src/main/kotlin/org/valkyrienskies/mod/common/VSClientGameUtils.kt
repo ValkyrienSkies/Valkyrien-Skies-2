@@ -4,6 +4,8 @@ import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.BlockPos
+import net.minecraft.world.phys.AABB
+import net.minecraft.world.phys.Vec3
 import net.minecraft.world.level.block.RenderShape
 import org.joml.Matrix4d
 import org.joml.Matrix4f
@@ -11,10 +13,48 @@ import org.joml.Vector3d
 import org.joml.primitives.AABBd
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.properties.ShipTransform
+import org.valkyrienskies.mod.common.util.toJOML
+import org.valkyrienskies.mod.common.util.toMinecraft
+import net.minecraft.world.entity.Entity
+import org.valkyrienskies.mod.common.util.ShipyardEntityQueryContext
+import org.valkyrienskies.mod.common.world.forEachRayImage
 import org.valkyrienskies.mod.common.util.multiply
 import org.valkyrienskies.mod.common.render.batched.ShipPieceRenderFrames
 
 object VSClientGameUtils {
+
+    /** Supplement Create's candidate list only at physical mouths; do not enlarge unrelated
+     * gameplay entity queries or merge two disjoint local AABBs into one huge box. */
+    @JvmStatic
+    fun <E : Entity> glueCandidates(level: ClientLevel, type: Class<E>, worldBox: AABB, original: List<E>): List<E> {
+        if (level.allShips.getSplitShipIds().isEmpty()) return original
+        var result: LinkedHashSet<E>? = null
+        val bounds = worldBox.toJOML()
+        for (piece in level.allShips.getIntersectingPieces(bounds, level.dimensionId)) {
+            if (level.allShips.getSplitPieces(piece.shipId).isEmpty()) continue
+            val local = AABBd(bounds).transform(piece.worldToShip).toMinecraft()
+            ShipyardEntityQueryContext.pushShipSpaceQuery(local, piece.shipId)
+            val matches = try { level.getEntitiesOfClass(type, local) } finally { ShipyardEntityQueryContext.popShipSpaceQuery() }
+            if (matches.isNotEmpty()) {
+                val merged = result ?: LinkedHashSet(original).also { result = it }
+                merged.addAll(matches)
+            }
+        }
+        return result?.toList() ?: original
+    }
+
+    @JvmStatic
+    fun clipGlueCandidate(level: ClientLevel, ship: ClientShip, box: AABB, from: Vec3, to: Vec3): java.util.Optional<Vec3> {
+        var best: Vec3? = null
+        var distance = Double.POSITIVE_INFINITY
+        level.forEachRayImage(ship, from, to, false) { image ->
+            image.clip(box, 0.0, false)?.let(image::world)?.let { point ->
+                val d = from.distanceToSqr(point)
+                if (d < distance) { distance = d; best = point }
+            }
+        }
+        return java.util.Optional.ofNullable(best)
+    }
 
     @JvmStatic
     fun viewBlockingShipBlock(level: ClientLevel, x: Double, y: Double, z: Double): BlockPos? {
