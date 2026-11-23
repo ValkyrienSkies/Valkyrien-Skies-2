@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.api.config
 
+import com.electronwill.nightconfig.core.UnmodifiableConfig
 import net.minecraftforge.common.ForgeConfigSpec
 import net.minecraftforge.fml.config.ModConfig
 import org.valkyrienskies.core.impl.api_impl.config.VsiConfigModelImpl
@@ -77,14 +78,21 @@ object VSConfigApi {
 
     @JvmStatic
     fun VsiConfigModel.update(forgeConfig: ModConfig, configType: ConfigType, updatedEntries: MutableSet<ConfigUpdateEntry>) {
+        updateFrom(forgeConfig.configData, configType, updatedEntries)
+    }
+
+    /** [update] from loaded config data. */
+    internal fun VsiConfigModel.updateFrom(configData: UnmodifiableConfig, configType: ConfigType, updatedEntries: MutableSet<ConfigUpdateEntry>) {
         root.forEachEntry { category, node ->
             val forgeKey = (category + node.name).joinToString(".")
-            forgeConfig.configData.get<Any>(forgeKey)?.let { newValue ->
+            configData.get<Any>(forgeKey)?.let { newValue ->
                 val defaultValue = node.default
                 if (defaultValue != null) {
                     val convertedValue = when {
                         // Handle Float stored as Double in Forge config
                         defaultValue is Float && newValue is Double -> newValue.toFloat()
+                        // Lists: every element must fit the default's element type (list classes differ)
+                        defaultValue is List<*> -> (newValue as? List<*>)?.let { convertList(defaultValue, it) }
                         // Handle existing enum value stored as String
                         defaultValue is Enum<*> -> {
                             when (newValue) {
@@ -102,7 +110,7 @@ object VSConfigApi {
                         else -> null
                     }
 
-                    if (convertedValue != node.getValue()) {
+                    if (convertedValue != null && convertedValue != node.getValue()) {
                         updatedEntries.add(ConfigUpdateEntry(configType, category, node.name))
                     }
 
@@ -113,6 +121,25 @@ object VSConfigApi {
                 }
             }
         }
+    }
+
+    /** The element type of a list option: that of its default's first element, or String for an empty default. */
+    internal fun listElementType(default: List<*>): Class<*> = default.firstOrNull()?.javaClass ?: String::class.java
+
+    /** [value] as an element of a list of [type] (whole numbers widen to Long/Double), or null if it can't be one. */
+    internal fun listElement(value: Any?, type: Class<*>): Any? = when (type) {
+        String::class.java -> value as? String
+        Int::class.javaObjectType -> value as? Int
+        Long::class.javaObjectType -> (value as? Int)?.toLong() ?: value as? Long
+        Double::class.javaObjectType -> (value as? Number)?.toDouble()
+        Boolean::class.javaObjectType -> value as? Boolean
+        else -> value?.takeIf { type.isInstance(it) }
+    }
+
+    /** [loaded] converted to the element type of [default], or null if any element doesn't fit. */
+    private fun convertList(default: List<*>, loaded: List<*>): List<Any>? {
+        val elementType = listElementType(default)
+        return loaded.map { listElement(it, elementType) ?: return null }
     }
 
     private fun VsiConfigModelCategory.forEachEntry(category: List<String> = emptyList(), callback: (List<String>, VsiConfigModelEntry<*>) -> Unit) {
@@ -154,6 +181,11 @@ object VSConfigApi {
         entry.description?.let(builder::comment)
 
         return when (val v = entry.getValue()) {
+            is List<*> -> {
+                val elementType = listElementType(entry.default as? List<*> ?: v)
+                @Suppress("UNCHECKED_CAST")
+                builder.defineListAllowEmpty(listOf(entry.name), { v as List<Any> }, { listElement(it, elementType) != null })
+            }
             is Int -> defineNumeric(v)
             is Long -> defineNumeric(v)
             is Float -> defineNumeric(v)

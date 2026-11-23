@@ -9,6 +9,7 @@ import net.minecraft.commands.Commands.argument
 import net.minecraft.commands.Commands.literal
 import net.minecraft.network.chat.Component.translatable
 import net.minecraftforge.common.ForgeConfigSpec
+import org.valkyrienskies.mod.api.config.VSConfigApi
 import org.valkyrienskies.mod.common.config.ConfigType
 import org.valkyrienskies.mod.common.config.VSConfigUpdater
 import org.valkyrienskies.mod.common.config.VSGameConfig
@@ -61,7 +62,7 @@ object ConfigCommand {
                         it.source.sendSuccess(
                             {
                                 //"$input is set to $result"
-                                translatable(CONFIG_PROP_RESULT, input, result.toString())
+                                translatable(CONFIG_PROP_RESULT, input, formatValue(result))
                             },
                             true
                         )
@@ -107,14 +108,19 @@ object ConfigCommand {
                             val valueString = StringArgumentType.getString(it, "value")
                             val desiredType = resultEntry.get()
 
-                            val value = stringToType(valueString, desiredType)
+                            val default = VSConfigUpdater.pathAwareConfigValuesMap.get(configType)!!.get(input)?.first?.default
+                            val value = if (desiredType is List<*>) {
+                                parseList(valueString, default as? List<*> ?: desiredType)
+                            } else {
+                                stringToType(valueString, desiredType)
+                            }
 
                             (resultEntry as ForgeConfigSpec.ConfigValue<Any>).set(value)
 
                             it.source.sendSuccess(
                                 {
                                     //"Set $input value: $old -> $new"
-                                    translatable(CONFIG_PROP_SET, input, desiredType, value)
+                                    translatable(CONFIG_PROP_SET, input, formatValue(desiredType), formatValue(value))
                                 },
                                 true
                             )
@@ -126,6 +132,29 @@ object ConfigCommand {
                 )
             )
         )
+    }
+
+    /** Lists print as their comma-separated elements; everything else as itself. */
+    internal fun formatValue(value: Any?): String =
+        if (value is List<*>) value.joinToString(", ") else value.toString()
+
+    /**
+     * Parses comma-separated [input] for a list option whose default is [default]: elements are trimmed, blank ones
+     * dropped, and each is converted to the default's element type. An element that doesn't parse throws.
+     */
+    internal fun parseList(input: String, default: List<*>): List<Any> {
+        val elementType = VSConfigApi.listElementType(default)
+        return input.split(',').map { it.trim() }.filter { it.isNotEmpty() }.map { element ->
+            val parsed: Any? = when (elementType) {
+                String::class.java -> element
+                Int::class.javaObjectType -> element.toIntOrNull()
+                Long::class.javaObjectType -> element.toLongOrNull()
+                Double::class.javaObjectType -> element.toDoubleOrNull()
+                Boolean::class.javaObjectType -> element.lowercase().toBooleanStrictOrNull()
+                else -> null
+            }
+            parsed ?: throw IllegalArgumentException("'$element' is not a valid ${elementType.simpleName}")
+        }
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -224,6 +253,10 @@ object ConfigCommand {
             (desiredType.javaClass as Class<out Enum<*>>).enumConstants.forEach { enum ->
                 builder.suggest(enum.name)
             }
+        }
+
+        if (desiredType is List<*>) {
+            builder.suggest(StringArgumentType.escapeIfRequired(desiredType.joinToString(",")))
         }
 
         return builder.buildFuture()
