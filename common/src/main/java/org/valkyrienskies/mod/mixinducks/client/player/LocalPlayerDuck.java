@@ -8,5 +8,7 @@ public interface LocalPlayerDuck {
 
     MountedCameraRotation vs$getMountedCameraRotation();
 
+    MountedCameraRotation vs$exchangeFrameRotation(MountedCameraRotation rotation);
+
     void vs$updateMountedCameraRotation(boolean render);
 }

@@ -14,6 +14,19 @@ public final class MountedCameraRotation {
     private float worldYaw;
     private float worldPitch;
 
+    public MountedCameraRotation copy() {
+        MountedCameraRotation copy = new MountedCameraRotation();
+        copy.mount = mount;
+        copy.shipId = shipId;
+        copy.shipRotation.set(shipRotation);
+        copy.rotation.set(rotation);
+        copy.localYaw = localYaw;
+        copy.localPitch = localPitch;
+        copy.worldYaw = worldYaw;
+        copy.worldPitch = worldPitch;
+        return copy;
+    }
+
     public void update(final Object mount, final long shipId, final Quaterniondc shipRotation,
         final float yaw, final float pitch) {
         if (this.mount != mount || this.shipId != shipId) {

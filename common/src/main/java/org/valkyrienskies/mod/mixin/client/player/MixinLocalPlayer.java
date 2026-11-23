@@ -27,6 +27,8 @@ public abstract class MixinLocalPlayer extends LivingEntity implements LocalPlay
     @Unique
     private final MountedCameraRotation vs$mountedCameraRotation = new MountedCameraRotation();
 
+    @Unique private MountedCameraRotation vs$frameRotation;
+
     protected MixinLocalPlayer() {
         super(null, null);
     }
@@ -52,24 +54,33 @@ public abstract class MixinLocalPlayer extends LivingEntity implements LocalPlay
 
     @Override
     public MountedCameraRotation vs$getMountedCameraRotation() {
-        return this.vs$mountedCameraRotation;
+        return vs$frameRotation != null ? vs$frameRotation : vs$mountedCameraRotation;
     }
 
     @Override
     public void vs$updateMountedCameraRotation(final boolean render) {
+        vs$frameRotation = render ? vs$mountedCameraRotation.copy() : null;
+        final MountedCameraRotation active = vs$getMountedCameraRotation();
         final Entity vehicle = this.getVehicle();
         if (vehicle == null || !(VSGameUtilsKt.getShipMountedTo(this) instanceof ClientShip ship)) {
-            this.vs$mountedCameraRotation.clear();
+            active.clear();
             return;
         }
-        this.vs$mountedCameraRotation.update(vehicle, ship.getId(),
+        active.update(vehicle, ship.getId(),
             (render ? ship.getRenderTransform() : ship.getTransform()).getRotation(), this.getYRot(), this.getXRot());
         this.vs$applyMountedCameraRotation();
     }
 
     @Override
+    public MountedCameraRotation vs$exchangeFrameRotation(MountedCameraRotation rotation) {
+        MountedCameraRotation old = vs$frameRotation;
+        vs$frameRotation = rotation;
+        return old;
+    }
+
+    @Override
     public void turn(final double yaw, final double pitch) {
-        this.vs$updateMountedCameraRotation(true);
+        this.vs$updateMountedCameraRotation(false);
         if (!this.vs$mountedCameraRotation.isMounted()) {
             super.turn(yaw, pitch);
             return;
@@ -81,8 +92,8 @@ public abstract class MixinLocalPlayer extends LivingEntity implements LocalPlay
 
     @Unique
     private void vs$applyMountedCameraRotation() {
-        this.setYRot(this.vs$mountedCameraRotation.getWorldYaw());
-        this.setXRot(this.vs$mountedCameraRotation.getWorldPitch());
+        this.setYRot(vs$getMountedCameraRotation().getWorldYaw());
+        this.setXRot(vs$getMountedCameraRotation().getWorldPitch());
         this.yRotO = this.getYRot();
         this.xRotO = this.getXRot();
         this.yHeadRot = this.getYRot();

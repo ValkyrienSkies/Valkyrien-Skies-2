@@ -191,7 +191,7 @@ public abstract class MixinGameRenderer {
                         shipMountedTo.getPrevTickTransform().getRotation(), shipMountedTo.getTransform().getRotation(),
                         shipMountedTo.getRenderTransform().getRotation(), 0, true, tickDelta);
                     vs$moveEntityToRenderPosition(entity, entityShouldBeHere);
-                    if (entity == minecraft.player) ((LocalPlayerDuck) entity).vs$updateMountedCameraRotation(true);
+                    if (entity == minecraft.player) frameState.presentCamera((LocalPlayerDuck) entity);
                     // The seat renderer rotates this parent via its matrix, not its entity fields.
                     final var prev = shipMountedTo.getPrevTickTransform().getRotation();
                     final var now = shipMountedTo.getTransform().getRotation();
