@@ -29,11 +29,24 @@ object EntityDragger {
             info.mountedToEntity = entity.vehicle != null
             if (!isDraggable(entity)) continue
             val ship = info.lastShipStoodOn?.let { entity.level().shipObjectWorld.allShips.getById(it) }
+            if (entity.isPassenger && !entity.level().isBlockInShipyard(entity.blockPosition())) {
+                org.valkyrienskies.mod.common.getShipMountedToData(entity, 1f)?.let { seat ->
+                    WorldMountOffset.captureTree(entity)
+                    val tickPos = seat.shipMountedTo.shipToWorld.transformPosition(seat.mountPosInShip, Vector3d())
+                    entity.setPos(tickPos.x, tickPos.y, tickPos.z)
+                    val heading = WorldMountOffset.seatHeading(entity, seat.shipMountedTo.transform.rotation,
+                        WorldMountOffset.heading(entity, 1f), entity.yHeadRot, entity.xRot)
+                    WorldMountOffset.placeTickTree(entity, 0f, seat.shipMountedTo.shipToWorld, heading)
+                }
+            }
             if (ship != null && info.isEntityBeingDraggedByAShip() && entity.vehicle == null) {
                 if (EntityShipCollisionUtils.isCollidingWithUnloadedShips(entity)) continue
+                val oldHeading = WorldMountOffset.heading(entity, 1f)
+                if (entity.isVehicle) WorldMountOffset.captureTree(entity)
                 if (ship is ClientShip && info.usesShipInterpolation && !entity.isControlledByLocalInstance) {
                     EntityLerper.lerpStep(info, ship, entity)
                     info.presentedDragShip = ship.id
+                    if (entity.isVehicle) WorldMountOffset.placeTickTree(entity, net.minecraft.util.Mth.wrapDegrees(WorldMountOffset.heading(entity, 1f) - oldHeading))
                     info.finishTick()
                     continue
                 }
@@ -113,6 +126,7 @@ object EntityDragger {
                     if (entity is LivingEntity) entity.yBodyRot += yaw.toFloat()
                     info.addedYawRotLastTick = yaw
                     info.presentedDragShip = ship.id
+                    if (entity.isVehicle) WorldMountOffset.placeTickTree(entity, net.minecraft.util.Mth.wrapDegrees(WorldMountOffset.heading(entity, 1f) - oldHeading))
                     if (clipped.distanceSquared(movement) > 1e-12) {
                         entity.hasImpulse = true
                         if (collision?.landedOnWorld == true) {

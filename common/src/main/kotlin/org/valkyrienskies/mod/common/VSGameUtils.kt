@@ -67,7 +67,7 @@ import org.valkyrienskies.mod.common.util.set
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toJOMLD
 import org.valkyrienskies.mod.common.util.toMinecraft
-import org.valkyrienskies.mod.mixin.accessors.entity.EntityAccessor
+import org.valkyrienskies.mod.common.util.WorldMountOffset
 import org.valkyrienskies.mod.mixin.accessors.resource.ResourceKeyAccessor
 import org.valkyrienskies.mod.mixinducks.world.entity.PlayerDuck
 import java.util.function.Consumer
@@ -954,11 +954,12 @@ fun getShipMountedToData(passenger: Entity, partialTicks: Float? = null): ShipMo
     }
     val shipObjectEntityMountedTo =
         passenger.level().getLoadedShipManagingPos(vehicle.position().toJOML()) ?: return null
-    val offset = Vector3d()
-    (vehicle as EntityAccessor).callPositionRider(passenger) { p, x, y, z -> offset.set(x, y, z).sub(vehicle.position().toJOML()) }
-    val mountedPosInShip: Vector3dc = vehicle.getPosition(partialTicks ?: 0.0f).toJOML().add(offset)
-
-    return ShipMountedToData(shipObjectEntityMountedTo, mountedPosInShip)
+    val t = partialTicks ?: 1.0f
+    val base = vehicle.getPosition(t)
+    val edge = WorldMountOffset.attachment(vehicle, passenger)
+    val seat = edge?.position(base, WorldMountOffset.heading(vehicle, t), t)
+        ?: base.add(0.0, vehicle.passengersRidingOffset + passenger.myRidingOffset, 0.0)
+    return ShipMountedToData(shipObjectEntityMountedTo, seat.toJOML())
 }
 
 fun getShipMountedTo(entity: Entity): LoadedShip? {

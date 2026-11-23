@@ -39,6 +39,7 @@ import org.valkyrienskies.mod.common.entity.handling.VSEntityManager;
 import org.valkyrienskies.mod.common.entity.handling.WorldEntityHandler;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
+import org.valkyrienskies.mod.common.util.WorldMountOffset;
 
 @Mixin(Entity.class)
 public abstract class MixinEntity {
@@ -73,8 +74,10 @@ public abstract class MixinEntity {
     private void positionRider(final Entity instance, final Entity passengerI, final Entity.MoveFunction callback,
         final Operation<Void> positionRider) {
         positionRider.call(instance, passengerI,
-            (Entity.MoveFunction) (passenger, x, y, z) -> VSEntityManager.INSTANCE.getHandler(passenger)
-                .positionSetFromVehicle(passenger, Entity.class.cast(this), x, y, z));
+            (Entity.MoveFunction) (passenger, x, y, z) -> {
+                WorldMountOffset.record(instance, passenger, new Vec3(x, y, z));
+                VSEntityManager.INSTANCE.getHandler(passenger).positionSetFromVehicle(passenger, instance, x, y, z);
+            });
     }
 
     @Unique
