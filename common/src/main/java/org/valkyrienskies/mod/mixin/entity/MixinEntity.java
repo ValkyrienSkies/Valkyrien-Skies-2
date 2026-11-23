@@ -212,7 +212,18 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
      */
     @Inject(method = "shouldRender", at = @At("HEAD"), cancellable = true)
     private void onShouldRender(double d, double e, double f, CallbackInfoReturnable<Boolean> cir) {
-        final ShipMountedToData mountedTo = VSGameUtilsKt.getShipMountedToData(Entity.class.cast(this), null);
+        if (RayQuery.frameTime() != null) {
+            Entity self = (Entity) (Object) this;
+            var pose = RayQuery.visualSeat(self);
+            if (pose != null) {
+                AABB visual = pose.bounds(self.getBoundingBoxForCulling().move(-self.getX(), -self.getY(), -self.getZ()));
+                double distance = org.valkyrienskies.mod.common.util.EntityRenderPosition.seatedCullDistance(
+                    visual, new Vec3(d,e,f), self.getBoundingBox().getSize());
+                cir.setReturnValue(shouldRenderAtSqrDistance(distance));
+            }
+            return;
+        }
+        final ShipMountedToData mountedTo = VSGameUtilsKt.getShipMountedToData(Entity.class.cast(this), RayQuery.frameTime());
         if (mountedTo != null) {
             final LoadedShip ship = mountedTo.getShipMountedTo();
             final ShipTransform shipTransform = ship instanceof ClientShip
@@ -220,23 +231,15 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
                 : ship.getTransform();
             final Vector3dc renderPosition = shipTransform.getShipToWorld()
                 .transformPosition(mountedTo.getMountPosInShip(), new Vector3d());
-            cir.setReturnValue(shouldRenderAtSqrDistance(renderPosition.distanceSquared(d, e, f)));
+            Entity self = (Entity) (Object) this;
+            AABB local = self.getBoundingBoxForCulling().move(-self.getX(), -self.getY(), -self.getZ());
+            double distance = org.valkyrienskies.mod.common.util.EntityRenderPosition.seatedCullDistance(local,
+                shipTransform.getShipToWorld(), renderPosition, new Vec3(d,e,f), self.getBoundingBox().getSize());
+            cir.setReturnValue(shouldRenderAtSqrDistance(distance));
             return;
         }
 
-        if (this.draggingInformation.isEntityBeingDraggedByAShip()) {
-            final Ship ship = VSGameUtilsKt.getShipObjectWorld(this.level).getAllShips().getById(this.draggingInformation.getLastShipStoodOn());
-            if (ship != null) {
-                final ShipTransform shipTransform = (ship instanceof ClientShip ? ((ClientShip) ship).getRenderTransform() : ship.getTransform());
-                final Vector3dc relativePosition = this.draggingInformation.bestRelativeEntityPosition();
-                if (relativePosition != null) {
-                    ShipPhysicalPiece piece = draggingInformation.getSupportPiece();
-                    if (piece != null && ship instanceof ClientShip) piece = ShipPieceRenderFrames.rendered(piece);
-                    final Vector3dc renderPosition = (piece == null ? shipTransform.getShipToWorld() : piece.getShipToWorld()).transformPosition(relativePosition, new Vector3d());
-                    cir.setReturnValue(shouldRenderAtSqrDistance(renderPosition.distanceSquared(d, e, f)));
-                }
-            }
-        }
+        // Standing and carried entities already have the presented position for vanilla's distance check.
     }
 
     // region shadow functions and fields

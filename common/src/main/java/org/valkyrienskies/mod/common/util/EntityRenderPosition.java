@@ -33,10 +33,30 @@ public final class EntityRenderPosition {
 
     public static void setWithoutSectionUpdate(final Entity entity, final double x, final double y, final double z) {
         final EntityAccessor accessor = (EntityAccessor) entity;
+        AABB box = entity.getBoundingBox().move(x - entity.getX(), y - entity.getY(), z - entity.getZ());
         accessor.setPosNoUpdates(new Vec3(x, y, z));
         accessor.setBlockPosition(BlockPos.containing(x, y, z));
         accessor.setFeetBlockState(null);
-        entity.setBoundingBox(entity.getDimensions(entity.getPose()).makeBoundingBox(x, y, z));
+        entity.setBoundingBox(box);
+    }
+
+    public static AABB seatedBounds(AABB local, org.joml.Matrix4dc basis, org.joml.Vector3dc origin) {
+        org.joml.primitives.AABBd box = VectorConversionsMCKt.toJOML(local);
+        // Do not apply the shipyard translation to a *directional* offset about the seat.
+        box.transform(new org.joml.Matrix4d(basis).setTranslation(origin));
+        return VectorConversionsMCKt.toMinecraft(box);
+    }
+
+    /** Preserve the entity's own distance rule. Measure from the nearest point of the visual
+     * extent and compensate for scaling, since vanilla derives its limit from the native box. */
+    public static double seatedCullDistance(AABB local, org.joml.Matrix4dc basis, org.joml.Vector3dc seat,
+        Vec3 camera, double nativeSize) {
+        return seatedCullDistance(seatedBounds(local, basis, seat), camera, nativeSize);
+    }
+
+    public static double seatedCullDistance(AABB visual, Vec3 camera, double nativeSize) {
+        double ratio = nativeSize > 0 ? Math.max(1, visual.getSize() / nativeSize) : 1;
+        return visual.distanceToSqr(camera) / (ratio * ratio);
     }
 
     public record Snapshot(
