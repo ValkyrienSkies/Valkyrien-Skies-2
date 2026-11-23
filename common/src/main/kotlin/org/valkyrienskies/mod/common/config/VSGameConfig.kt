@@ -31,6 +31,9 @@ object VSGameConfig {
         @ConfigCategory(title = "Performance")
         val Performance = PERFORMANCE()
 
+        @ConfigEntry(description = "Draw ships directly from the server's physics snapshots for smoother motion. Turn this off to use the older tick interpolation.")
+        var directFromPhysicsRendering = true
+
         @ConfigEntry(description = "Renders the VS2 debug HUD with TPS")
         var renderDebugText = false
 

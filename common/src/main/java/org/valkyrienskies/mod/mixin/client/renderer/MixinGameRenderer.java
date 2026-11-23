@@ -40,6 +40,7 @@ import org.valkyrienskies.mod.common.util.EntityDragger;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.ShipDraggingMath;
 import org.valkyrienskies.mod.common.util.WorldMountOffset;
+import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.common.util.EntityRenderPosition;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
@@ -125,6 +126,7 @@ public abstract class MixinGameRenderer {
                 return;
             }
 
+            shipWorld.setDirectFromPhysicsRendering(VSGameConfig.CLIENT.getDirectFromPhysicsRendering());
             shipWorld.updateRenderTransforms(tickDelta);
             ShipPieceRenderFrames.beginFrame(tickDelta);
         }
