@@ -40,8 +40,13 @@ public class MixinLivingEntityRenderer {
             Quaternionf rotation = new Quaternionf(ship.getRenderTransform().getRotation()).invert();
             Vector3f lookVector = livingEntity.getViewVector(1.0f).toVector3f();
             Vector3f lookVectorOld = livingEntity.getViewVector(0.0f).toVector3f();
-            lookVector.rotate(rotation);
-            lookVectorOld.rotate(rotation);
+            if (livingEntity == net.minecraft.client.Minecraft.getInstance().player) {
+                lookVector.rotate(rotation);
+                lookVectorOld.rotate(rotation);
+            } else {
+                lookVector.rotate(new Quaternionf(ship.getTransform().getRotation()).invert());
+                lookVectorOld.rotate(new Quaternionf(ship.getPrevTickTransform().getRotation()).invert());
+            }
             Vector3f zero = new Vector3f(0, 0, 1);
             eulerDegrees.set(zero.rotationTo(lookVector, new Quaternionf()).getEulerAnglesYXZ(new Vector3f()).mul(Mth.RAD_TO_DEG));
             eulerDegreesOld.set(zero.rotationTo(lookVectorOld, new Quaternionf()).getEulerAnglesYXZ(new Vector3f()).mul(Mth.RAD_TO_DEG));

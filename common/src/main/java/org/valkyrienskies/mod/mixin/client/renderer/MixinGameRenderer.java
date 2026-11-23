@@ -37,6 +37,7 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.EntityDragger;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.ShipDraggingMath;
+import org.valkyrienskies.mod.common.util.WorldMountOffset;
 import org.valkyrienskies.mod.common.util.EntityRenderPosition;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
@@ -186,14 +187,30 @@ public abstract class MixinGameRenderer {
                     final Vector3dc passengerPos = shipMountedToData.getMountPosInShip();
                     entityShouldBeHere = shipMountedTo.getRenderTransform().getShipToWorld()
                         .transformPosition(passengerPos, new Vector3d());
+                    float seatTurn = (float) ShipDraggingMath.renderYawCorrection(
+                        shipMountedTo.getPrevTickTransform().getRotation(), shipMountedTo.getTransform().getRotation(),
+                        shipMountedTo.getRenderTransform().getRotation(), 0, true, tickDelta);
                     vs$moveEntityToRenderPosition(entity, entityShouldBeHere);
                     if (entity == minecraft.player) ((LocalPlayerDuck) entity).vs$updateMountedCameraRotation(true);
+                    // The seat renderer rotates this parent via its matrix, not its entity fields.
+                    final var prev = shipMountedTo.getPrevTickTransform().getRotation();
+                    final var now = shipMountedTo.getTransform().getRotation();
+                    final float oldHead = entity instanceof LivingEntity living ? living.yHeadRotO : entity.yRotO;
+                    float oldBody = WorldMountOffset.seatHeading(entity, prev, WorldMountOffset.heading(entity, 0), oldHead, entity.xRotO);
+                    float body = WorldMountOffset.seatHeading(entity, now, WorldMountOffset.heading(entity, 1), entity.getYHeadRot(), entity.getXRot());
+                    if (entity == minecraft.player) {
+                        body = oldBody = WorldMountOffset.seatHeading(entity, shipMountedTo.getRenderTransform().getRotation(),
+                            WorldMountOffset.heading(entity, tickDelta), entity.getYHeadRot(), entity.getXRot());
+                    }
+                    vs$presentWorldPassengers(entity, tickDelta, seatTurn, net.minecraft.util.Mth.rotLerp(tickDelta, oldBody, body),
+                        shipMountedTo.getRenderTransform().getShipToWorld());
                     continue;
                 }
 
                 final EntityDraggingInformation entityDraggingInformation =
                     ((IEntityDraggingInformationProvider) entity).getDraggingInformation();
                 final Long lastShipStoodOn = entityDraggingInformation.getPresentedDragShip();
+                float beforeHeading = WorldMountOffset.heading(entity, tickDelta);
                 if (!entity.isPassenger() && lastShipStoodOn != null) {
                     final ClientShip shipObject =
                         VSGameUtilsKt.getShipObjectWorld(clientWorld).getLoadedShips().getById(lastShipStoodOn);
@@ -221,8 +238,24 @@ public abstract class MixinGameRenderer {
 
                 if (entityShouldBeHere != null) {
                     vs$moveEntityToRenderPosition(entity, entityShouldBeHere);
+                    float heading = WorldMountOffset.heading(entity, tickDelta);
+                    vs$presentWorldPassengers(entity, tickDelta, heading - beforeHeading, heading, null);
                 }
             }
+        }
+    }
+
+    @Unique
+    private void vs$presentWorldPassengers(Entity vehicle, float partialTick, float parentTurn, float heading, org.joml.Matrix4dc basis) {
+        for (Entity rider : vehicle.getPassengers()) {
+            WorldMountOffset offset = WorldMountOffset.attachment(vehicle, rider);
+            if (offset == null) continue;
+            float oldHeading = WorldMountOffset.heading(rider, partialTick);
+            Vec3 pos = offset.position(vehicle.position(), heading, partialTick, basis);
+            vs$moveEntityToRenderPosition(rider, new Vector3d(pos.x, pos.y, pos.z));
+            WorldMountOffset.carryOrientation(vehicle, rider, parentTurn, true);
+            float childHeading = WorldMountOffset.heading(rider, partialTick);
+            vs$presentWorldPassengers(rider, partialTick, childHeading - oldHeading, childHeading, null);
         }
     }
 

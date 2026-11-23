@@ -29,6 +29,10 @@ object EntityDragger {
             info.mountedToEntity = entity.vehicle != null
             if (!isDraggable(entity)) continue
             val ship = info.lastShipStoodOn?.let { entity.level().shipObjectWorld.allShips.getById(it) }
+            if (entity.isPassenger && ship is ClientShip && info.usesShipInterpolation && !entity.isControlledByLocalInstance &&
+                org.valkyrienskies.mod.common.getShipMountedToData(entity, 1f)?.shipMountedTo?.id == ship.id) {
+                EntityLerper.lerpLookStep(info, ship, entity)
+            }
             if (entity.isPassenger && !entity.level().isBlockInShipyard(entity.blockPosition())) {
                 org.valkyrienskies.mod.common.getShipMountedToData(entity, 1f)?.let { seat ->
                     WorldMountOffset.captureTree(entity)
