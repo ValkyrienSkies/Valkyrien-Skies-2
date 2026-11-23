@@ -25,7 +25,7 @@ public class MixinFrogportVisual {
     )
     Vec3 adjustPosition(PackagePortTarget instance, PackagePortBlockEntity packagePortBlockEntity,
         LevelAccessor levelAccessor, BlockPos blockPos, Operation<Vec3> original) {
-        return CompatUtil.INSTANCE.toSameSpaceAs(
+        return CompatUtil.INSTANCE.toRenderSpaceOf(
             packagePortBlockEntity.getLevel(),
             original.call(instance, packagePortBlockEntity, levelAccessor, blockPos),
             blockPos

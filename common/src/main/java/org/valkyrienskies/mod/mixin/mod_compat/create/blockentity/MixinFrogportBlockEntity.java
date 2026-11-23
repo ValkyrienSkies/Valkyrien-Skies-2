@@ -54,7 +54,7 @@ public abstract class MixinFrogportBlockEntity extends PackagePortBlockEntity {
     )
     private Vec3 adjustPosition(PackagePortTarget instance, PackagePortBlockEntity packagePortBlockEntity,
         LevelAccessor levelAccessor, BlockPos blockPos, Operation<Vec3> original) {
-        return CompatUtil.INSTANCE.toSameSpaceAs(
+        return CompatUtil.INSTANCE.toRenderSpaceOf(
             packagePortBlockEntity.getLevel(),
             original.call(instance, packagePortBlockEntity, levelAccessor, blockPos),
             blockPos
