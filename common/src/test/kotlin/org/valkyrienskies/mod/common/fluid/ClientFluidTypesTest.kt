@@ -39,7 +39,6 @@ class ClientFluidTypesTest {
 
     private val core = mockk<VsiCore>(relaxed = true)
     private val networking = mockk<SimplePacketNetworking>(relaxed = true)
-    private val handler = slot<(PacketSyncBlockStateInfo) -> Unit>()
     private val player = mockk<MinecraftPlayer>()
     private val sent = mutableListOf<PacketSyncBlockStateInfo>()
     private val world = mockk<VsiClientShipWorld>(relaxed = true)
@@ -69,8 +68,6 @@ class ClientFluidTypesTest {
         every { with(networking) { any<SimplePacket>().sendToClient(player) } } answers {
             sent += firstArg<SimplePacket>() as PacketSyncBlockStateInfo
         }
-        every { with(networking) { PacketSyncBlockStateInfo::class.registerClientHandler(capture(handler)) } } returns mockk()
-        VSGamePackets.registerHandlers()
         every { level.shipObjectWorld } returns world
         every { (level as Level).shipObjectWorld } returns world
         every { level.shipWorldNullable } returns world
@@ -111,7 +108,7 @@ class ClientFluidTypesTest {
     }
 
     private fun receive(packet: PacketSyncBlockStateInfo) {
-        handler.captured(mapper.readValue(mapper.writeValueAsBytes(packet), PacketSyncBlockStateInfo::class.java))
+        VSGamePackets.applyBlockStateInfo(mapper.readValue(mapper.writeValueAsBytes(packet), PacketSyncBlockStateInfo::class.java))
     }
 
     @Test fun `remote client gets body eye camera and block fluid from a serialized mapping without local physics registration`() {

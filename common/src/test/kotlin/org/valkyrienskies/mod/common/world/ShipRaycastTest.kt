@@ -211,7 +211,7 @@ class ShipRaycastTest {
         every { clientShip.renderAABB } returns AABBd(120.0, 0.0, 0.0, 121.0, 1.0, 1.0)
         every { clientShip.renderTransform.worldToShip } returns Matrix4d().translation(-105.0, 0.0, 0.0)
         every { clientShip.renderTransform.shipToWorld } returns Matrix4d().translation(105.0, 0.0, 0.0)
-        val hit = ray(125.0, 116.0)
+        val hit = RayQuery.frame(0.5f) { ray(125.0, 116.0) }
         assertEquals(HitResult.Type.BLOCK, hit.type)
         assertEquals(121.0, hit.location.x, 1e-8)
     }
@@ -238,7 +238,13 @@ class ShipRaycastTest {
         }
         val from = Vec3(125.0, 0.5, 0.5)
         val to = Vec3(116.0, 0.5, 0.5)
-        val hit = client.raytraceEntities(shooter, from, to, AABB(from, to).inflate(1.0), filter, 81.0)
+        val hit = RayQuery.frame(0.5f) {
+            RayQuery.crosshairCall {
+                RayQuery.entityQuery {
+                    client.raytraceEntities(shooter, from, to, AABB(from, to).inflate(1.0), filter, 81.0)
+                }
+            }
+        }
         assertSame(target, hit?.entity)
         assertEquals(Vec3(121.0, 0.5, 0.5), hit?.location)
     }
