@@ -77,6 +77,7 @@ import org.valkyrienskies.mod.common.fluid.WorldFluidOutflowManager;
 import org.valkyrienskies.mod.common.hooks.VSGameEvents;
 import org.valkyrienskies.mod.common.portals.ShipPortalRegistry;
 import org.valkyrienskies.mod.common.util.EntityDragger;
+import org.valkyrienskies.mod.common.util.EntityShipCollisionUtils;
 import org.valkyrienskies.mod.common.util.ShipSettingsKt;
 import org.valkyrienskies.mod.common.util.VSLevelChunk;
 import org.valkyrienskies.mod.common.util.VSServerLevel;
@@ -134,6 +135,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         org.valkyrienskies.mod.common.debug.ShipDebugService.clear();
         org.valkyrienskies.mod.common.hooks.VSGameEvents.INSTANCE.getServerStopped().emit(kotlin.Unit.INSTANCE);
         org.valkyrienskies.mod.common.util.ShipShadows.clear();
+        EntityShipCollisionUtils.clearSpawnGracePeriods();
         ShipPortalRegistry.clear();
         if (LoadedMods.getImmersivePortals()) ImmersiveShipPortals.clear();
         ValkyrienSkiesMod.setCurrentServer(null);
@@ -297,6 +299,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         fluidBlockInteractions.tick(shipWorld, dimensionToLevelMap);
         ShipFluidInteraction.prune(shipWorld);
         org.valkyrienskies.mod.common.debug.ShipDebugService.tick((MinecraftServer) (Object) this);
+        EntityShipCollisionUtils.cleanupExpiredGracePeriods(((MinecraftServer) (Object) this).getTickCount());
         fluidOutflowManager.tick(dimensionToLevelMap);
         fractionalFluidSources.tickSplashes(dimensionToLevelMap);
         // Only drag entities after we have updated the ship positions
