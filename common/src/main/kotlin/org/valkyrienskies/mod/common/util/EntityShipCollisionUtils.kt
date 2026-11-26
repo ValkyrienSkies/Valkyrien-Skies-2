@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.common.util
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
+import net.minecraft.world.level.ChunkPos
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.util.Mth
 import net.minecraft.core.Direction
@@ -33,6 +34,7 @@ import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.getLoadedShipManagingPos
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.vsCore
+import org.valkyrienskies.mod.mixinducks.client.world.ClientChunkCacheDuck
 import org.valkyrienskies.mod.mixinducks.feature.tickets.PlayerKnownShipsDuck
 import org.valkyrienskies.mod.util.BugFixUtil
 import java.util.concurrent.ConcurrentHashMap
@@ -48,6 +50,7 @@ object EntityShipCollisionUtils {
     private val recentlySpawnedShips = ConcurrentHashMap<ShipId, Long>()
     private const val SPAWN_GRACE_PERIOD_TICKS = 100L // ~5 seconds
     private val playerUnloadedShipBlockStartTicks = ConcurrentHashMap<Long, Long>()
+    private val clientPlayerUnloadedShipBlockStartTicks = ConcurrentHashMap<Long, Long>()
     private val playerClientSyncBlockStartTicks = ConcurrentHashMap<Int, Long>()
     private const val PLAYER_UNLOADED_SHIP_BLOCK_TIMEOUT_TICKS = 200L // ~10 seconds
 
@@ -64,6 +67,11 @@ object EntityShipCollisionUtils {
     }
 
     @JvmStatic
+    fun clearSpawnGracePeriods() {
+        recentlySpawnedShips.clear()
+    }
+
+    @JvmStatic
     fun isInSpawnGracePeriod(shipId: ShipId): Boolean {
         return recentlySpawnedShips.containsKey(shipId)
     }
@@ -73,12 +81,16 @@ object EntityShipCollisionUtils {
         return uuid.leastSignificantBits xor java.lang.Long.rotateLeft(uuid.mostSignificantBits, 1) xor shipId
     }
 
+    // Separate per side: in singleplayer the other thread would otherwise reset this side's timeout every tick
+    private fun unloadedShipBlockStartTicks(entity: Entity) =
+        if (entity.level().isClientSide) clientPlayerUnloadedShipBlockStartTicks else playerUnloadedShipBlockStartTicks
+
     private fun shouldBlockPlayerForUnloadedShip(entity: Entity, ship: Ship, currentTick: Long): Boolean {
         if (entity !is Player) {
             return true
         }
         val key = playerShipBlockKey(entity, ship.id)
-        val firstBlockedTick = playerUnloadedShipBlockStartTicks.putIfAbsent(key, currentTick) ?: currentTick
+        val firstBlockedTick = unloadedShipBlockStartTicks(entity).putIfAbsent(key, currentTick) ?: currentTick
         return currentTick - firstBlockedTick <= PLAYER_UNLOADED_SHIP_BLOCK_TIMEOUT_TICKS
     }
 
@@ -152,7 +164,7 @@ object EntityShipCollisionUtils {
                     val chunksLoaded = if (pieces.isEmpty()) areAllChunksLoaded(ship, AABBd(aabb).transform(ship.worldToShip), level)
                         else pieces.all { !it.worldBounds.intersectsAABB(aabb) || areAllChunksLoaded(ship, AABBd(aabb).transform(it.worldToShip), level) }
                     if (chunksLoaded) {
-                        playerUnloadedShipBlockStartTicks.remove(playerShipBlockKey(entity, ship.id))
+                        unloadedShipBlockStartTicks(entity).remove(playerShipBlockKey(entity, ship.id))
                         return@all true
                     }
                     if (entity is PlayerKnownShipsDuck && !entity.vs_isKnownShip(ship.id)) {
@@ -171,11 +183,14 @@ object EntityShipCollisionUtils {
         val maxX = (Mth.floor(aABB.maxX() + 1.0E-7) + 1) shr 4
         val minZ = (Mth.floor(aABB.minZ() - 1.0E-7) - 1) shr 4
         val maxZ = (Mth.floor(aABB.maxZ() + 1.0E-7) + 1) shr 4
+        // Client getChunk returns an empty placeholder for shipyard chunks that have not arrived
+        val clientShipChunks = (level.chunkSource as? ClientChunkCacheDuck)?.`vs$getShipChunks`()
 
         for (chunkX in minX..maxX) {
             for (chunkZ in minZ..maxZ) {
                 if (ship.activeChunksSet.contains(chunkX, chunkZ) &&
-                    level.getChunkForCollisions(chunkX, chunkZ) == null
+                    if (clientShipChunks != null) !clientShipChunks.containsKey(ChunkPos.asLong(chunkX, chunkZ))
+                    else level.getChunkForCollisions(chunkX, chunkZ) == null
                 ) {
                     return false
                 }
