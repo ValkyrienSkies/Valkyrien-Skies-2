@@ -91,6 +91,8 @@ object VSConfigApi {
                     val convertedValue = when {
                         // Handle Float stored as Double in Forge config
                         defaultValue is Float && newValue is Double -> newValue.toFloat()
+                        // Handle Long stored as Int (TOML reads whole numbers that fit in an Int as Int)
+                        defaultValue is Long && newValue is Int -> newValue.toLong()
                         // Lists: every element must fit the default's element type (list classes differ)
                         defaultValue is List<*> -> (newValue as? List<*>)?.let { convertList(defaultValue, it) }
                         // Handle existing enum value stored as String
@@ -165,12 +167,16 @@ object VSConfigApi {
         }
 
         fun <T : Comparable<T>> defineNumeric(v: T) =
-            if (entry.min == null || entry.max == null) {
+            if (v is Long) {
+                // Always a range, so the spec accepts any whole number: TOML has one integer type, and NightConfig
+                // reads values that fit in an Int back as Int. A plain define(Long) rejects those, so Forge would
+                // "correct" the file on every load, and its file watcher then reloads the corrected file forever.
+                builder.defineInRange(entry.name, v, entry.min as Long? ?: Long.MIN_VALUE, entry.max as Long? ?: Long.MAX_VALUE)
+            } else if (entry.min == null || entry.max == null) {
                 define(if (v is Float) v.toDouble() else v)
             } else {
                 when (v) {
                     is Int -> builder.defineInRange(entry.name, v, entry.min as Int, entry.max as Int)
-                    is Long -> builder.defineInRange(entry.name, v, entry.min as Long, entry.max as Long)
                     is Float -> builder.defineInRange(entry.name, v.toDouble(), (entry.min as Float).toDouble(), (entry.max as Float).toDouble())
                     is Double -> builder.defineInRange(entry.name, v, entry.min as Double, entry.max as Double)
                     else -> throw IllegalArgumentException("Non numeric type $v not accepted")
