@@ -13,7 +13,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 
 /**
- * `/vs net stats|reset|dump` — diagnostic view of VS network traffic counters ([VsiNetworkStatistics]).
+ * `/vs net stats|reset|dump|sessions` — diagnostic view of VS network traffic counters ([VsiNetworkStatistics]), for
+ * operators; `/vs net diagnose` is [NetDiagnoseCommand].
  *
  * - `stats` prints the top entries by bytes, with per-second rates since the last reset.
  * - `reset` clears all counters.
@@ -23,22 +24,22 @@ object NetStatsCommand {
     private const val TOP = 20
 
     fun register(vs: LiteralArgumentBuilder<CommandSourceStack>) {
-        vs.then(
-            literal("net")
-                .requires { it.hasPermission(2) }
-                .then(literal("stats").executes { printStatistics(it.source); 1 })
-                .then(literal("reset").executes {
-                    vsCore.networkStatistics.reset()
-                    it.source.sendSuccess({ Component.literal("[VS] Network stats reset") }, true)
-                    1
-                })
-                .then(literal("dump").executes { dump(it.source); 1 })
-                .then(literal("sessions").executes {
-                    val text = vsCore.networkHost.describeSessions().trimEnd()
-                    it.source.sendSuccess({ Component.literal(text) }, false)
-                    1
-                })
-        )
+        val op = { source: CommandSourceStack -> source.hasPermission(2) }
+        val net = literal("net")
+            .then(literal("stats").requires(op).executes { printStatistics(it.source); 1 })
+            .then(literal("reset").requires(op).executes {
+                vsCore.networkStatistics.reset()
+                it.source.sendSuccess({ Component.literal("[VS] Network stats reset") }, true)
+                1
+            })
+            .then(literal("dump").requires(op).executes { dump(it.source); 1 })
+            .then(literal("sessions").requires(op).executes {
+                val text = vsCore.networkHost.describeSessions().trimEnd()
+                it.source.sendSuccess({ Component.literal(text) }, false)
+                1
+            })
+        NetDiagnoseCommand.register(net) // open to every player, for their own connection
+        vs.then(net)
     }
 
     private fun elapsedSeconds(stats: VsiNetworkStatistics): Double =
