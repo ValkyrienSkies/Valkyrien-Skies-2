@@ -277,7 +277,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider,
     private void addShipSupportToOnGroundState(final Entity entity, final boolean onGround, final Vec3 movement,
         final Operation<Void> original) {
         final Ship support =
-            movement.y <= 0.0 ? (getDraggingInformation().getUsesShipInterpolation()
+            movement.y <= 1.0E-7 ? (getDraggingInformation().getUsesShipInterpolation()
                 ? EntityShipCollisionUtils.findSupportingShip(entity) : EntityShipCollisionUtils.recordSupportingShip(entity)) : null;
         final boolean shouldBeGrounded = onGround || support != null;
         original.call(entity, shouldBeGrounded, movement);

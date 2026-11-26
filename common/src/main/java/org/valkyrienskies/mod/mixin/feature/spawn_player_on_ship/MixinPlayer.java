@@ -55,6 +55,7 @@ public abstract class MixinPlayer extends LivingEntity implements PlayerKnownShi
     public void vs_addKnownShip(long shipId) {
         vs_knownShips.add(shipId);
         if (level().isClientSide) {
+            vs_pendingRemoves.rem(shipId);
             vs_pendingAdds.add(shipId);
             vs_scheduleKnownShipsFlush();
         }
@@ -64,6 +65,7 @@ public abstract class MixinPlayer extends LivingEntity implements PlayerKnownShi
     public void vs_removeKnownShip(long shipId) {
         vs_knownShips.remove(shipId);
         if (level().isClientSide) {
+            vs_pendingAdds.rem(shipId);
             vs_pendingRemoves.add(shipId);
             vs_scheduleKnownShipsFlush();
         }

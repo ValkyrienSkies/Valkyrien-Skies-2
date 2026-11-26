@@ -160,15 +160,15 @@ object EntityShipCollisionUtils {
                     if (isInSpawnGracePeriod(ship.id)) {
                         return@all true // pretend it's loaded → don't block movement
                     }
+                    if (entity is PlayerKnownShipsDuck && !entity.vs_isKnownShip(ship.id)) {
+                        return@all !shouldBlockPlayerForUnloadedShip(entity, ship, currentTick)
+                    }
                     val pieces = level.allShips.getSplitPieces(ship.id)
                     val chunksLoaded = if (pieces.isEmpty()) areAllChunksLoaded(ship, AABBd(aabb).transform(ship.worldToShip), level)
                         else pieces.all { !it.worldBounds.intersectsAABB(aabb) || areAllChunksLoaded(ship, AABBd(aabb).transform(it.worldToShip), level) }
                     if (chunksLoaded) {
                         unloadedShipBlockStartTicks(entity).remove(playerShipBlockKey(entity, ship.id))
                         return@all true
-                    }
-                    if (entity is PlayerKnownShipsDuck && !entity.vs_isKnownShip(ship.id)) {
-                        return@all !shouldBlockPlayerForUnloadedShip(entity, ship, currentTick)
                     }
                     !shouldBlockPlayerForUnloadedShip(entity, ship, currentTick)
                 }
