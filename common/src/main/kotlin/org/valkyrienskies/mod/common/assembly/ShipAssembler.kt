@@ -17,17 +17,20 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlac
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessor
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessorType
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate
+import org.joml.Matrix4dc
 import org.joml.Quaterniond
 import org.joml.RoundingMode
 import org.joml.Vector3d
 import org.joml.Vector3i
 import org.valkyrienskies.core.api.ships.LoadedServerShip
 import org.valkyrienskies.core.api.ships.ServerShip
+import org.valkyrienskies.core.api.ships.ShipPhysicalPiece
 import org.valkyrienskies.core.api.ships.properties.ShipId
 import org.valkyrienskies.core.api.util.GameTickOnly
 import org.valkyrienskies.core.impl.config.VSCoreConfig
 import org.valkyrienskies.core.internal.ships.VsiServerShip
 import org.valkyrienskies.mod.common.assembly.ShipAssembler.assembleToShipFull
+import org.valkyrienskies.mod.common.allShips
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.executeIf
 import org.valkyrienskies.mod.common.fluid.FractionalFluidLifecycle
@@ -121,6 +124,21 @@ object ShipAssembler {
         return Vector3d(fromShip.velocity).add(Vector3d(fromShip.angularVelocity).cross(r))
     }
 
+    internal fun dominantPiece(pieces: List<ShipPhysicalPiece>, blocks: Iterable<BlockPos>): ShipPhysicalPiece? {
+        if (pieces.isEmpty()) return null
+        val counts = IntArray(pieces.size)
+        val world = Vector3d()
+        val cell = Vector3i()
+        for (pos in blocks) {
+            for ((i, piece) in pieces.withIndex()) {
+                piece.shipToWorld.transformPosition(pos.x + 0.5, pos.y + 0.5, pos.z + 0.5, world)
+                if (piece.blockPositionAt(world, cell) != null) counts[i]++
+            }
+        }
+        val best = counts.indices.maxByOrNull { counts[it] } ?: return null
+        return if (counts[best] > 0) pieces[best] else null
+    }
+
     @JvmStatic
     @OptIn(GameTickOnly::class)
     fun assembleToShipFull(level: ServerLevel, blocks: Set<BlockPos>, scale: Double = 1.0): AssembleContext {
@@ -142,7 +160,12 @@ object ShipAssembler {
 
         val fromShip = level.getLoadedShipManagingPos(fromCenter) ?: level.getShipManagingPos(fromCenter)
         val oldScale = fromShip?.transform?.scaling?.x() ?: 1.0
-        val worldOldCenter = fromShip?.shipToWorld?.transformPosition(fromCenter.get(Vector3d())) ?: fromCenter.get(Vector3d())
+        val piece = fromShip?.let { dominantPiece(level.allShips.getSplitPieces(it.id), blocks) }
+        val sourceToWorld: Matrix4dc? = piece?.shipToWorld ?: fromShip?.shipToWorld
+        val image = if (piece == null || fromShip == null) Quaterniond() else
+            piece.shipToWorld.getNormalizedRotation(Quaterniond())
+                .mul(Quaterniond(fromShip.transform.shipToWorldRotation).conjugate()).normalize()
+        val worldOldCenter = sourceToWorld?.transformPosition(fromCenter.get(Vector3d())) ?: fromCenter.get(Vector3d())
 
         val toShip = level.shipObjectWorld.createNewShipAtBlock(Vector3i(worldOldCenter, RoundingMode.FLOOR), false, scale * oldScale, level.dimensionId)
         toShip.isStatic = fromShip == null || fromShip.isStatic
@@ -164,17 +187,16 @@ object ShipAssembler {
         }
 
         //teleport fn uses COM as center of ship, so it calculates such offset that centerOfShip will be "center" instead
-        val posOffset =
-            Vector3d(toShip.inertiaData.centerOfMass)
-                .sub(Vector3d(toCenter))
-                .let { fromShip?.shipToWorld?.transformDirection(it) ?: it }
+        val comOffset = Vector3d(toShip.inertiaData.centerOfMass).sub(Vector3d(toCenter))
+        val posOffset = fromShip?.shipToWorld?.transformDirection(Vector3d(comOffset)) ?: comOffset
+        val imagePosOffset = sourceToWorld?.transformDirection(Vector3d(comOffset)) ?: comOffset
 
         (toShip as VsiServerShip).unsafeSetKinematics(vsCore.newBodyKinematics(
-            splitVelocity(fromShip, fromCenter, posOffset),
-            fromShip?.angularVelocity ?: Vector3d(),
+            image.transform(splitVelocity(fromShip, fromCenter, posOffset)),
+            image.transform(Vector3d(fromShip?.angularVelocity ?: Vector3d())),
             vsCore.newBodyTransform(
-                (fromShip?.shipToWorld?.transformPosition(Vector3d(fromCenter)) ?: fromCenter).add(posOffset),
-                fromShip?.transform?.shipToWorldRotation ?: Quaterniond(),
+                (sourceToWorld?.transformPosition(Vector3d(fromCenter)) ?: fromCenter).add(imagePosOffset),
+                fromShip?.transform?.shipToWorldRotation?.let { Quaterniond(image).mul(it) } ?: Quaterniond(),
                 Vector3d(scale * oldScale, scale * oldScale, scale * oldScale),
                 toCenter
             )
