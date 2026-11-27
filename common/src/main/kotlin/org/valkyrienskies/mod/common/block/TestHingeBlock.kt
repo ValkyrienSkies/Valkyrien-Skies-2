@@ -190,9 +190,7 @@ object TestHingeBlock :
             shipId1, VSJointPose(attachmentLocalPos1, hingeOrientation),
             maxForceTorque = null, driveFreeSpin = true
         )
-        ValkyrienSkiesMod.getOrCreateGTPA(level.dimensionId).addJoint(blockEntity.get().hingeConstraint!!, delay = 4) { t ->
-            blockEntity.get().constraintId = t
-        }
+        blockEntity.get().createConstraint()
 
         return InteractionResult.CONSUME
     }
@@ -202,7 +200,7 @@ object TestHingeBlock :
     ) {
         if (level is ServerLevel) run {
             val be = level.getBlockEntity(blockPos) as? TestHingeBlockEntity ?: return@run
-            ValkyrienSkiesMod.getOrCreateGTPA(level.dimensionId).removeJoint(be.constraintId ?: return@run)
+            be.removeConstraint()
         }
 
         super.onRemove(blockState, level, blockPos, blockState2, bl)

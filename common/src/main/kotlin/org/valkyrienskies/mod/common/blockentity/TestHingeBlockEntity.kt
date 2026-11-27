@@ -27,6 +27,27 @@ class TestHingeBlockEntity(blockPos: BlockPos, blockState: BlockState) : BlockEn
     var hingeConstraint: VSRevoluteJoint? = null
 
     private var makeConstraint = false
+    private var cancelConstraintCreation: (() -> Unit)? = null
+
+    fun createConstraint() {
+        val serverLevel = level as? ServerLevel ?: return
+        val joint = hingeConstraint ?: return
+        cancelConstraintCreation = ValkyrienSkiesMod.getOrCreateGTPA(serverLevel.dimensionId)
+            .addJointWhenBodiesReady(joint, delay = 4) { constraintId = it }
+    }
+
+    fun removeConstraint() {
+        val cancel = cancelConstraintCreation
+        if (cancel != null) {
+            cancel()
+        } else {
+            val serverLevel = level as? ServerLevel ?: return
+            constraintId?.let { ValkyrienSkiesMod.getOrCreateGTPA(serverLevel.dimensionId).removeJoint(it) }
+        }
+        cancelConstraintCreation = null
+        constraintId = null
+        makeConstraint = false
+    }
 
     override fun saveAdditional(tag: CompoundTag) {
         val h = hingeConstraint ?: return
@@ -53,10 +74,7 @@ class TestHingeBlockEntity(blockPos: BlockPos, blockState: BlockState) : BlockEn
         if (level !is ServerLevel) return
         makeConstraint = false
 
-        val level = level as ServerLevel
-        ValkyrienSkiesMod.getOrCreateGTPA(level.dimensionId).addJoint(hingeConstraint!!, 4) {
-            constraintId = it
-        }
+        createConstraint()
     }
 }
 
