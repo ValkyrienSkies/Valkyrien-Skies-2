@@ -187,6 +187,9 @@ object BlockStateInfo {
         val (newBlockMass, rawNewBlockType) = get(newBlockState) ?: return
 
         val prevBlockType = rawPrevBlockType
+        // Per-position collision shapes are pushed explicitly by BlockShapes.onShapeChanged.
+        // Do not build one here: placement and unrelated block-state updates can run before the
+        // block entity has loaded its data, and would needlessly recalculate an unchanged shape.
         val newBlockType = rawNewBlockType
 
         // region Inject wings
