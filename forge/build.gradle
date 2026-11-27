@@ -210,16 +210,6 @@ dependencies {
         transitive = false
     }
 
-    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api_krunch:${rootProject.krunch_version}") {
-        exclude group: 'org.joml', module: 'joml'
-        transitive = false
-    }
-
-    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api:${rootProject.krunch_api_version}") {
-        exclude group: 'org.joml', module: 'joml'
-        transitive = false
-    }
-
     forgeRuntimeLibrary include("javax.inject:javax.inject:1") { transitive = false }
 
     // JOML for Math
